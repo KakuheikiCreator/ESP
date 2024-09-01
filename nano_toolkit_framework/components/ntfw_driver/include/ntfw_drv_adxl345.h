@@ -5,7 +5,7 @@
  * MODULE :ADXL345 Driver functions header file
  *
  * CREATED:2019/12/05 22:11:00
- * AUTHOR :Nakanohito
+ * AUTHOR :Kakuheiki.Nakanohito
  *
  * DESCRIPTION:ADXL345 3-AXIS SENSOR driver
  *
@@ -15,7 +15,7 @@
  *
  *******************************************************************************
  *
- * Copyright (c) 2024 Nakanohito
+ * Copyright (c) 2024 Kakuheiki.Nakanohito
  * Released under the MIT license
  * https://opensource.org/licenses/mit-license.php
  *

@@ -5,7 +5,7 @@
  * MODULE :common File Utility functions header file
  *
  * CREATED:2019/09/10 02:45:00
- * AUTHOR :Nakanohito
+ * AUTHOR :Kakuheiki.Nakanohito
  *
  * DESCRIPTION:ファイルユーティリティ関係の関数群
  *
@@ -15,7 +15,7 @@
  *
  *******************************************************************************
  *
- * Copyright (c) 2024 Nakanohito
+ * Copyright (c) 2024 Kakuheiki.Nakanohito
  * Released under the MIT license
  * https://opensource.org/licenses/mit-license.php
  *

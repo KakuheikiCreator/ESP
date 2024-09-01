@@ -3,7 +3,7 @@
  * MODULE :GATT Messager Library functions source file
  *
  * CREATED:2021/06/10 00:32:00
- * AUTHOR :Nakanohito
+ * AUTHOR :Kakuheiki.Nakanohito
  *
  * DESCRIPTION:GATTメッセンジャークライアント
  *
@@ -13,7 +13,7 @@
  *
  *******************************************************************************
  *
- * Copyright (c) 2024 Nakanohito
+ * Copyright (c) 2024 Kakuheiki.Nakanohito
  * Released under the MIT license
  * https://opensource.org/licenses/mit-license.php
  *

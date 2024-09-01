@@ -5,7 +5,7 @@
  * MODULE :common memory allocation functions header file
  *
  * CREATED:2022/03/26 11:35:00
- * AUTHOR :Nakanohito
+ * AUTHOR :Kakuheiki.Nakanohito
  *
  * DESCRIPTION:動的メモリ割り当て関係の関数群
  *
@@ -15,7 +15,7 @@
  *
  *******************************************************************************
  *
- * Copyright (c) 2024 Nakanohito
+ * Copyright (c) 2024 Kakuheiki.Nakanohito
  * Released under the MIT license
  * https://opensource.org/licenses/mit-license.php
  *

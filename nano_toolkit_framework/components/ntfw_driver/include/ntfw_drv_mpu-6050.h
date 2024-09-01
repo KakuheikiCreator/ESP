@@ -5,7 +5,7 @@
  * MODULE :MPU-6050 Driver functions header file
  *
  * CREATED:2019/12/26 02:08:00
- * AUTHOR :Nakanohito
+ * AUTHOR :Kakuheiki.Nakanohito
  *
  * DESCRIPTION:MPU-6050 Motion Processing Unit driver
  *
@@ -15,7 +15,7 @@
  *
  *******************************************************************************
  *
- * Copyright (c) 2024 Nakanohito
+ * Copyright (c) 2024 Kakuheiki.Nakanohito
  * Released under the MIT license
  * https://opensource.org/licenses/mit-license.php
  *

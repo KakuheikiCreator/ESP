@@ -5,7 +5,7 @@
  * MODULE :Bluetooth Low Energy Framework functions source file
  *
  * CREATED:2020/01/24 01:34:00
- * AUTHOR :Nakanohito
+ * AUTHOR :Kakuheiki.Nakanohito
  *
  * DESCRIPTION:Bluetooth Low Energyのフレームワークとユーティリティ関数群
  *
@@ -15,7 +15,7 @@
  *
  *******************************************************************************
  *
- * Copyright (c) 2024 Nakanohito
+ * Copyright (c) 2024 Kakuheiki.Nakanohito
  * Released under the MIT license
  * https://opensource.org/licenses/mit-license.php
  *

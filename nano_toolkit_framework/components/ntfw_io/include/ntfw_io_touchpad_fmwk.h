@@ -5,7 +5,7 @@
  * MODULE :Common Touchpad framework functions header file
  *
  * CREATED:2020/03/22 18:00:00
- * AUTHOR :Nakanohito
+ * AUTHOR :Kakuheiki.Nakanohito
  *
  * DESCRIPTION:タッチパッドの簡易フレームワーク関数群
  *
@@ -15,7 +15,7 @@
  *
  *******************************************************************************
  *
- * Copyright (c) 2024 Nakanohito
+ * Copyright (c) 2024 Kakuheiki.Nakanohito
  * Released under the MIT license
  * https://opensource.org/licenses/mit-license.php
  *

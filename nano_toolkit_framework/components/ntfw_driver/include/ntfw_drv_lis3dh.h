@@ -5,7 +5,7 @@
  * MODULE :LIS3DH Driver functions header file
  *
  * CREATED:2020/01/01 18:02:00
- * AUTHOR :Nakanohito
+ * AUTHOR :Kakuheiki.Nakanohito
  *
  * DESCRIPTION:LIS3DH Accelerometer Processing Unit driver
  *
@@ -15,7 +15,7 @@
  *
  *******************************************************************************
  *
- * Copyright (c) 2024 Nakanohito
+ * Copyright (c) 2024 Kakuheiki.Nakanohito
  * Released under the MIT license
  * https://opensource.org/licenses/mit-license.php
  *
