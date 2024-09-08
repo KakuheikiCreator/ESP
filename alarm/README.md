@@ -92,5 +92,20 @@ I, my family, and the people around me have all suffered similar abuse.
 
 With this background, developing this system was inevitable for me.
 
-The photos are part of an investigation report and a medical certificate 
-that revealed the media eavesdropping from the next room.
+# Photos
+The photos show the actual product, 
+as well as part of the investigation report and medical certificate from when 
+the media I mentioned in the development history were discovered.
+
+![alarm_box_m](https://github.com/user-attachments/assets/ff0d6fc2-4c30-4ef4-b030-ffa8400c35bc)
+![alarm_controller_front_m](https://github.com/user-attachments/assets/89c555b4-2b58-4cb1-8b35-ca3bb5ef9514)
+![alarm_controller_back_m](https://github.com/user-attachments/assets/ca77de5d-dbcc-4489-833a-13298ee32f9f)
+![development_boa![motion_sensor_m](https://github.com/user-attachments/assets/a949b88b-e998-41ea-8f54-076febd91bea)
+rd_m](https://github.com/user-attachments/assets/d411b2b0-3ee6-453f-9619-f859998c39b2)
+![ipm165_pcb_m](https://github.com/user-attachments/assets/3916991b-ed67-43dd-9833-0d09396cc839)
+
+![200902_public_bee_report_00](https://github.com/user-attachments/assets/0697a089-1151-48a1-83d9-3ee27075a73c)
+![200902_public_bee_report_01](https://github.com/user-attachments/assets/09362294-1518-466f-b4c6-3f2e8f4acfc1)
+![20150127_都立広尾病院](https://github.com/user-attachments/assets/e201aecf-1e0e-4d8b-ad70-9fe179aca791)
+![20151218_新東京病院](https://github.com/user-attachments/assets/406ed4e3-4426-413b-ba4e-66aedee3c8a4)
+
