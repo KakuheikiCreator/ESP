@@ -33,6 +33,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdbool.h>
 #include <esp_system.h>
+#include <esp_bt.h>
 #include <esp_bt_defs.h>
 #include <ntfw_com_data_model.h>
 #include <ntfw_ble_fmwk.h>

@@ -406,9 +406,9 @@ static te_com_ble_msg_connection_sts_t e_connect_sts_svr();
 /** BLE Connection status (Client Side) */
 static te_com_ble_msg_connection_sts_t e_connect_sts_cli();
 /** BLE Rx Data(Server Side) */
-static ts_com_ble_gatt_rx_data_t* ps_ble_rx_data_svr();
+static ts_com_ble_gatt_rx_data_t* ps_ble_rx_data_svr(TickType_t t_tick);
 /** BLE Rx Data(Client Side) */
-static ts_com_ble_gatt_rx_data_t* ps_ble_rx_data_cli();
+static ts_com_ble_gatt_rx_data_t* ps_ble_rx_data_cli(TickType_t t_tick);
 /** BLE Server Rx Data queue clea(Server Side)r */
 static void v_ble_rx_clear_svr();
 /** BLE Client Rx Data queue clear(Client Side) */
@@ -1284,7 +1284,7 @@ esp_err_t sts_com_msg_close() {
         sts_val = sts_com_ble_disconnect(ps_con->t_bda);
     }
     // 制御ステータス初期化
-    v_msg_ctrl_sts_init(s_msg_ctrl_cfg.u64_device_id);
+    v_msg_ctrl_sts_init();
 
     //==========================================================================
     // クリティカルセクション終了
@@ -2995,7 +2995,8 @@ static te_com_ble_msg_rcv_sts_t e_rx_message(ts_com_msg_t* ps_rx_msg,
         if (ps_rx_msg->e_type != COM_BLE_MSG_TYP_RESPONSE) {
             ESP_LOGW(LOG_TAG, "%s L#%d rx type=%d", __func__, __LINE__, ps_rx_msg->e_type);
         } else {
-            ESP_LOGW(LOG_TAG, "%s L#%d rx rsp_type=%d tick=%ldms", __func__, __LINE__, ps_rx_msg->ps_data->pu8_values[0], xTaskGetTickCount() * portTICK_PERIOD_MS);
+			unsigned long ul_tick = (unsigned long)(xTaskGetTickCount() * portTICK_PERIOD_MS);
+            ESP_LOGW(LOG_TAG, "%s L#%d rx rsp_type=%d tick=%lums", __func__, __LINE__, ps_rx_msg->ps_data->pu8_values[0], ul_tick);
         }
 #endif
     } while(false);
@@ -3212,7 +3213,8 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_check(ts_com_msg_t* ps_rx_msg) {
         if (ps_rx_msg->e_type != COM_BLE_MSG_TYP_RESPONSE) {
             ESP_LOGW(LOG_TAG, "%s L#%d rx type=%d", __func__, __LINE__, ps_rx_msg->e_type);
         } else {
-            ESP_LOGW(LOG_TAG, "%s L#%d rx rsp_type=%d tick=%ldms", __func__, __LINE__, ps_rx_msg->ps_data->pu8_values[0], xTaskGetTickCount() * portTICK_PERIOD_MS);
+			unsigned long ul_tick = (unsigned long)(xTaskGetTickCount() * portTICK_PERIOD_MS);
+            ESP_LOGW(LOG_TAG, "%s L#%d rx rsp_type=%d tick=%lums", __func__, __LINE__, ps_rx_msg->ps_data->pu8_values[0], ul_tick);
         }
 #endif
     } while(false);
@@ -3423,7 +3425,7 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_event(ts_com_msg_t* ps_rx_msg) {
                 char sts_txt[(COM_MSG_SIZE_TICKET_STS * 2) + 1];
                 v_vutil_u8_to_hex_string(ps_pairing->u8_rmt_sts_hash, COM_MSG_SIZE_TICKET_STS, sts_txt);
                 ESP_LOGW(LOG_TAG, "%s L#%d rx_hash=%s", __func__, __LINE__, sts_txt);
-                ESP_LOGW(LOG_TAG, "%s L#%d rx_no=%ld", __func__, __LINE__, ps_pairing->u32_max_seq_no);
+                ESP_LOGW(LOG_TAG, "%s L#%d rx_no=%lu", __func__, __LINE__, (unsigned long)ps_pairing->u32_max_seq_no);
             } while(false);
 #endif
             // 相互認証チェック
@@ -3679,7 +3681,7 @@ static esp_err_t sts_tx_response(te_com_ble_msg_type_t e_rx_type,
     // 受信通知メッセージ生成
     //==========================================================================
 #ifdef COM_BLE_MSG_DEBUG
-    ESP_LOGW(LOG_TAG, "%s L#%d rcv_type=%d rx_sts=%02x seq=%ld", __func__, __LINE__, e_rx_type, e_rx_sts, u32_seq_no);
+    ESP_LOGW(LOG_TAG, "%s L#%d rcv_type=%d rx_sts=%02x seq=%lu", __func__, __LINE__, e_rx_type, e_rx_sts, (unsigned long)u32_seq_no);
 #endif
     // メッセージ定義の取得
     const ts_msg_definition_t* ps_def = &MSG_DEF[COM_BLE_MSG_TYP_RESPONSE];
@@ -4795,9 +4797,10 @@ static ts_u8_array_t* ps_create_msg_data(te_com_ble_msg_type_t e_type,
         u32_msg_len = MSG_SIZE_HEADER + u32_body_len + MSG_SIZE_FOOTER;
     }
 #ifdef COM_BLE_MSG_DEBUG
+    ESP_LOGW(LOG_TAG, "%s L#%d own_id       = %llu", __func__, __LINE__, s_msg_ctrl_cfg.u64_device_id);
     ESP_LOGW(LOG_TAG, "%s L#%d MSG Type     = %d", __func__, __LINE__, e_type);
-    ESP_LOGW(LOG_TAG, "%s L#%d u16_msg_len  = %ld", __func__, __LINE__, u32_msg_len);
-    ESP_LOGW(LOG_TAG, "%s L#%d u16_body_len = %ld", __func__, __LINE__, u32_body_len);
+    ESP_LOGW(LOG_TAG, "%s L#%d u16_msg_len  = %lu", __func__, __LINE__, (unsigned long)u32_msg_len);
+    ESP_LOGW(LOG_TAG, "%s L#%d u16_body_len = %lu", __func__, __LINE__, (unsigned long)u32_body_len);
 #endif
     //--------------------------------------------------------------------------
     // メッセージ長チェック
@@ -5057,7 +5060,7 @@ static esp_err_t sts_create_ticket(ts_transaction_info_t* ps_tran, ts_pairing_in
     ESP_LOGW(LOG_TAG, "%s L#%d own_code=%s", __func__, __LINE__, sts_txt);
     v_vutil_u8_to_hex_string(ps_ticket->u8_rmt_sts_hash, COM_MSG_SIZE_TICKET_STS, sts_txt);
     ESP_LOGW(LOG_TAG, "%s L#%d rmt_hash=%s", __func__, __LINE__, sts_txt);
-    ESP_LOGW(LOG_TAG, "%s L#%d seq_no=%ld", __func__, __LINE__, ps_ticket->u32_max_seq_no);
+    ESP_LOGW(LOG_TAG, "%s L#%d seq_no=%lu", __func__, __LINE__, (unsigned long)ps_ticket->u32_max_seq_no);
 #endif
     // チケットの書き込み
     esp_err_t sts_val = s_msg_ctrl_cfg.pf_tkt_cb(COM_BLE_MSG_TICKET_EVT_CREATE, ps_ticket);
@@ -5617,8 +5620,8 @@ static esp_err_t sts_ble_tx_msg_svr(ts_u8_array_t* ps_msg) {
         return sts_val;
     }
 #ifdef COM_BLE_MSG_DEBUG
-    TickType_t t_now = xTaskGetTickCount() * portTICK_PERIOD_MS;
-    ESP_LOGW(LOG_TAG, "%s tick=%ldms type=%d t_size=%d", __func__, t_now, ps_msg->pu8_values[MSG_POS_TYPE], ps_msg->t_size);
+	unsigned long ul_now = (unsigned long)(xTaskGetTickCount() * portTICK_PERIOD_MS);
+    ESP_LOGW(LOG_TAG, "%s tick=%lums type=%d t_size=%d", __func__, ul_now, ps_msg->pu8_values[MSG_POS_TYPE], ps_msg->t_size);
 #endif
 
     //==========================================================================
@@ -5673,8 +5676,8 @@ static esp_err_t sts_ble_tx_msg_cli(ts_u8_array_t* ps_msg) {
         return sts_val;
     }
 #ifdef COM_BLE_MSG_DEBUG
-    TickType_t t_now = xTaskGetTickCount() * portTICK_PERIOD_MS;
-    ESP_LOGW(LOG_TAG, "%s tick=%ldms type=%d t_size=%d", __func__, t_now, ps_msg->pu8_values[MSG_POS_TYPE], ps_msg->t_size);
+    unsigned long ul_now = (unsigned long)(xTaskGetTickCount() * portTICK_PERIOD_MS);
+    ESP_LOGW(LOG_TAG, "%s tick=%ldms type=%d t_size=%d", __func__, ul_now, ps_msg->pu8_values[MSG_POS_TYPE], ps_msg->t_size);
 #endif
 
     //==========================================================================

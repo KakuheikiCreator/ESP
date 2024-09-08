@@ -32,8 +32,7 @@ extern "C" {
 /******************************************************************************/
 #include <stdio.h>
 #include <stdbool.h>
-#include <freertos/portmacro.h>
-#include "driver/i2c.h"
+#include <driver/i2c.h>
 
 
 /******************************************************************************/

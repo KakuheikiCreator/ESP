@@ -3,7 +3,7 @@
  * MODULE :settings header file
  *
  * CREATED:2021/12/04 17:29:00
- * AUTHOR :Kakuheiki.Nakanohito
+ * AUTHOR :Nakanohito
  *
  * DESCRIPTION:プリプロセッサで参照する各ライブラリの設定等を記載
  *
@@ -13,7 +13,7 @@
  *
  *******************************************************************************
  *
- * Copyright (c) 2024 Kakuheiki.Nakanohito
+ * Copyright (c) 2024 Nakanohito
  * Released under the MIT license
  * https://opensource.org/licenses/mit-license.php
  *

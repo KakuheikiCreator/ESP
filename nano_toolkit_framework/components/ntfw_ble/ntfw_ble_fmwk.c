@@ -381,28 +381,6 @@ static const uint8_t u8_base_uuid[16] = {
 //==============================================================================
 // GAP関係の定数定義
 //==============================================================================
-/** GAPプロファイルのステータスデフォルト値 */
-static const ts_com_ble_gap_config_t s_gap_cfg_default = {
-        .pc_device_name  = NULL,                // デバイス名
-        .t_auth_req      = ESP_LE_AUTH_NO_BOND, // 認証リクエストタイプ
-        .t_iocap         = ESP_IO_CAP_NONE,     // デバイスのIO組み合わせ
-        .u8_init_key     = 0x00,                // 初期キーの設定
-        .u8_rsp_key      = 0x00,                // 応答キーの設定
-        .u8_max_key_size = 16,                  // 最大キーサイズ
-        .u8_auth_option  = ESP_BLE_ONLY_ACCEPT_SPECIFIED_AUTH_ENABLE,    // 受け入れ権限設定
-        .v_callback      = NULL                 // ユーザーコールバック関数のポインタ
-};
-
-/** GAPプロファイルのステータスデフォルト値 */
-static const ts_gap_status_t s_gap_sts_default = {
-        .u32_status        = 0x00,              // 状態ステータス
-        .s_adv_config      = {0x00},            // GAPアドバタイズデータ設定
-        .s_scan_rsp_config = {0x00},            // GAPスキャン応答データ設定
-        .s_scan_config     = {0x00},            // スキャン設定
-        .s_adv_params      = {0x00},            // アドバタイズパラメータ
-        .u32_scan_duration = 0x00,              // スキャン実行時間
-        .i64_scan_timeout  = 0                  // スキャンタイムアウト
-};
 
 /** GAPプロファイルのデバイスステータスのデフォルト値 */
 static const ts_gap_device_t s_gap_dev_default = {
@@ -466,7 +444,15 @@ static const ts_com_ble_gatts_if_config_t s_gatts_cfg_default = {
 static const ts_gatts_if_status_t s_gatts_if_sts_default = {
     .t_gatt_if  = ESP_GATT_IF_NONE,     // GATTインターフェース ※キー１
     .u16_app_id = 0,                    // アプリケーションID   ※キー２（GATTインターフェースと1対1）
-    .s_cfg      = s_gatts_cfg_default,  // GATTインターフェース設定
+    .s_cfg      = {
+        .u16_app_id   = 0,              // アプリケーションID
+        .e_con_sec    = 0,              // 接続時のセキュリティタイプ
+        .u8_svc_cnt   = 0,              // サービス数
+        .ps_svc_cfg   = NULL,           // サービス設定配列
+        .fc_gatts_cb  = NULL,           // インターフェース毎のコールバック関数
+        .pv_app_param = NULL,           // アプリケーションパラメータ
+        .pv_usr_param = NULL            // ユーザー利用パラメータ
+	},
     .u8_svc_cnt = 0,                    // GATTサービス数
     .ps_svc_sts = NULL,                 // GATTサーバーのサービスステータス
     .ps_con_sts = NULL,                 // GATTサーバーのコネクションステータス
@@ -792,8 +778,26 @@ static SemaphoreHandle_t s_mutex = NULL;
 //==============================================================================
 /** GAPプロファイル制御情報 */
 static ts_gap_ctrl_t s_gap_ctrl = {
-    .s_config    = s_gap_cfg_default,   // GAPの設定情報
-    .s_status    = s_gap_sts_default,   // GAPのステータス情報
+    .s_config    = {					// GAPの設定情報
+        .pc_device_name  = NULL,                // デバイス名
+        .t_auth_req      = ESP_LE_AUTH_NO_BOND, // 認証リクエストタイプ
+        .t_iocap         = ESP_IO_CAP_NONE,     // デバイスのIO組み合わせ
+        .u8_init_key     = 0x00,                // 初期キーの設定
+        .u8_rsp_key      = 0x00,                // 応答キーの設定
+        .u8_max_key_size = 16,                  // 最大キーサイズ
+        .u8_auth_option  = ESP_BLE_ONLY_ACCEPT_SPECIFIED_AUTH_ENABLE,    // 受け入れ権限設定
+        .v_callback      = NULL                 // ユーザーコールバック関数のポインタ
+	},
+    .s_status    = {  					// GAPのステータス情報
+        .u32_status        = 0x00,      // 状態ステータス
+        .s_adv_config      = {0x00},    // GAPアドバタイズデータ設定
+        .s_scan_rsp_config = {0x00},    // GAPスキャン応答データ設定
+        .s_scan_config     = {0x00},    // スキャン設定
+        .s_adv_params      = {0x00},    // アドバタイズパラメータ
+        .u32_scan_duration = 0x00,      // スキャン実行時間
+        .i64_scan_timeout  = 0          // スキャンタイムアウト
+		
+	},
     .u16_dev_cnt = 0,                   // GAPのデバイス情報数
     .ps_device   = NULL                 // GAPのデバイス情報
 };

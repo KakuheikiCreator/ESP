@@ -3,7 +3,7 @@
  * MODULE :alarm controller main source file
  *
  * CREATED:2022/12/02 07:55:00
- * AUTHOR :Kakuheiki.Nakanohito
+ * AUTHOR :Nakanohito
  *
  * DESCRIPTION:警報機のコントローラ機能を実装
  *
@@ -13,7 +13,7 @@
  *
  *******************************************************************************
  *
- * Copyright (c) 2024 Kakuheiki.Nakanohito
+ * Copyright (c) 2024 Nakanohito
  * Released under the MIT license
  * https://opensource.org/licenses/mit-license.php
  *
@@ -188,9 +188,9 @@
 /** 待ち時間：ペアリングタイムアウト（ミリ秒） */
 #define EVT_PAIRING_TIMEOUT_MS      (90000)
 /** 待ち時間：ステータスチェックアウト（ミリ秒） */
-#define EVT_STATUS_CHECK_TIMEOUT_MS (1000)
+#define EVT_STATUS_CHECK_TIMEOUT_MS (2000)
 /** 待ち時間：モードチェックタイムアウト（ミリ秒） */
-#define EVT_MODE_CHECK_TIMEOUT_MS   (1000)
+#define EVT_MODE_CHECK_TIMEOUT_MS   (2000)
 /** イベントキューサイズ */
 #define EVT_QUEUE_SIZE              (16)
 /** イベントキューウェイト時間 */
@@ -833,10 +833,10 @@ static void v_init_device() {
     //==========================================================================
     // ログ出力設定
     //==========================================================================
-#ifndef DEBUG_ALARM
-    esp_log_level_set("*", ESP_LOG_NONE);
-#else
+#ifdef DEBUG_ALARM
     esp_log_level_set("*", ESP_LOG_INFO);
+#else
+    esp_log_level_set("*", ESP_LOG_NONE);
 #endif
 
     //==========================================================================
@@ -846,11 +846,11 @@ static void v_init_device() {
     ps_adc_ctx = ps_adc_oneshot_calibration_ctx(ADC_UNIT_1,
                                                 ADC_DIGI_CLK_SRC_DEFAULT,
                                                 ADC_ULP_MODE_DISABLE,
-                                                ADC_ATTEN_DB_11);
+                                                ADC_ATTEN_DB_12);
     // ADCチャンネル設定
     sts_val = sts_adc_oneshot_config_channel(ps_adc_ctx,
                                              COM_5WAY_CHANNEL,
-                                             ADC_ATTEN_DB_11,
+                                             ADC_ATTEN_DB_12,
                                              ADC_BITWIDTH_12);
     // エラーチェック
     ESP_ERROR_CHECK(sts_val);
@@ -1082,6 +1082,9 @@ static bool b_read_setting() {
         strcpy(s_dev_settings.c_device_name, ps_device_name->valuestring);
         // 編集完了
         b_sts = true;
+#ifdef DEBUG_ALARM
+    ESP_LOGI(LOG_MSG_TAG, "dev_id=%llu dev_name=%s", s_dev_settings.u64_device_id, s_dev_settings.c_device_name);
+#endif
     } while(false);
     // cJSON解放
     cJSON_Delete(ps_setting);
@@ -1898,28 +1901,28 @@ static esp_err_t sts_msg_ticket_cb(te_com_ble_msg_ticket_evt_t e_evt, ts_com_msg
     case COM_BLE_MSG_TICKET_EVT_CREATE:
         // チケット生成
 #ifdef DEBUG_ALARM
-    ESP_LOGI(LOG_MSG_TAG, "COM_BLE_MSG_TICKET_EVT_CREATE id=%llu", ps_ticket->u64_rmt_device_id);
+    ESP_LOGI(LOG_MSG_TAG, "COM_BLE_MSG_TICKET_EVT_CREATE own_id=%llu rmt_id=%llu", ps_ticket->u64_own_device_id, ps_ticket->u64_rmt_device_id);
 #endif
         sts_val = sts_msg_ticket_create(ps_ticket);
         break;
     case COM_BLE_MSG_TICKET_EVT_READ:
         // チケット読み込み
 #ifdef DEBUG_ALARM
-    ESP_LOGI(LOG_MSG_TAG, "COM_BLE_MSG_TICKET_EVT_READ id=%llu", ps_ticket->u64_rmt_device_id);
+    ESP_LOGI(LOG_MSG_TAG, "COM_BLE_MSG_TICKET_EVT_READ own_id=%llu rmt_id=%llu", ps_ticket->u64_own_device_id, ps_ticket->u64_rmt_device_id);
 #endif
         sts_val = sts_msg_ticket_read(ps_ticket);
         break;
     case COM_BLE_MSG_TICKET_EVT_UPDATE:
         // チケット更新
 #ifdef DEBUG_ALARM
-    ESP_LOGI(LOG_MSG_TAG, "COM_BLE_MSG_TICKET_EVT_UPDATE id=%llu", ps_ticket->u64_rmt_device_id);
+    ESP_LOGI(LOG_MSG_TAG, "COM_BLE_MSG_TICKET_EVT_UPDATE own_id=%llu rmt_id=%llu", ps_ticket->u64_own_device_id, ps_ticket->u64_rmt_device_id);
 #endif
         sts_val = sts_msg_ticket_update(ps_ticket);
         break;
     case COM_BLE_MSG_TICKET_EVT_DELETE:
         // チケット削除
 #ifdef DEBUG_ALARM
-    ESP_LOGI(LOG_MSG_TAG, "COM_BLE_MSG_TICKET_EVT_DELETE id=%llu", ps_ticket->u64_rmt_device_id);
+    ESP_LOGI(LOG_MSG_TAG, "COM_BLE_MSG_TICKET_EVT_DELETE own_id=%llu rmt_id=%llu", ps_ticket->u64_own_device_id, ps_ticket->u64_rmt_device_id);
 #endif
         sts_val = sts_msg_ticket_delete(ps_ticket);
         break;
@@ -2719,6 +2722,9 @@ static bool b_evt_upd_connect_sts(te_connection_sts_t e_sts) {
         //----------------------------------------------------------------------
         // 各接続ステータス毎の処理
         //----------------------------------------------------------------------
+#ifdef DEBUG_ALARM
+        ESP_LOGE(LOG_MSG_TAG, "%s L#%d now_sts=%d next_sts=%d", __func__, __LINE__, e_sts_now, e_sts);
+#endif
         // コネクションステータスを判定
         switch (e_sts) {
         case CON_STS_DISCONNECTED:
@@ -2741,7 +2747,7 @@ static bool b_evt_upd_connect_sts(te_connection_sts_t e_sts) {
             if (e_sts_now >= CON_STS_CONNECTING && e_sts_now <= CON_STS_MODE_CHECK) {
                 // 接続中の切断は、警報機側で警報かペアリング解消と判断
                 v_evt_unpairing(t_bda, ps_ticket->u64_rmt_device_id);
-            }
+			}
 
             //------------------------------------------------------------------
             // 接続ステータス更新
@@ -3075,6 +3081,7 @@ static void v_evt_common(te_usr_event_t e_evt) {
     ts_com_msg_auth_ticket_t* ps_ticket = &s_com_status.s_ticket;
     // 現在の接続ステータス
     te_connection_sts_t e_con_sts = s_com_status.e_connect_sts;
+    
     // イベント処理
     switch (e_evt) {
 #ifdef DEBUG_ALARM
@@ -3690,8 +3697,11 @@ static void v_scr_device_select(te_usr_event_t e_evt) {
 #ifdef DEBUG_ALARM
         ESP_LOGI(LOG_MSG_TAG, "ScrID=%d ScrEvt=EVT_BLE_SCAN_COMPLETE", SCR_ID_DEVICE_SELECT);
 #endif
-        // 接続ステータス更新：スキャン開始
-        b_evt_upd_connect_sts(CON_STS_SCANNING);
+        // 接続中判定　※カーソルウェイト
+        if (ps_scr_status->e_cursor_type != CURSOR_TYPE_WAIT) {
+        	// 接続ステータス更新：スキャン開始
+        	b_evt_upd_connect_sts(CON_STS_SCANNING);
+		}
         break;
     case EVT_BLE_CONNECT:
         // BLE：接続通知
@@ -3844,7 +3854,7 @@ static void v_scr_device_select(te_usr_event_t e_evt) {
         i_vutil_base64_encode(s_lcd_sts.c_buff[1], ps_gsp_device->t_bda, 6);
         // 送信カウント残数を編集
         if (ps_msg_ticket->u32_max_seq_no > 0) {
-            sprintf(&s_lcd_sts.c_buff[1][8], " TX%05ld", ps_msg_ticket->u32_tx_seq_no);
+            sprintf(&s_lcd_sts.c_buff[1][8], " TX%05lu", (unsigned long)ps_msg_ticket->u32_tx_seq_no);
         } else {
             strcpy(&s_lcd_sts.c_buff[1][8], " TX NONE");
         }

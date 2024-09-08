@@ -3,7 +3,7 @@
  * MODULE :GATT Messager Library functions source file
  *
  * CREATED:2021/06/10 00:32:00
- * AUTHOR :Kakuheiki.Nakanohito
+ * AUTHOR :Nakanohito
  *
  * DESCRIPTION:GATTメッセンジャーのテストコード
  *
@@ -13,7 +13,7 @@
  *
  *******************************************************************************
  *
- * Copyright (c) 2024 Kakuheiki.Nakanohito
+ * Copyright (c) 2024 Nakanohito
  * Released under the MIT license
  * https://opensource.org/licenses/mit-license.php
  *
@@ -52,7 +52,7 @@
 /***      Macro Definitions                                                 ***/
 /******************************************************************************/
 /** デバッグモード */
-//#define DEBUG_ALARM
+#define DEBUG_ALARM
 
 /** ログ出力タグ */
 #define LOG_MSG_TAG "BLE_ALARM"
@@ -159,8 +159,6 @@
 //==============================================================================
 /** UARTタスクの優先度 */
 #define BLE_MSG_UART_PRIORITIES (configMAX_PRIORITIES - 5)
-/** メッセージデバイスID */
-#define BLE_MSG_DEVICE_ID       (0x00000000000000F0)
 /** 最大メッセージサイズ */
 #define BLE_MSG_MAX_SIZE        (2048)
 /** メッセージ最大シーケンスサイズ */
@@ -236,7 +234,7 @@
 /** 待ち時間：ディスコネクトタイムアウト */
 #define EVT_DISCONNECT_TIMEOUT  (500 / portTICK_PERIOD_MS)
 /** 待ち時間：接続タイムアウト（ミリ秒） */
-#define EVT_CONNECTION_TIMEOUT_MS  (5000)
+#define EVT_CONNECTION_TIMEOUT_MS  (10000)
 /** 待ち時間：ペアリングタイムアウト（ミリ秒） */
 #define EVT_PAIRING_TIMEOUT_MS  (90000)
 /** イベントキューサイズ */
@@ -951,10 +949,10 @@ static void v_init_device() {
     //==========================================================================
     // ログ出力設定
     //==========================================================================
-#ifndef DEBUG_ALARM
-    esp_log_level_set("*", ESP_LOG_NONE);
-#else
+#ifdef DEBUG_ALARM
     esp_log_level_set("*", ESP_LOG_INFO);
+#else
+    esp_log_level_set("*", ESP_LOG_NONE);
 #endif
 
     //==========================================================================
@@ -1000,11 +998,11 @@ static void v_init_device() {
     ps_adc_ctx = ps_adc_oneshot_calibration_ctx(ADC_UNIT_1,
                                                 ADC_DIGI_CLK_SRC_DEFAULT,
                                                 ADC_ULP_MODE_DISABLE,
-                                                ADC_ATTEN_DB_11);
+                                                ADC_ATTEN_DB_12);
     // ADCチャンネル設定
     sts_val = sts_adc_oneshot_config_channel(ps_adc_ctx,
                                              COM_5WAY_CHANNEL,
-                                             ADC_ATTEN_DB_11,
+                                             ADC_ATTEN_DB_12,
                                              ADC_BITWIDTH_12);
     // エラーチェック
     ESP_ERROR_CHECK(sts_val);
@@ -1384,6 +1382,9 @@ static bool b_read_setting() {
         strcpy(s_dev_settings.c_device_name, ps_device_name->valuestring);
         // 編集完了
         b_sts = true;
+#ifdef DEBUG_ALARM
+    ESP_LOGI(LOG_MSG_TAG, "dev_id=%llu dev_name=%s", s_dev_settings.u64_device_id, s_dev_settings.c_device_name);
+#endif
     } while(false);
     // cJSON解放
     cJSON_Delete(ps_setting);
@@ -1929,7 +1930,11 @@ static esp_err_t sts_ble_init() {
     // BLEメッセージング機能初期設定(SPPプロファイルを利用)
     //==========================================================================
     // メッセージサーバー初期処理
-    sts_val = sts_com_msg_init_svr(BLE_GATT_APP_ID, BLE_MSG_DEVICE_ID, BLE_MSG_MAX_SIZE, v_msg_evt_cb, sts_msg_ticket_cb);
+    sts_val = sts_com_msg_init_svr(BLE_GATT_APP_ID,
+                                   s_dev_settings.u64_device_id,
+                                   BLE_MSG_MAX_SIZE,
+                                   v_msg_evt_cb,
+                                   sts_msg_ticket_cb);
     if (sts_val != ESP_OK) {
         // エラーメッセージログ：エラーコードの文字列表現を表示
         return sts_val;
@@ -2322,18 +2327,30 @@ static esp_err_t sts_msg_ticket_cb(te_com_ble_msg_ticket_evt_t e_evt, ts_com_msg
     switch (e_evt) {
     case COM_BLE_MSG_TICKET_EVT_CREATE:
         // チケット生成
+#ifdef DEBUG_ALARM
+    ESP_LOGI(LOG_MSG_TAG, "COM_BLE_MSG_TICKET_EVT_CREATE own_id=%llu rmt_id=%llu", ps_ticket->u64_own_device_id, ps_ticket->u64_rmt_device_id);
+#endif
         sts_val = sts_msg_ticket_create(ps_ticket);
         break;
     case COM_BLE_MSG_TICKET_EVT_READ:
         // チケット読み込み
+#ifdef DEBUG_ALARM
+    ESP_LOGI(LOG_MSG_TAG, "COM_BLE_MSG_TICKET_EVT_READ own_id=%llu rmt_id=%llu", ps_ticket->u64_own_device_id, ps_ticket->u64_rmt_device_id);
+#endif
         sts_val = sts_msg_ticket_read(ps_ticket);
         break;
     case COM_BLE_MSG_TICKET_EVT_UPDATE:
         // チケット更新
+#ifdef DEBUG_ALARM
+    ESP_LOGI(LOG_MSG_TAG, "COM_BLE_MSG_TICKET_EVT_UPDATE own_id=%llu rmt_id=%llu", ps_ticket->u64_own_device_id, ps_ticket->u64_rmt_device_id);
+#endif
         sts_val = sts_msg_ticket_update(ps_ticket);
         break;
     case COM_BLE_MSG_TICKET_EVT_DELETE:
         // チケット削除
+#ifdef DEBUG_ALARM
+    ESP_LOGI(LOG_MSG_TAG, "COM_BLE_MSG_TICKET_EVT_DELETE own_id=%llu rmt_id=%llu", ps_ticket->u64_own_device_id, ps_ticket->u64_rmt_device_id);
+#endif
         sts_val = sts_msg_ticket_delete(ps_ticket);
         break;
     default:

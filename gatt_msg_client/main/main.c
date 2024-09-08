@@ -335,7 +335,7 @@ void app_main() {
             //------------------------------------------------------------------
             // メッセージ機能のペアリング開始
             //------------------------------------------------------------------
-            sts_val = sts_com_msg_tx_pairing_request(s_cntr_sts.u64_rmt_device_id);
+            sts_val = sts_com_msg_tx_pairing_request();
             if (sts_val != ESP_OK) {
                 // リトライ
 #ifdef GATTC_MSG_CLIENT

@@ -620,36 +620,36 @@ static void v_task_chk_mem_alloc_01() {
         // 割り当て済みのサイズ
         u32_alloc_size = u32_mem_alloc_size();
         if (u32_alloc_size != u32_size) {
-            ESP_LOGE(TAG, "u32_mem_alloc_size: No.%d Failure size=%lu", i_test_no, u32_alloc_size);
+            ESP_LOGE(TAG, "u32_mem_alloc_size: No.%d Failure size=%lu", i_test_no, (unsigned long)u32_alloc_size);
         }
         if (u32_size == 0) {
             if (pv_mem == NULL) {
-                ESP_LOGI(TAG, "pv_mem_malloc : No.%d Success size=%lu", i_test_no, u32_size);
+                ESP_LOGI(TAG, "pv_mem_malloc : No.%d Success size=%lu", i_test_no, (unsigned long)u32_size);
             } else {
-                ESP_LOGE(TAG, "pv_mem_malloc : No.%d Failure size=%lu", i_test_no, u32_size);
+                ESP_LOGE(TAG, "pv_mem_malloc : No.%d Failure size=%lu", i_test_no, (unsigned long)u32_size);
             }
             // 未使用領域のサイズ
             u32_unused_size = u32_mem_unused_size();
             if (u32_unused_size != (MEM_STORAGE_SIZE - 24)) {
-                ESP_LOGE(TAG, "u32_mem_unused_size: No.%d Failure size=%lu", i_test_no, u32_unused_size);
+                ESP_LOGE(TAG, "u32_mem_unused_size: No.%d Failure size=%lu", i_test_no, (unsigned long)u32_unused_size);
             }
         } else {
             uint32_t u32_mem_size = *((uint32_t*)(pv_mem - sizeof(uint32_t)));
             if (u32_mem_size == (u32_size + sizeof(uint32_t))) {
-                ESP_LOGI(TAG, "pv_mem_malloc : No.%d Success size=%lu", i_test_no, u32_size);
+                ESP_LOGI(TAG, "pv_mem_malloc : No.%d Success size=%lu", i_test_no, (unsigned long)u32_size);
             } else {
-                ESP_LOGE(TAG, "pv_mem_malloc : No.%d Failure size=%lu", i_test_no, u32_size);
+                ESP_LOGE(TAG, "pv_mem_malloc : No.%d Failure size=%lu", i_test_no, (unsigned long)u32_size);
             }
             // 未使用領域のサイズ
             u32_unused_size = u32_mem_unused_size();
             if (u32_unused_size != (MEM_STORAGE_SIZE - 24 - u32_mem_size)) {
-                ESP_LOGE(TAG, "u32_mem_unused_size: No.%d Failure size=%lu", i_test_no, u32_unused_size);
+                ESP_LOGE(TAG, "u32_mem_unused_size: No.%d Failure size=%lu", i_test_no, (unsigned long)u32_unused_size);
             }
         }
         // 未使用領域の数
         u32_unused_cnt = u32_mem_unused_cnt();
         if (u32_unused_cnt != 1) {
-            ESP_LOGE(TAG, "u32_mem_unused_cnt: No.%d Failure size=%lu", i_test_no, u32_unused_cnt);
+            ESP_LOGE(TAG, "u32_mem_unused_cnt: No.%d Failure size=%lu", i_test_no, (unsigned long)u32_unused_cnt);
         }
         // メモリ解放
         long l_result = l_mem_free(pv_mem);
@@ -714,33 +714,33 @@ static void v_task_chk_mem_alloc_02() {
         // 割り当て済みのサイズ
         u32_alloc_size = u32_mem_alloc_size();
         if (u32_alloc_size != u32_total_size) {
-            ESP_LOGE(TAG, "u32_mem_alloc_size: No.%d Failure size=%lu", i_test_no, u32_alloc_size);
+            ESP_LOGE(TAG, "u32_mem_alloc_size: No.%d Failure size=%lu", i_test_no, (unsigned long)u32_alloc_size);
         }
         if (u32_size == 0) {
             if (pv_mem[u32_size] != NULL) {
-                ESP_LOGE(TAG, "pv_mem_malloc: No.%d Failure size=%lu", i_test_no, u32_size);
+                ESP_LOGE(TAG, "pv_mem_malloc: No.%d Failure size=%lu", i_test_no, (unsigned long)u32_size);
             }
             // 未使用領域のサイズ
             u32_unused_size = u32_mem_unused_size();
             if (u32_unused_size != (MEM_STORAGE_SIZE - 24)) {
-                ESP_LOGE(TAG, "u32_mem_unused_size: No.%d Failure size=%lu", i_test_no, u32_unused_size);
+                ESP_LOGE(TAG, "u32_mem_unused_size: No.%d Failure size=%lu", i_test_no, (unsigned long)u32_unused_size);
             }
         } else {
             uint32_t u32_mem_size = *((uint32_t*)(pv_mem[u32_size] - sizeof(uint32_t)));
             u32_total_mem_size = u32_total_mem_size + u32_mem_size;
             if (u32_mem_size != (u32_size + sizeof(uint32_t))) {
-                ESP_LOGE(TAG, "pv_mem_malloc: No.%d Failure size=%lu", i_test_no, u32_size);
+                ESP_LOGE(TAG, "pv_mem_malloc: No.%d Failure size=%lu", i_test_no, (unsigned long)u32_size);
             }
             // 未使用領域のサイズ
             u32_unused_size = u32_mem_unused_size();
             if (u32_unused_size != (MEM_STORAGE_SIZE - 24 - u32_total_mem_size)) {
-                ESP_LOGE(TAG, "u32_mem_unused_size: No.%d Failure size=%lu", i_test_no, u32_unused_size);
+                ESP_LOGE(TAG, "u32_mem_unused_size: No.%d Failure size=%lu", i_test_no, (unsigned long)u32_unused_size);
             }
         }
         // 未使用領域の数
         u32_unused_cnt = u32_mem_unused_cnt();
         if (u32_unused_cnt != 1) {
-            ESP_LOGE(TAG, "u32_mem_unused_cnt: No.%d Failure size=%lu", i_test_no, u32_unused_cnt);
+            ESP_LOGE(TAG, "u32_mem_unused_cnt: No.%d Failure size=%lu", i_test_no, (unsigned long)u32_unused_cnt);
         }
         // テストケース番号更新
         i_test_no++;
@@ -756,11 +756,11 @@ static void v_task_chk_mem_alloc_02() {
         // メモリ解放
         l_free_size = l_mem_free(pv_mem[u32_size]);
         if (l_free_size == u32_size) {
-            ESP_LOGI(TAG, "l_mem_free: No.%d Success idx=%lu size=%ld", i_test_no, u32_size, l_free_size);
+            ESP_LOGI(TAG, "l_mem_free: No.%d Success idx=%lu size=%ld", i_test_no, (unsigned long)u32_size, l_free_size);
         } else if (l_free_size == -1 && u32_size == 0) {
-            ESP_LOGI(TAG, "l_mem_free: No.%d Success idx=%lu size=%ld", i_test_no, u32_size, l_free_size);
+            ESP_LOGI(TAG, "l_mem_free: No.%d Success idx=%lu size=%ld", i_test_no, (unsigned long)u32_size, l_free_size);
         } else {
-            ESP_LOGE(TAG, "l_mem_free: No.%d Failure idx=%lu size=%ld", i_test_no, u32_size, l_free_size);
+            ESP_LOGE(TAG, "l_mem_free: No.%d Failure idx=%lu size=%ld", i_test_no, (unsigned long)u32_size, l_free_size);
         }
         // テストケース番号更新
         i_test_no++;
@@ -824,7 +824,7 @@ static void v_task_chk_mem_alloc_03() {
         u32_alloc_size = u32_alloc_size + u32_size[u32_idx];
         // メモリ配列
         if (u32_mem_alloc_size() != u32_alloc_size) {
-            ESP_LOGE(TAG, "u32_mem_alloc_size: No.%d Failure size=%lu", i_test_no, u32_size[u32_idx]);
+            ESP_LOGE(TAG, "u32_mem_alloc_size: No.%d Failure size=%lu", i_test_no, (unsigned long)u32_size[u32_idx]);
         }
         //----------------------------------------------------------------------
         // 未使用領域のサイズ
@@ -832,22 +832,22 @@ static void v_task_chk_mem_alloc_03() {
         u32_unused_size = u32_unused_size - u32_size[u32_idx] - sizeof(uint32_t);
         u32_chk_val = u32_mem_unused_size();
         if (u32_chk_val != u32_unused_size) {
-            ESP_LOGE(TAG, "u32_mem_unused_size: No.%d Failure size=%lu", i_test_no, u32_chk_val);
+            ESP_LOGE(TAG, "u32_mem_unused_size: No.%d Failure size=%lu", i_test_no, (unsigned long)u32_chk_val);
         }
         //----------------------------------------------------------------------
         // 未使用領域の数
         //----------------------------------------------------------------------
         u32_chk_val = u32_mem_unused_cnt();
         if (u32_chk_val != u32_unused_cnt) {
-            ESP_LOGE(TAG, "u32_mem_unused_cnt: No.%d Failure size=%lu", i_test_no, u32_chk_val);
+            ESP_LOGE(TAG, "u32_mem_unused_cnt: No.%d Failure size=%lu", i_test_no, (unsigned long)u32_chk_val);
         }
         //----------------------------------------------------------------------
         // メモリ領域の重複チェック
         //----------------------------------------------------------------------
         if (u32_task_chk_memory(u32_size, pv_mem, u32_idx) == u32_idx) {
-            ESP_LOGI(TAG, "u32_task_chk_memory: No.%d Success idx=%lu", i_test_no, u32_idx);
+            ESP_LOGI(TAG, "u32_task_chk_memory: No.%d Success idx=%lu", i_test_no, (unsigned long)u32_idx);
         } else {
-            ESP_LOGE(TAG, "u32_task_chk_memory: No.%d Failure idx=%lu", i_test_no, u32_idx);
+            ESP_LOGE(TAG, "u32_task_chk_memory: No.%d Failure idx=%lu", i_test_no, (unsigned long)u32_idx);
         }
 
         //----------------------------------------------------------------------
@@ -858,7 +858,7 @@ static void v_task_chk_mem_alloc_03() {
             // メモリ解放（直前の偶数サイズのメモリ領域を解放）
             u32_chk_val = l_mem_free(pv_mem[u32_free_idx]);
             if (u32_chk_val == u32_size[u32_idx - 1]) {
-                ESP_LOGI(TAG, "l_mem_free: No.%d Success idx=%lu size=%lu", i_test_no, u32_free_idx, u32_chk_val);
+                ESP_LOGI(TAG, "l_mem_free: No.%d Success idx=%lu size=%lu", i_test_no, (unsigned long)u32_free_idx, (unsigned long)u32_chk_val);
                 // 割り当てメモリサイズが減る
                 u32_alloc_size = u32_alloc_size - u32_chk_val;
                 // 未使用領域のサイズは増える
@@ -866,7 +866,7 @@ static void v_task_chk_mem_alloc_03() {
                 // 未使用領域が増える
                 u32_unused_cnt++;
             } else {
-                ESP_LOGE(TAG, "l_mem_free: No.%d Failure idx=%lu size=%lu", i_test_no, u32_free_idx, u32_chk_val);
+                ESP_LOGE(TAG, "l_mem_free: No.%d Failure idx=%lu size=%lu", i_test_no, (unsigned long)u32_free_idx, (unsigned long)u32_chk_val);
             }
             u8_free[u32_free_idx] = 0x01;
         }
@@ -898,15 +898,15 @@ static void v_task_chk_mem_alloc_03() {
         u32_alloc_size = u32_alloc_size + u32_size[u32_wk_idx];
         // メモリ配列
         if (u32_mem_alloc_size() != u32_alloc_size) {
-            ESP_LOGE(TAG, "u32_mem_alloc_size: No.%d Failure size=%lu", i_test_no, u32_size[u32_wk_idx]);
+            ESP_LOGE(TAG, "u32_mem_alloc_size: No.%d Failure size=%lu", i_test_no, (unsigned long)u32_size[u32_wk_idx]);
         }
         //----------------------------------------------------------------------
         // メモリ領域の重複チェック
         //----------------------------------------------------------------------
         if (u32_task_chk_memory(u32_size, pv_mem, u32_idx) == u32_idx) {
-            ESP_LOGI(TAG, "u32_task_chk_memory: No.%d Success idx=%lu", i_test_no, u32_idx);
+            ESP_LOGI(TAG, "u32_task_chk_memory: No.%d Success idx=%lu", i_test_no, (unsigned long)u32_idx);
         } else {
-            ESP_LOGE(TAG, "u32_task_chk_memory: No.%d Failure idx=%lu", i_test_no, u32_idx);
+            ESP_LOGE(TAG, "u32_task_chk_memory: No.%d Failure idx=%lu", i_test_no, (unsigned long)u32_idx);
         }
 
         //----------------------------------------------------------------------
@@ -924,7 +924,7 @@ static void v_task_chk_mem_alloc_03() {
             // メモリ解放（直前の奇数サイズのメモリ領域を解放）
             u32_chk_val = l_mem_free(pv_mem[u32_free_idx]);
             if (u32_chk_val == u32_size[u32_free_idx]) {
-                ESP_LOGI(TAG, "l_mem_free: No.%d Success idx=%lu addr=%lx size=%lu result=%lu", i_test_no, u32_free_idx, (uint32_t)pv_mem[u32_free_idx], u32_size[u32_free_idx], u32_chk_val);
+                ESP_LOGI(TAG, "l_mem_free: No.%d Success idx=%lu addr=%lx size=%lu result=%lu", i_test_no, (unsigned long)u32_free_idx, (unsigned long)pv_mem[u32_free_idx], (unsigned long)u32_size[u32_free_idx], (unsigned long)u32_chk_val);
                 // 割り当てメモリサイズが減る
                 u32_alloc_size = u32_alloc_size - u32_chk_val;
                 // 未使用領域のサイズは増える
@@ -932,7 +932,7 @@ static void v_task_chk_mem_alloc_03() {
                 // 未使用領域が増える
                 u32_unused_cnt++;
             } else {
-                ESP_LOGE(TAG, "l_mem_free: No.%d Failure idx=%lu addr=%lx size=%lu result=%lu", i_test_no, u32_free_idx, (uint32_t)pv_mem[u32_free_idx], u32_size[u32_free_idx], u32_chk_val);
+                ESP_LOGE(TAG, "l_mem_free: No.%d Failure idx=%lu addr=%lx size=%lu result=%lu", i_test_no, (unsigned long)u32_free_idx, (unsigned long)pv_mem[u32_free_idx], (unsigned long)u32_size[u32_free_idx], (unsigned long)u32_chk_val);
             }
             u8_free[u32_free_idx] = 0x01;
         }
@@ -960,7 +960,7 @@ static void v_task_chk_mem_alloc_03() {
     // メモリ配列
     u32_chk_val = u32_mem_alloc_size();
     if (u32_chk_val != 0) {
-        ESP_LOGE(TAG, "u32_mem_alloc_size: No.%d Failure size=%lu", i_test_no, u32_chk_val);
+        ESP_LOGE(TAG, "u32_mem_alloc_size: No.%d Failure size=%lu", i_test_no, (unsigned long)u32_chk_val);
     }
     //----------------------------------------------------------------------
     // 空き領域情報を表示
@@ -1032,7 +1032,7 @@ static void v_task_chk_mem_alloc_04() {
         u32_alloc_size += u32_size[u32_idx];
         u32_chk_val = u32_mem_alloc_size();
         if (u32_chk_val != u32_alloc_size) {
-            ESP_LOGE(TAG, "u32_mem_alloc_size: No.%d Failure expected=%lu result=%lu", i_test_no, u32_alloc_size, u32_chk_val);
+            ESP_LOGE(TAG, "u32_mem_alloc_size: No.%d Failure expected=%lu result=%lu", i_test_no, (unsigned long)u32_alloc_size, (unsigned long)u32_chk_val);
         }
         //----------------------------------------------------------------------
         // 未使用領域のサイズ
@@ -1043,15 +1043,15 @@ static void v_task_chk_mem_alloc_04() {
         u32_unused_size = MEM_STORAGE_SIZE - (u32_mem_unused_cnt() * 24) - u32_inner_size;
         u32_chk_val = u32_mem_unused_size();
         if (u32_unused_size != u32_chk_val) {
-            ESP_LOGE(TAG, "u32_mem_unused_size: No.%d Failure size=%lu result=%lu", i_test_no, u32_unused_size, u32_chk_val);
+            ESP_LOGE(TAG, "u32_mem_unused_size: No.%d Failure size=%lu result=%lu", i_test_no, (unsigned long)u32_unused_size, (unsigned long)u32_chk_val);
         }
         //----------------------------------------------------------------------
         // メモリ領域の重複チェック
         //----------------------------------------------------------------------
         if (u32_task_chk_memory(u32_size, pv_mem, u32_idx) == u32_idx) {
-            ESP_LOGI(TAG, "u32_task_chk_memory: No.%d Success idx=%lu size=%lu pv=%lx", i_test_no, u32_idx, u32_size[u32_idx], (uint32_t)pv_mem[u32_idx]);
+            ESP_LOGI(TAG, "u32_task_chk_memory: No.%d Success idx=%lu size=%lu pv=%lx", i_test_no, (unsigned long)u32_idx, (unsigned long)u32_size[u32_idx], (unsigned long)pv_mem[u32_idx]);
         } else {
-            ESP_LOGE(TAG, "u32_task_chk_memory: No.%d Failure idx=%lu size=%lu pv=%lx", i_test_no, u32_idx, u32_size[u32_idx], (uint32_t)pv_mem[u32_idx]);
+            ESP_LOGE(TAG, "u32_task_chk_memory: No.%d Failure idx=%lu size=%lu pv=%lx", i_test_no, (unsigned long)u32_idx, (unsigned long)u32_size[u32_idx], (unsigned long)pv_mem[u32_idx]);
         }
 
         //----------------------------------------------------------------------
@@ -1064,7 +1064,7 @@ static void v_task_chk_mem_alloc_04() {
             uint32_t u32_free_idx = u32_rand % u32_idx;
             l_free_val = l_mem_free(pv_mem[u32_free_idx]);
             if (l_free_val == u32_size[u32_free_idx] || (l_free_val == -1 && u32_size[u32_free_idx] == 0)) {
-                ESP_LOGI(TAG, "l_mem_free: No.%d Success idx=%lu size=%ld", i_test_no, u32_free_idx, l_free_val);
+                ESP_LOGI(TAG, "l_mem_free: No.%d Success idx=%lu size=%ld", i_test_no, (unsigned long)u32_free_idx, l_free_val);
                 if (l_free_val > 0) {
                     // 想定されるユーザーから見たメモリサイズを更新
                     u32_alloc_size = u32_alloc_size - l_free_val;
@@ -1075,7 +1075,7 @@ static void v_task_chk_mem_alloc_04() {
                 u32_size[u32_free_idx] = 0;
                 pv_mem[u32_free_idx]   = NULL;
             } else {
-                ESP_LOGE(TAG, "l_mem_free: No.%d Failure idx=%lu size=%ld", i_test_no, u32_free_idx, l_free_val);
+                ESP_LOGE(TAG, "l_mem_free: No.%d Failure idx=%lu size=%ld", i_test_no, (unsigned long)u32_free_idx, l_free_val);
             }
         }
         // ウェイト
@@ -1111,18 +1111,18 @@ static void v_task_chk_mem_alloc_05() {
         // 値の検証
         for (u32_chk_idx = 0; u32_chk_idx < u32_size; u32_chk_idx++) {
             if (pu8_mem[u32_chk_idx] != 0x00) {
-                ESP_LOGE(TAG, "l_com_mem_free: Failure size=%lu", u32_size);
+                ESP_LOGE(TAG, "l_com_mem_free: Failure size=%lu", (unsigned long)u32_size);
             }
         }
         if (u32_chk_idx == u32_size) {
-            ESP_LOGI(TAG, "pv_com_mem_calloc: Success size=%lu", u32_size);
+            ESP_LOGI(TAG, "pv_com_mem_calloc: Success size=%lu", (unsigned long)u32_size);
         }
         // 確保したメモリに乱数を書き込み
         b_vutil_set_u8_rand_array(pu8_mem, u32_size);
         // メモリ解放
         l_free_size = l_mem_free(pu8_mem);
         if (l_free_size != u32_size && (l_free_size != -1 && u32_size == 0)) {
-            ESP_LOGE(TAG, "l_com_mem_free: Failure size=%lu", u32_size);
+            ESP_LOGE(TAG, "l_com_mem_free: Failure size=%lu", (unsigned long)u32_size);
         }
         // ウェイト
         vTaskDelay(EVT_ENQUEUE_WAIT_TICK);
@@ -1160,7 +1160,7 @@ static void v_task_chk_mem_alloc_06() {
         uint8_t* pu8_mem_org = (uint8_t*)pv_mem_calloc(u32_size);
         if (u32_size == 0) {
             if (pu8_mem_org != NULL) {
-                ESP_LOGE(TAG, "pv_com_mem_calloc: Failure size=%lu", u32_size);
+                ESP_LOGE(TAG, "pv_com_mem_calloc: Failure size=%lu", (unsigned long)u32_size);
             }
             continue;
         }
@@ -1169,17 +1169,17 @@ static void v_task_chk_mem_alloc_06() {
         // メモリ再定義
         uint8_t* pu8_mem = (uint8_t*)pv_mem_realloc(pu8_mem_org, u32_size);
         if (pu8_mem == NULL) {
-            ESP_LOGE(TAG, "pv_com_mem_realloc: Failure size=%lu", u32_size);
+            ESP_LOGE(TAG, "pv_com_mem_realloc: Failure size=%lu", (unsigned long)u32_size);
         }
         // データの判定
         if (memcmp(pu8_mem, u8_str, u32_size) == 0) {
-            ESP_LOGI(TAG, "pv_com_mem_realloc: Success size=%lu", u32_size);
+            ESP_LOGI(TAG, "pv_com_mem_realloc: Success size=%lu", (unsigned long)u32_size);
         } else {
-            ESP_LOGE(TAG, "pv_com_mem_realloc: Failure size=%lu", u32_size);
+            ESP_LOGE(TAG, "pv_com_mem_realloc: Failure size=%lu", (unsigned long)u32_size);
         }
         // メモリ解放
         if (l_mem_free(pu8_mem) != u32_size) {
-            ESP_LOGE(TAG, "l_com_mem_free: Failure size=%lu", u32_size);
+            ESP_LOGE(TAG, "l_com_mem_free: Failure size=%lu", (unsigned long)u32_size);
         }
         // ウェイト
         vTaskDelay(EVT_ENQUEUE_WAIT_TICK);
@@ -1254,11 +1254,11 @@ static uint32_t u32_task_chk_memory(uint32_t* pu32_size, void** ppv_mem, uint32_
  ******************************************************************************/
 static void v_task_chk_mem_alloc_disp_area() {
     // 割り当て済みのサイズ
-    ESP_LOGI(TAG, "u32_mem_alloc_size: size=%lu", u32_mem_alloc_size());
+    ESP_LOGI(TAG, "u32_mem_alloc_size: size=%lu", (unsigned long)u32_mem_alloc_size());
     // 未使用領域のサイズ
-    ESP_LOGI(TAG, "u32_mem_unused_size:size=%lu", u32_mem_unused_size());
+    ESP_LOGI(TAG, "u32_mem_unused_size:size=%lu", (unsigned long)u32_mem_unused_size());
     // 未使用領域の数
-    ESP_LOGI(TAG, "u32_mem_unused_cnt: size=%lu", u32_mem_unused_cnt());
+    ESP_LOGI(TAG, "u32_mem_unused_cnt: size=%lu", (unsigned long)u32_mem_unused_cnt());
 }
 
 /*******************************************************************************
@@ -1285,19 +1285,19 @@ static void v_task_chk_mem_alloc_disp_info() {
     for (u32_idx = 0; u32_idx < u32_cnt; u32_idx++) {
         s_seg_info = s_mem_unused_info_addr(u32_idx);
         u32_total_size = u32_total_size + s_seg_info.u32_size;
-        ESP_LOGI(TAG, "addr idx=%03lu addr=%08lx size=%lu", u32_idx, (uint32_t)s_seg_info.pu8_address, s_seg_info.u32_size);
+        ESP_LOGI(TAG, "addr idx=%03lu addr=%08lx size=%lu", (unsigned long)u32_idx, (unsigned long)s_seg_info.pu8_address, (unsigned long)s_seg_info.u32_size);
     }
     // 合計メモリサイズ
-    ESP_LOGI(TAG, "area total size=%lu", u32_total_size);
+    ESP_LOGI(TAG, "area total size=%lu", (unsigned long)u32_total_size);
     // サイズによる検索
     u32_total_size = 0;
     for (u32_idx = 0; u32_idx < u32_cnt; u32_idx++) {
         s_seg_info = s_mem_unused_info_size(u32_idx);
         u32_total_size = u32_total_size + s_seg_info.u32_size;
-        ESP_LOGI(TAG, "size idx=%03lu addr=%08lx size=%lu", u32_idx, (uint32_t)s_seg_info.pu8_address, s_seg_info.u32_size);
+        ESP_LOGI(TAG, "size idx=%03lu addr=%08lx size=%lu", (unsigned long)u32_idx, (unsigned long)s_seg_info.pu8_address, (unsigned long)s_seg_info.u32_size);
     }
     // 合計メモリサイズ
-    ESP_LOGI(TAG, "area total size=%lu", u32_total_size);
+    ESP_LOGI(TAG, "area total size=%lu", (unsigned long)u32_total_size);
 }
 
 /*******************************************************************************
@@ -1718,31 +1718,31 @@ static void v_task_chk_value_util_03() {
     ESP_LOGI(TAG, "//===========================================================");
     /** 変換関数：数値→BCD形式 */
     uint32_t u32_val = u32_vutil_binary_to_bcd(12345678);
-    ESP_LOGI(TAG, "u32_vutil_binary_to_bcd: val:%08lx", u32_val);
+    ESP_LOGI(TAG, "u32_vutil_binary_to_bcd: val:%08lx", (unsigned long)u32_val);
     /** 変換関数：BCD形式→数値 */
     u32_val = u32_vutil_bcd_to_binary(0x87654321);
-    ESP_LOGI(TAG, "u32_vutil_bcd_to_binary: val:%lu", u32_val);
+    ESP_LOGI(TAG, "u32_vutil_bcd_to_binary: val:%lu", (unsigned long)u32_val);
     /** 変換関数：uint8→二進表現 */
     u32_val = u32_vutil_u8_to_binary(0xA5);
-    ESP_LOGI(TAG, "u32_vutil_u8_to_binary:  val:%lu", u32_val);
+    ESP_LOGI(TAG, "u32_vutil_u8_to_binary:  val:%lu", (unsigned long)u32_val);
     /** 変換関数：数字文字列から数値変換 */
     u32_val = u32_vutil_array_to_u32("0123456789", 0, 5);
-    ESP_LOGI(TAG, "u32_vutil_string_to_u32: val:%lu", u32_val);
+    ESP_LOGI(TAG, "u32_vutil_string_to_u32: val:%lu", (unsigned long)u32_val);
     u32_val = u32_vutil_array_to_u32("9876543210", 5, 5);
-    ESP_LOGI(TAG, "u32_vutil_string_to_u32: val:%lu", u32_val);
+    ESP_LOGI(TAG, "u32_vutil_string_to_u32: val:%lu", (unsigned long)u32_val);
     u32_val = u32_vutil_array_to_u32("9876543210", 3, 6);
-    ESP_LOGI(TAG, "u32_vutil_string_to_u32: val:%lu", u32_val);
+    ESP_LOGI(TAG, "u32_vutil_string_to_u32: val:%lu", (unsigned long)u32_val);
     u32_val = u32_vutil_array_to_u32("987654321A", 5, 5);
-    ESP_LOGI(TAG, "u32_vutil_string_to_u32: val:%lu", u32_val);
+    ESP_LOGI(TAG, "u32_vutil_string_to_u32: val:%lu", (unsigned long)u32_val);
     u32_val = u32_vutil_array_to_u32("98765A3210", 5, 5);
-    ESP_LOGI(TAG, "u32_vutil_string_to_u32: val:%lu", u32_val);
+    ESP_LOGI(TAG, "u32_vutil_string_to_u32: val:%lu", (unsigned long)u32_val);
     char c_edit[32];
     uint32_t u32_len = u32_vutil_upper_case(c_edit, "Test String");
-    ESP_LOGI(TAG, "Upper case Len:%lu Text:%s", u32_len, c_edit);
+    ESP_LOGI(TAG, "Upper case Len:%lu Text:%s", (unsigned long)u32_len, c_edit);
     u32_len = u32_vutil_upper_case(c_edit, "abc 12345 \\^");
-    ESP_LOGI(TAG, "Upper case Len:%lu Text:%s", u32_len, c_edit);
+    ESP_LOGI(TAG, "Upper case Len:%lu Text:%s", (unsigned long)u32_len, c_edit);
     u32_len = u32_vutil_upper_case(c_edit, "123C56'@+e");
-    ESP_LOGI(TAG, "Upper case Len:%lu Text:%s", u32_len, c_edit);
+    ESP_LOGI(TAG, "Upper case Len:%lu Text:%s", (unsigned long)u32_len, c_edit);
     //          /** 変換関数：マスキング処理(uint8) */
     //          extern uint8_t u8_vutil_masking(const uint8_t u8_val,
     //                                             const uint8_t* pu8_mask,
@@ -2452,7 +2452,7 @@ static void v_task_chk_adc(void* args) {
     ps_adc1_ctx = ps_adc_oneshot_calibration_ctx(ADC_UNIT_1,
                                                  ADC_DIGI_CLK_SRC_DEFAULT,
                                                  ADC_ULP_MODE_DISABLE,
-                                                 ADC_ATTEN_DB_11);
+                                                 ADC_ATTEN_DB_12);
     // ADC1の値の幅を設定
     // ADC_WIDTH_BIT_9 : 0～511
     // ADC_WIDTH_BIT_10: 0～1023
@@ -2483,8 +2483,8 @@ static void v_task_chk_adc(void* args) {
 //        return;
 //    }
     // チャンネル設定
-//    sts_adc_oneshot_config_channel(ps_adc1_ctx, ADC_CHANNEL_6, ADC_ATTEN_DB_11, ADC_BITWIDTH_DEFAULT);
-    sts_adc_oneshot_config_channel(ps_adc1_ctx, ADC_CHANNEL_6, ADC_ATTEN_DB_11, ADC_BITWIDTH_DEFAULT);
+//    sts_adc_oneshot_config_channel(ps_adc1_ctx, ADC_CHANNEL_6, ADC_ATTEN_DB_12, ADC_BITWIDTH_DEFAULT);
+    sts_adc_oneshot_config_channel(ps_adc1_ctx, ADC_CHANNEL_6, ADC_ATTEN_DB_12, ADC_BITWIDTH_DEFAULT);
     // ADCキャラクタリスティックを設定
     // ADC1の設定
 //    esp_adc_cal_characteristics_t s_adc1_chars;
@@ -2661,7 +2661,7 @@ static void v_task_chk_touch(void* args) {
     uint32_t u32_sts_map;
     while (true) {
         u32_sts_map = u32_io_touchpad_pinmap(portMAX_DELAY);
-        ESP_LOGI(TAG, "Touchpad map=%lu", u32_sts_map);
+        ESP_LOGI(TAG, "Touchpad map=%lu", (unsigned long)u32_sts_map);
     }
 
     //==========================================================================
