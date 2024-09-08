@@ -44,6 +44,10 @@ several times a year.
 Moreover, I had a strong suspicion that something had been mixed into the 
 food and drinks I had in my house for quite some time.
 
+In other words, I was a victim of crime by the ruling class and 
+anti-social forces in the public and private sectors, including the 
+political party of the former secretary to the minister who was close to me.
+
 I can't go into detail about how this happened, but to conclude, after 
 I entered the workforce, I had a detective investigate the room next door 
 and the floors above and below where they were eavesdropping.
@@ -88,4 +92,5 @@ I, my family, and the people around me have all suffered similar abuse.
 
 With this background, developing this system was inevitable for me.
 
-
+The photos are part of an investigation report and a medical certificate 
+that revealed the media eavesdropping from the next room.
