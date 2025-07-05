@@ -154,8 +154,7 @@ extern int i_vutil_last_index_of(const char* pc_str, char c_ch);
 /** 文字列の文字置き換え */
 extern bool b_vutil_replace_char(char* pc_str, char c_ch, char c_rep);
 /** 文字列切り出し */
-extern int i_vutil_substr(char* pc_to, const char* pc_from,
-                           uint32_t u32_pos, uint32_t u32_len);
+extern int i_vutil_substr(char* pc_to, const char* pc_from, uint32_t u32_pos, uint32_t u32_len);
 /** 先頭からの文字列切り出し */
 extern int i_vutil_str_left(char* pc_to, const char* pc_from, uint32_t u32_len);
 /** 文字充填（後方） */
@@ -198,20 +197,20 @@ extern uint32_t u32_vutil_bcd_to_binary(uint32_t u32_val);
 extern uint32_t u32_vutil_u8_to_binary(uint8_t u8_val);
 /** 変換関数：バイト配列から１６進文字列変換 */
 extern void v_vutil_u8_to_hex_string(const uint8_t* pu8_data,
-                                       uint32_t u32_data_length,
-                                       char* pc_string);
+                                     uint32_t u32_data_length,
+                                     char* pc_string);
 /** 変換関数：数字文字列から数値変換 */
 extern uint32_t u32_vutil_to_numeric(const char* pc_str);
 /** 変換関数：数字文字列から数値変換 */
 extern uint64_t u64_vutil_to_numeric(const char* pc_str);
 /** 変換関数：数字配列から数値変換 */
 extern uint32_t u32_vutil_array_to_u32(const char* pc_str,
-                                        uint8_t u8_begin,
-                                        uint8_t u8_length);
+                                       uint8_t u8_begin,
+                                       uint8_t u8_length);
 /** 変換関数：数字配列から数値変換 */
 extern uint64_t u64_vutil_array_to_u64(const char* pc_str,
-                                        uint8_t u8_begin,
-                                        uint8_t u8_length);
+                                       uint8_t u8_begin,
+                                       uint8_t u8_length);
 /** 変換関数：数値から10進数文字列判定 */
 extern bool b_vutil_edit_dec_string(char* pc_num, uint64_t u64_val);
 /** 変換関数：数値から16進数文字列判定 */
@@ -227,21 +226,21 @@ extern int i_vutil_base64_decode(uint8_t* pu8_dst, const char* pc_src);
 
 /** 変換関数：マスキング処理(uint8) */
 extern uint8_t u8_vutil_masking(uint8_t u8_val,
-                                 const uint8_t* pu8_mask,
-                                 uint8_t u8_size);
+                                const uint8_t* pu8_mask,
+                                uint8_t u8_size);
 /** 変換関数：マスキング処理(uint32) */
 extern uint32_t u32_vutil_masking(uint32_t u32_val,
-                                   const uint8_t* pu8_mask,
-                                   uint8_t u8_size);
+                                  const uint8_t* pu8_mask,
+                                  uint8_t u8_size);
 /** 変換関数：配列のマスキング処理 */
 extern void v_vutil_masking(uint8_t* pu8_token,
-                             const uint8_t* pu8_mask,
-                             uint8_t u8_size);
+                            const uint8_t* pu8_mask,
+                            uint8_t u8_size);
 
 /** 変換関数：エントロピー（０．０～１．０の値）の算出 */
 extern double d_vutil_entropy(uint32_t* u32_list,
-                                uint32_t u32_list_size,
-                                uint32_t u32_sample_size);
+                              uint32_t u32_list_size,
+                              uint32_t u32_sample_size);
 
 //==============================================================================
 // 計算関数

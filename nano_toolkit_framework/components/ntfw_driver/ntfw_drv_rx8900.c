@@ -25,6 +25,8 @@
 /******************************************************************************/
 #include "ntfw_drv_rx8900.h"
 
+#include <stdbool.h>
+#include <string.h>
 #include "ntfw_com_date_time.h"
 #include "ntfw_com_value_util.h"
 
@@ -109,7 +111,7 @@ esp_err_t sts_rx8900_init(i2c_port_t e_port_num) {
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -142,7 +144,7 @@ esp_err_t sts_rx8900_init(i2c_port_t e_port_num) {
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス
     return sts_val;
@@ -173,7 +175,7 @@ esp_err_t sts_rx8900_reset(i2c_port_t e_port_num) {
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -194,7 +196,7 @@ esp_err_t sts_rx8900_reset(i2c_port_t e_port_num) {
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス
     return sts_val;
@@ -228,7 +230,7 @@ ts_rx8900_register_t s_rx8900_read(i2c_port_t e_port_num) {
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return ts_conv_local(s_register);
     }
@@ -248,7 +250,7 @@ ts_rx8900_register_t s_rx8900_read(i2c_port_t e_port_num) {
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     return ts_conv_local(s_register);
 }
@@ -295,7 +297,7 @@ esp_err_t sts_rx8900_write_datetime(i2c_port_t e_port_num, ts_rx8900_datetime_t 
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -325,7 +327,7 @@ esp_err_t sts_rx8900_write_datetime(i2c_port_t e_port_num, ts_rx8900_datetime_t 
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス
     return sts_val;
@@ -362,7 +364,7 @@ esp_err_t sts_rx8900_write_alarm_min(i2c_port_t e_port_num, uint8_t u8_min, bool
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -376,7 +378,7 @@ esp_err_t sts_rx8900_write_alarm_min(i2c_port_t e_port_num, uint8_t u8_min, bool
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     return sts_val;
 }
@@ -412,7 +414,7 @@ esp_err_t sts_rx8900_write_alarm_hour(i2c_port_t e_port_num, uint8_t u8_hour, bo
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -426,7 +428,7 @@ esp_err_t sts_rx8900_write_alarm_hour(i2c_port_t e_port_num, uint8_t u8_hour, bo
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     return sts_val;
 }
@@ -462,7 +464,7 @@ esp_err_t sts_rx8900_write_alarm_day(i2c_port_t e_port_num, uint8_t u8_day, bool
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -476,7 +478,7 @@ esp_err_t sts_rx8900_write_alarm_day(i2c_port_t e_port_num, uint8_t u8_day, bool
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス
     return sts_val;
@@ -509,7 +511,7 @@ esp_err_t sts_rx8900_write_alarm_week(i2c_port_t e_port_num, uint8_t u8_week, bo
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -523,7 +525,7 @@ esp_err_t sts_rx8900_write_alarm_week(i2c_port_t e_port_num, uint8_t u8_week, bo
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス
     return sts_val;
@@ -555,7 +557,7 @@ esp_err_t sts_rx8900_write_counter(i2c_port_t e_port_num, uint16_t u16_cnt) {
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -569,7 +571,7 @@ esp_err_t sts_rx8900_write_counter(i2c_port_t e_port_num, uint16_t u16_cnt) {
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス
     return sts_val;
@@ -601,7 +603,7 @@ esp_err_t sts_rx8900_write_ex(i2c_port_t e_port_num, uint8_t u8_ex) {
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -614,7 +616,7 @@ esp_err_t sts_rx8900_write_ex(i2c_port_t e_port_num, uint8_t u8_ex) {
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス
     return sts_val;
@@ -646,7 +648,7 @@ esp_err_t sts_rx8900_write_flg(i2c_port_t e_port_num, uint8_t u8_flg) {
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -659,7 +661,7 @@ esp_err_t sts_rx8900_write_flg(i2c_port_t e_port_num, uint8_t u8_flg) {
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス
     return sts_val;
@@ -691,7 +693,7 @@ extern esp_err_t sts_rx8900_write_ctl(i2c_port_t e_port_num, uint8_t u8_ctl) {
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -704,7 +706,7 @@ extern esp_err_t sts_rx8900_write_ctl(i2c_port_t e_port_num, uint8_t u8_ctl) {
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス
     return sts_val;
@@ -846,24 +848,11 @@ static esp_err_t sts_read(i2c_port_t e_port_num,
                            uint8_t* pu8_data,
                            size_t t_size) {
     // 書き込み開始
-    ts_i2c_address_t s_address = {e_port_num, I2C_ADDR_RX8900A};
-    esp_err_t tsts_val = sts_io_i2c_mst_start_write(s_address);
-    if (tsts_val != ESP_OK) {
-        return tsts_val;
-    }
+    ts_i2c_mst_address_t s_address = {e_port_num, I2C_ADDR_RX8900A};
     // アドレス書き込み
     uint8_t u8_reg_data[] = {u8_reg_address};
-    tsts_val = sts_io_i2c_mst_write(u8_reg_data, 1, true);
-    if (tsts_val != ESP_OK) {
-        return tsts_val;
-    }
-    // 読み込み開始
-    tsts_val = sts_io_i2c_mst_start_read(s_address);
-    if (tsts_val != ESP_OK) {
-        return tsts_val;
-    }
-    // データ読み込み
-    return sts_io_i2c_mst_read_stop(pu8_data, t_size);
+    // I2Cスレーブへのアドレスを送信し、データを受信
+    return sts_io_i2c_mst_txrx(&s_address, u8_reg_data, 1, pu8_data, t_size);
 }
 
 /*******************************************************************************
@@ -903,19 +892,15 @@ static esp_err_t sts_write_byte(i2c_port_t e_port_num, uint8_t u8_address, uint8
  *
  ******************************************************************************/
 static esp_err_t sts_write(i2c_port_t e_port_num, uint8_t u8_reg_address, uint8_t* pu8_data, size_t t_size) {
-    // 書き込み開始
-    ts_i2c_address_t s_address = {e_port_num, I2C_ADDR_RX8900A};
-    esp_err_t tsts_val = sts_io_i2c_mst_start_write(s_address);
-    if (tsts_val != ESP_OK) {
-       return tsts_val;
-    }
+    // アドレス
+    ts_i2c_mst_address_t s_address = {e_port_num, I2C_ADDR_RX8900A};
     // 送信データ編集
     size_t t_tx_size = t_size + 1;
     uint8_t u8_reg_data[t_tx_size];
     u8_reg_data[0] = u8_reg_address;
     memcpy(&u8_reg_data[1], pu8_data, t_size);
     // データ送信
-    return sts_io_i2c_mst_write_stop(u8_reg_data, t_tx_size, true);
+    return sts_io_i2c_mst_tx(&s_address, u8_reg_data, t_tx_size);
 }
 
 /******************************************************************************/

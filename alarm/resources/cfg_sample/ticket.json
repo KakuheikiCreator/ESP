@@ -1,0 +1,25 @@
+{
+	"ticket_list":	[{
+			"own_device_id":	"10",
+			"rmt_device_id":	"100",
+			"rmt_device_bda":	"DLgVCHsi",
+			"rmt_device_name":	"",
+			"enc_key":	"It7hTaFeJatL3Qm2TBbd0CJQOEZaO1wX4MBtyLZoPQw=",
+			"own_sts":	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+			"rmt_sts_hash":	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+			"max_seq_no":	"4294967295",
+			"tx_seq_no":	"8",
+			"rx_seq_no":	"11"
+		}, {
+			"own_device_id":	"10",
+			"rmt_device_id":	"2",
+			"rmt_device_bda":	"8PW9A6om",
+			"rmt_device_name":	"",
+			"enc_key":	"Lvv6zBcSsRozSWOVU1Ny6I7IFXbp8EjflfkDvNXWPUo=",
+			"own_sts":	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+			"rmt_sts_hash":	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+			"max_seq_no":	"4294967295",
+			"tx_seq_no":	"254",
+			"rx_seq_no":	"257"
+		}]
+}

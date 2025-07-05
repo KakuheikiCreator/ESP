@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include <math.h>
 #include <sys/unistd.h>
 #include <sys/stat.h>
 #include <sdkconfig.h>
@@ -47,10 +46,11 @@
 #include <soc/io_mux_reg.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <driver/i2c.h>
 #include <driver/rtc_io.h>
 #include <driver/sdmmc_host.h>
 #include <driver/sdspi_host.h>
+#include <esp_adc/adc_cali.h>
+#include <esp_adc/adc_cali_scheme.h>
 
 #include "settings.h"
 
@@ -62,7 +62,7 @@
 #include "ntfw_cryptography.h"
 #include "ntfw_io_file_util.h"
 #include "ntfw_io_gpio_util.h"
-#include "ntfw_io_i2c_master.h"
+#include "ntfw_io_i2c_mst.h"
 #include "ntfw_io_touchpad_fmwk.h"
 #include "ntfw_ble_fmwk.h"
 #include "ntfw_ble_msg.h"
@@ -390,58 +390,66 @@ static void v_task_test_main(void* args) {
     //==========================================================================
     // Memory allocate
     //==========================================================================
-    v_task_chk_mem_alloc((void*)NULL);
+//    v_task_chk_mem_alloc((void*)NULL);
 
     //==========================================================================
     // Value Utility
     //==========================================================================
-    v_task_chk_value_util((void*)NULL);
+//    v_task_chk_value_util((void*)NULL);
 
     //==========================================================================
     // Cryptography
     //==========================================================================
-    v_task_chk_cryptography((void*)NULL);
+//    v_task_chk_cryptography((void*)NULL);
 
     //==========================================================================
     // ADC
     //==========================================================================
-    v_task_chk_adc((void*)NULL);
+//    v_task_chk_adc((void*)NULL);
 
     //==========================================================================
     // File Utility
     //==========================================================================
-    v_task_chk_file_util((void*)NULL);
+//    v_task_chk_file_util((void*)NULL);
 
     //==========================================================================
     // Date Time Utility
     //==========================================================================
-    v_task_chk_com_date_time((void*)NULL);
+//    v_task_chk_com_date_time((void*)NULL);
 
     //==========================================================================
     // I2C init
     //==========================================================================
-    // I2C初期処理
-    esp_err_t sts = sts_io_i2c_mst_init(I2C_NUM_0, I2C_FREQ_HZ_FAST, GPIO_NUM_22, GPIO_NUM_21, GPIO_PULLUP_ENABLE);
-//    esp_err_t sts = sts_com_i2c_mst_init(I2C_NUM_0, I2C_FREQ_HZ_FAST, GPIO_NUM_17, GPIO_NUM_16, GPIO_PULLUP_ENABLE);
-//    esp_err_t sts = sts_com_i2c_mst_init(I2C_NUM_0, I2C_FREQ_HZ_STD, GPIO_NUM_17, GPIO_NUM_16, GPIO_PULLUP_ENABLE);
-    if (sts != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_test_main:sts_com_i2c_mst_init Error %d", sts);
+    // I2Cプルアップ
+#if defined(CONFIG_IDF_TARGET_ESP32)
+    uint64_t u64_pin_map_i2c = (1ULL << GPIO_NUM_21) | (1ULL << GPIO_NUM_22);
+#elif defined(CONFIG_IDF_TARGET_ESP32C6)
+    uint64_t u64_pin_map_i2c = (1ULL << GPIO_NUM_6) | (1ULL << GPIO_NUM_7);
+#endif
+    ESP_ERROR_CHECK(sts_io_pin_map(u64_pin_map_i2c, true, false, false));
+    // I2Cバスの初期処理
+    esp_err_t sts_val = sts_io_i2c_mst_bus_init(I2C_NUM_0,              // I2Cポート番号
+                                                I2C_MST_FREQ_HZ_FAST,   // バススピードファースト
+#if defined(CONFIG_IDF_TARGET_ESP32)
+                                      GPIO_NUM_22,          // SCLピン番号
+                                      GPIO_NUM_21,          // SDAピン番号
+#elif defined(CONFIG_IDF_TARGET_ESP32C6)
+                                      GPIO_NUM_7,           // SCLピン番号
+                                      GPIO_NUM_6,           // SDAピン番号
+#endif
+                                      GPIO_PULLUP_ENABLE);  // プルアップ設定
+    if (sts_val != ESP_OK) {
+        ESP_LOGE(TAG, "v_task_test_main:sts_com_i2c_mst_init Error %d", sts_val);
     }
-    i2c_set_timeout(I2C_NUM_0, 0xFFFFF);
-    // プルアップ
-    gpio_set_level(GPIO_NUM_22, 1);
-    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[GPIO_NUM_22], PIN_FUNC_GPIO);
-    gpio_set_level(GPIO_NUM_21, 1);
-    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[GPIO_NUM_21], PIN_FUNC_GPIO);
-    //    gpio_set_level(GPIO_NUM_17, 1);
-    //    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[GPIO_NUM_17], PIN_FUNC_GPIO);
-    //    gpio_set_level(GPIO_NUM_16, 1);
-    //    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[GPIO_NUM_16], PIN_FUNC_GPIO);
+    // クロックストレッチのタイムアウトを無制限に設定
+    ESP_ERROR_CHECK(sts_io_i2c_mst_set_timeout_ms(I2C_NUM_0, -1));
+    // I2Cバスのリセット
+    ESP_ERROR_CHECK(sts_io_i2c_mst_bus_reset(I2C_NUM_0));
 
     //==========================================================================
     // I2C Time Utility
     //==========================================================================
-//    v_task_chk_com_i2c_mst((void*)NULL);
+    v_task_chk_com_i2c_mst((void*)NULL);
 
     //==========================================================================
     // RX8900
@@ -2553,6 +2561,7 @@ static void v_task_chk_adc(void* args) {
  * None.
  ******************************************************************************/
 static void v_task_chk_adc_efuse() {
+#ifdef ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
     // ADC キャリブレーション ラインのフィッティング スキーム
     adc_cali_line_fitting_efuse_val_t e_cali_val;
     if (adc_cali_scheme_line_fitting_check_efuse(&e_cali_val) == ESP_OK) {
@@ -2566,6 +2575,7 @@ static void v_task_chk_adc_efuse() {
             ESP_LOGI(TAG, "eFuse line fitting: other");
         }
     }
+#endif
 }
 
 /*******************************************************************************
@@ -2694,9 +2704,7 @@ static void v_task_chk_file_util(void* args) {
     // SPI初期化処理
     //==========================================================================
     // SPIバスの初期化
-    sdmmc_host_t s_host = SDSPI_HOST_DEFAULT();
-    s_host.slot = HSPI_HOST;
-    spi_bus_config_t bus_cfg = {
+    spi_bus_config_t s_bus_cfg = {
         .mosi_io_num = GPIO_NUM_13,
         .miso_io_num = GPIO_NUM_16,
         .sclk_io_num = GPIO_NUM_14,
@@ -2704,30 +2712,42 @@ static void v_task_chk_file_util(void* args) {
         .quadhd_io_num = GPIO_NUM_NC,
         .max_transfer_sz = 8192,        // 最大転送サイズ
     };
-    esp_err_t ret = sts_spi_mst_bus_initialize(s_host.slot, &bus_cfg, SPI_DMA_CH1, true);
-    if (ret != ESP_OK) {
+    // SPIバスの初期化
+    esp_err_t ret_sts = sts_spi_mst_bus_init(SPI2_HOST, &s_bus_cfg, SPI_DMA_CH_AUTO, true);
+    if (ret_sts != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize bus.");
         return;
     }
-
+ 
     //==========================================================================
     // SDMMC初期化処理
     //==========================================================================
     // ログ出力
     ESP_LOGI(TAG, "Initializing SD card");
+    // SPIデバイス設定
+    sdspi_device_config_t s_device_cfg = SDSPI_DEVICE_CONFIG_DEFAULT();
+    s_device_cfg.host_id = SPI2_HOST;
+    s_device_cfg.gpio_cs = GPIO_NUM_15;
+    s_device_cfg.gpio_cd = GPIO_NUM_NC;
+    s_device_cfg.gpio_wp = GPIO_NUM_NC;
     // SDマウント設定
     esp_vfs_fat_sdmmc_mount_config_t s_mount_cfg;
     s_mount_cfg.format_if_mount_failed = true;      // マウント不可能時のフォーマット設定：フォーマットする
     s_mount_cfg.max_files = 5;                      // 最大オープンファイル数
     s_mount_cfg.allocation_unit_size = 16 * 1024;   // アロケーションユニットサイズ：16KB（Windows最大）
     // SDMMCカードのマウント
-    sdmmc_card_t* ps_card = ps_futil_sdmmc_hspi_mount("/sdcard", GPIO_NUM_15, GPIO_NUM_NC, GPIO_NUM_NC, &s_mount_cfg);
-//    sdmmc_card_t* ps_card = ps_futil_sdmmc_hspi_mount("/sdcard", GPIO_NUM_25, GPIO_NUM_NC, GPIO_NUM_NC, &s_mount_cfg);
+    // 第１引数：マウントパス
+    // 第２引数：SPIデバイス設定
+    // 第３引数：SDマウント設定
+    sdmmc_card_t* ps_card = ps_futil_sdspi_mount("/sdcard", &s_device_cfg, &s_mount_cfg);
     if (ps_card == NULL) {
         // ファイルシステムのマウント失敗時
         ESP_LOGE(TAG, "%s L#%d Failed to mount filesystem.", __func__, __LINE__);
         return;
     }
+
+
+
     // SDカード情報の表示
     sdmmc_card_print_info(stdout, ps_card);
 
@@ -4229,184 +4249,40 @@ static void v_task_chk_com_i2c_mst_00() {
     //==========================================================================
     // I2C Debug Start
     //==========================================================================
-    // I2Cハンドル
-    i2c_cmd_handle_t v_mst_cmd_hndl;
     // 結果ステータス
     esp_err_t sts_val;
-    // 受信データ
-    uint8_t u8_rx_data[16];
 
-    //==========================================================================
-    // I2C Debug Read
-    // Note:RX8900を想定してテストコードを実装
-    //==========================================================================
-    //--------------------------------------------------------------------------
-    // RAMにデータの書き込み
-    //--------------------------------------------------------------------------
-    // I2Cハンドル生成
-    v_mst_cmd_hndl = i2c_cmd_link_create();
-    // キューイング：Writeスタートコンディション
-    sts_val = i2c_master_start(v_mst_cmd_hndl);
-    if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 RX8900 No.0 Error");
-    }
-    // アドレス書き込み
-    sts_val = i2c_master_write_byte(v_mst_cmd_hndl, (0x32 << 1), true);
-    if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 RX8900 No.1 Error");
-    }
-    // レジスタアドレス(RAM)の書き込み
-    sts_val = i2c_master_write_byte(v_mst_cmd_hndl, 0x07, true);
-    if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 RX8900 No.2 Error");
-    }
-    // RAMにデータの書き込み
-    sts_val = i2c_master_write_byte(v_mst_cmd_hndl, 0xAB, true);
-    if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 RX8900 No.3 Error");
-    }
-    // ストップコンディション
-    sts_val = i2c_master_stop(v_mst_cmd_hndl);
-    if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 RX8900 No.4 Error");
-    }
-    // キューイングされたI2C処理を実行、I2Cドライバの排他ロック取得を最大1秒待つ
-    sts_val = i2c_master_cmd_begin(I2C_NUM_0, v_mst_cmd_hndl, 1000 / portTICK_PERIOD_MS);
-    if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 RX8900 No.5 Error");
-    }
-    // I2Cリンクの削除
-    i2c_cmd_link_delete(v_mst_cmd_hndl);
-
-    //--------------------------------------------------------------------------
-    // RAMデータの読み込み
-    //--------------------------------------------------------------------------
-    // I2Cハンドル生成
-    v_mst_cmd_hndl = i2c_cmd_link_create();
-    // キューイング：Writeスタートコンディション
-    sts_val = i2c_master_start(v_mst_cmd_hndl);
-    if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 RX8900 No.6 Error");
-    }
-    // デバイスアドレス書き込み
-    sts_val = i2c_master_write_byte(v_mst_cmd_hndl, (0x32 << 1), true);
-    if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 RX8900 No.7 Error");
-    }
-    // レジスタアドレス(RAM)の書き込み
-    sts_val = i2c_master_write_byte(v_mst_cmd_hndl, 0x07, true);
-    if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 RX8900 No.8 Error");
-    }
-
-    //--------------------------------------------------------------------------
-    // キューイング：Readスタートコンディション
-    //--------------------------------------------------------------------------
-    // キューイング：Readスタートコンディション
-    sts_val = i2c_master_start(v_mst_cmd_hndl);
-    if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 RX8900 No.9 Error");
-    }
-    // デバイスアドレス書き込み
-    sts_val = i2c_master_write_byte(v_mst_cmd_hndl, ((0x32 << 1) | 0x01), true);
-    if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 RX8900 No.10 Error");
-    }
-    // データ読み込み
-    // I2C_MASTER_ACK
-    sts_val = i2c_master_read(v_mst_cmd_hndl, u8_rx_data, 8, I2C_MASTER_LAST_NACK);
-    if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 RX8900 No.11 Error");
-    }
-    // ストップコンディション
-    sts_val = i2c_master_stop(v_mst_cmd_hndl);
-    if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 RX8900 No.12 Error");
-    }
-    // キューイングされたI2C処理を実行、I2Cドライバの排他ロック取得を最大1秒待つ
-    sts_val = i2c_master_cmd_begin(I2C_NUM_0, v_mst_cmd_hndl, 1000 / portTICK_PERIOD_MS);
-    if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 RX8900 No.13 Error");
-    }
-    // I2Cリンクの削除
-    i2c_cmd_link_delete(v_mst_cmd_hndl);
-
-    //==========================================================================
-    // I2C Debug Write
-    // Note:ST7032Iを想定してPINGテストコードを実装
-    //==========================================================================
-//    i64_dt_util_wait_usec(10);
-//    // PING
-//    ts_i2c_address s_address = {
-//            .e_port_no = I2C_NUM_0,   // I2Cポート番号
-//            .u16_address = 0x3E       // I2Cスレーブアドレス（10bit時：0b011110～）
-//    };
-//    sts_val = sts_i2c_mst_util_ping(s_address);
-//    if (sts_val != ESP_OK) {
-//        ESP_LOGE(TAG, "v_task_chk_i2c_01 ST7032I No.0 Error sts:%04X", sts_val);
-//    }
     //==========================================================================
     // I2C Debug Write
     // Note:ST7032Iを想定してテストコードを実装
     //==========================================================================
     i64_dtm_wait_usec(10);
-    // I2Cハンドル生成
-    v_mst_cmd_hndl = i2c_cmd_link_create();
-    // キューイング：スタートコンディション
-    sts_val = i2c_master_start(v_mst_cmd_hndl);
+    // I2c address
+    ts_i2c_mst_address_t s_address = {
+        .e_port_no = I2C_NUM_0,
+        .u16_address = 0x3E
+    };
+    // アドレス追加
+    sts_val = sts_io_i2c_mst_add_device(&s_address);
     if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 ST7032I No.0 Error");
+        ESP_LOGE(TAG, "v_task_chk_i2c_00 ST7032I No.0 Error");
     }
-    // アドレス書き込み
-    uint8_t u8_data = (0x3E << 1);
-    sts_val = i2c_master_write_byte(v_mst_cmd_hndl, u8_data, true);
+    // I2Cトランザクションの開始
+    sts_val = sts_io_i2c_mst_tran_begin();
     if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 ST7032I No.1 Error");
+        ESP_LOGE(TAG, "v_task_chk_i2c_00 ST7032I No.1 Error");
     }
-    // コマンド書き込み
-    sts_val = i2c_master_write_byte(v_mst_cmd_hndl, 0x00, true);
+    // I2Cスレーブへのデータ送信処理
+    uint8_t u8_tx_data[] = {(0x3E << 1), 0x00, 0x39};
+    sts_val = sts_io_i2c_mst_tx(&s_address, u8_tx_data, 3);
     if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 ST7032I No.2 Error");
+        ESP_LOGE(TAG, "v_task_chk_i2c_00 ST7032I No.2 Error");
     }
-    sts_val = i2c_master_write_byte(v_mst_cmd_hndl, 0x39, true);
+    /** トランザクション終了 */
+    sts_val = sts_io_i2c_mst_tran_end();
     if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 ST7032I No.3 Error");
+        ESP_LOGE(TAG, "v_task_chk_i2c_00 ST7032I No.3 Error");
     }
-    // ストップコンディション
-    sts_val = i2c_master_stop(v_mst_cmd_hndl);
-    if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 ST7032I No.4 Error");
-    }
-    // キューイングされたI2C処理を実行、I2Cドライバの排他ロック取得を最大1秒待つ
-    sts_val = i2c_master_cmd_begin(I2C_NUM_0, v_mst_cmd_hndl, 1000 / portTICK_PERIOD_MS);
-    if (sts_val != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 ST7032I No.5 Error");
-    }
-    // I2Cリンクの削除
-    i2c_cmd_link_delete(v_mst_cmd_hndl);
-
-    //==========================================================================
-//    i2c_cmd_link_delete(v_mst_cmd_hndl);
-//    v_mst_cmd_hndl = i2c_cmd_link_create();
-    //==========================================================================
-    // キューイング：スタートコンディション
-//    sts_val = i2c_master_start(v_mst_cmd_hndl);
-    // 一括書き込み
-//    uint8_t u8_data_list[] = {(0x3E << 1), 0x00, 0x39};
-//    i2c_master_write(v_mst_cmd_hndl, u8_data_list, 3, true);
-    // ストップコンディション
-//    sts_val = i2c_master_stop(v_mst_cmd_hndl);
-    // キューイングされたI2C処理を実行、I2Cドライバの排他ロック取得を最大1秒待つ
-//    sts_val = i2c_master_cmd_begin(I2C_NUM_0, v_mst_cmd_hndl, 1000 / portTICK_PERIOD_MS);
-//    if (sts_val != ESP_OK) {
-//        return;
-//    }
-
-    //==========================================================================
-    // I2C Debug End
-    //==========================================================================
-    // I2Cリンクの削除
-//    i2c_cmd_link_delete(v_mst_cmd_hndl);
 }
 
 /*******************************************************************************
@@ -4425,223 +4301,96 @@ static void v_task_chk_com_i2c_mst_00() {
 static void v_task_chk_com_i2c_mst_01() {
     // 実行結果
     esp_err_t sts_result;
-    // アドレス
-    ts_i2c_address_t s_address;
-    // 送信データ
-    uint8_t u8_tx_data[16];
-    // 受信データ
-    uint8_t u8_rx_data[16];
-    //==========================================================================
-    // I2C Debug Util Write
-    // RX8900のRAMデータへの書き込みと読み込み
-    //==========================================================================
-    //--------------------------------------------------------------------------
-    // Pingの送信
-    //--------------------------------------------------------------------------
-    s_address.e_port_no = I2C_NUM_0;
-    s_address.u16_address = 0x3E;
-    sts_result = sts_io_i2c_mst_ping(s_address);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 No.0 Error sts:%X", sts_result);
-    }
-
-    //--------------------------------------------------------------------------
-    // 書き込みスタートコンディションの送信
-    //--------------------------------------------------------------------------
-    s_address.e_port_no = I2C_NUM_0;
-    s_address.u16_address = 0x32;
-    sts_result = sts_io_i2c_mst_start_write(s_address);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 No.1 Error sts:%X", sts_result);
-    }
-    //--------------------------------------------------------------------------
-    // レジスタ(RAM)への書き込み
-    //--------------------------------------------------------------------------
-    u8_tx_data[0] = 0x07;
-    u8_tx_data[1] = 0xAB;
-    sts_result = sts_io_i2c_mst_write_stop(u8_tx_data, 2, true);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 No.2 Error");
-    }
-    //--------------------------------------------------------------------------
-    // 書き込みスタートコンディションの送信
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_start_write(s_address);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 No.3 Error sts:%X", sts_result);
-    }
-    //--------------------------------------------------------------------------
-    // レジスタ(RAM)へのアドレス書き込み
-    //--------------------------------------------------------------------------
-    u8_tx_data[0] = 0x00;
-    sts_result = sts_io_i2c_mst_write(u8_tx_data, 1, true);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 No.4 Error");
-    }
-    //--------------------------------------------------------------------------
-    // 読み込みスタートコンディションの送信
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_start_read(s_address);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 No.5 Error");
-    }
-    //--------------------------------------------------------------------------
-    // レジスタ(RAM)からの読み込み
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_read_stop(u8_rx_data, 10);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 No.6 Error");
-    }
-    //--------------------------------------------------------------------------
-    // 読み込みスタートコンディションの送信
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_start_read(s_address);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 No.7 Error");
-    }
-    //--------------------------------------------------------------------------
-    // レジスタ(RAM)からの読み込み
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_read_stop(u8_rx_data, 5);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c_01 No.8 Error");
-    }
-
     //==========================================================================
     // I2C Debug Write
     // ST7032IのLCDドライバを想定
     //==========================================================================
+    // I2c address
+    ts_i2c_mst_address_t s_address = {
+        .e_port_no = I2C_NUM_0,
+        .u16_address = 0x3E
+    };
+    // 送信データ
+    uint8_t u8_tx_data[16];
     //--------------------------------------------------------------------------
-    // Pingの送信
+    // Transaction begin
     //--------------------------------------------------------------------------
-    s_address.e_port_no = I2C_NUM_0;
-    s_address.u16_address = 0x3E;
-    sts_result = sts_io_i2c_mst_ping(s_address);
+    sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.0 Error");
-    }
-    //--------------------------------------------------------------------------
-    // 書き込みスタートコンディションの送信
-    //--------------------------------------------------------------------------
-    s_address.e_port_no = I2C_NUM_0;
-    s_address.u16_address = 0x3E;
-    sts_result = sts_io_i2c_mst_start_write(s_address);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.0 Error");
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_01 No.0 Error sts:%X", sts_result);
     }
     //--------------------------------------------------------------------------
     // Function Set Default(IS=1)
     //--------------------------------------------------------------------------
+    // 送信データ
     u8_tx_data[0] = 0x00;
     u8_tx_data[1] = 0x39;
-    sts_result = sts_io_i2c_mst_write_stop(u8_tx_data, 2, true);
+    sts_result = sts_io_i2c_mst_tx(&s_address, u8_tx_data, 2);
     if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.1 Error");
-    }
-    //--------------------------------------------------------------------------
-    // 書き込みスタートコンディションの送信
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_start_write(s_address);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.2 Error");
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_01 No.1 Error");
     }
     //--------------------------------------------------------------------------
     // Internal OSC frequency
     //--------------------------------------------------------------------------
     u8_tx_data[1] = 0x14;
-    sts_result = sts_io_i2c_mst_write_stop(u8_tx_data, 2, true);
+    sts_result = sts_io_i2c_mst_tx(&s_address, u8_tx_data, 2);
     if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.3 Error");
-    }
-    //--------------------------------------------------------------------------
-    // 書き込みスタートコンディションの送信
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_start_write(s_address);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.4 Error");
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_01 No.2 Error");
     }
     //--------------------------------------------------------------------------
     // Display Contrast Lower set
     //--------------------------------------------------------------------------
     u8_tx_data[1] = 0x70 | 0x08;
-    sts_result = sts_io_i2c_mst_write_stop(u8_tx_data, 2, true);
+    sts_result = sts_io_i2c_mst_tx(&s_address, u8_tx_data, 2);
     if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.5 Error");
-    }
-    //--------------------------------------------------------------------------
-    // 書き込みスタートコンディションの送信
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_start_write(s_address);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.6 Error");
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_01 No.3 Error");
     }
     //--------------------------------------------------------------------------
     // Power/ICON Control/Contrast Higher set
     //--------------------------------------------------------------------------
     u8_tx_data[1] = 0x50 | 0x0E;
-    sts_result = sts_io_i2c_mst_write_stop(u8_tx_data, 2, true);
+    sts_result = sts_io_i2c_mst_tx(&s_address, u8_tx_data, 2);
     if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.7 Error");
-    }
-    //--------------------------------------------------------------------------
-    // 書き込みスタートコンディションの送信
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_start_write(s_address);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.8 Error");
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_01 No.4 Error");
     }
     //--------------------------------------------------------------------------
     // Follower Control
     //--------------------------------------------------------------------------
     u8_tx_data[1] = 0x6C;
-    sts_result = sts_io_i2c_mst_write_stop(u8_tx_data, 2, true);
+    sts_result = sts_io_i2c_mst_tx(&s_address, u8_tx_data, 2);
     if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.9 Error");
-    }
-    //--------------------------------------------------------------------------
-    // 書き込みスタートコンディションの送信
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_start_write(s_address);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.10 Error");
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_01 No.5 Error");
     }
     //--------------------------------------------------------------------------
     // Function Set Default(IS=0)
     //--------------------------------------------------------------------------
     u8_tx_data[1] = 0x38;
-    sts_result = sts_io_i2c_mst_write_stop(u8_tx_data, 2, true);
+    sts_result = sts_io_i2c_mst_tx(&s_address, u8_tx_data, 2);
     if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.11 Error");
-    }
-    //--------------------------------------------------------------------------
-    // 書き込みスタートコンディションの送信
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_start_write(s_address);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.12 Error");
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_01 No.6 Error");
     }
     //--------------------------------------------------------------------------
     // Display Switch On
     //--------------------------------------------------------------------------
     u8_tx_data[1] = 0x08 | 0x04;
-    sts_result = sts_io_i2c_mst_write_stop(u8_tx_data, 2, true);
+    sts_result = sts_io_i2c_mst_tx(&s_address, u8_tx_data, 2);
     if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.13 Error");
-    }
-    //--------------------------------------------------------------------------
-    // 書き込みスタートコンディションの送信
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_start_write(s_address);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.14 Error");
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_01 No.7 Error");
     }
     //--------------------------------------------------------------------------
     // Clear Screen
     //--------------------------------------------------------------------------
     u8_tx_data[1] = 0x01;
-    sts_result = sts_io_i2c_mst_write_stop(u8_tx_data, 2, true);
+    sts_result = sts_io_i2c_mst_tx(&s_address, u8_tx_data, 2);
     if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.15 Error");
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_01 No.8 Error");
+    }
+    //--------------------------------------------------------------------------
+    // Transaction end
+    //--------------------------------------------------------------------------
+    sts_result = sts_io_i2c_mst_tran_end();
+    if (sts_result != ESP_OK) {
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_01 No.9 Error sts:%X", sts_result);
     }
     // 次のコマンド実行までウェイト
     i64_dtm_delay_usec(1080);
@@ -4652,47 +4401,33 @@ static void v_task_chk_com_i2c_mst_01() {
     //--------------------------------------------------------------------------
     // トランザクション開始
     //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_begin();
+    sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.16 Error");
-    }
-    //--------------------------------------------------------------------------
-    // 書き込みスタートコンディションの送信
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_start_write(s_address);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.17 Error");
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_01 No.10 Error");
     }
     //--------------------------------------------------------------------------
     // Set Cursor
     //--------------------------------------------------------------------------
     u8_tx_data[1] = 0x80;
-    sts_result = sts_io_i2c_mst_write_stop(u8_tx_data, 2, true);
+    sts_result = sts_io_i2c_mst_tx(&s_address, u8_tx_data, 2);
     if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.18 Error");
-    }
-    //--------------------------------------------------------------------------
-    // 書き込みスタートコンディションの送信
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_start_write(s_address);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.19 Error");
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_01 No.11 Error");
     }
     //--------------------------------------------------------------------------
     // 文字列の書き込み
     //--------------------------------------------------------------------------
     uint8_t u8_tx_string[] = "X0123456789";
     u8_tx_string[0] = 0x40;
-    sts_result = sts_io_i2c_mst_write_stop(u8_tx_string, 11, true);
+    sts_result = sts_io_i2c_mst_tx(&s_address, u8_tx_string, 11);
     if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.20 Error");
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_01 No.12 Error");
     }
     //--------------------------------------------------------------------------
     // トランザクション終了
     //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_end();
+    sts_result = sts_io_i2c_mst_tran_end();
     if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.21 Error %x", sts_result);
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_01 No.13 Error %x", sts_result);
     }
 }
 
@@ -4712,8 +4447,6 @@ static void v_task_chk_com_i2c_mst_01() {
 static void v_task_chk_com_i2c_mst_02() {
     // 実行結果
     esp_err_t sts_result;
-    // アドレス
-    ts_i2c_address_t s_address;
     // 送信データ
     uint8_t u8_tx_data[16];
     // 受信データ
@@ -4722,90 +4455,60 @@ static void v_task_chk_com_i2c_mst_02() {
     // I2C Error Check
     // ST7032IのLCDドライバを想定した順序制御エラー
     //==========================================================================
-    s_address.e_port_no = I2C_NUM_0;
+
+    //--------------------------------------------------------------------------
+    // 次のコマンド実行までウェイト
+    //--------------------------------------------------------------------------
+    i64_dtm_delay_usec(1080);
+
+    //--------------------------------------------------------------------------
+    // トランザクション終了
+    // エラーケース：トランザクションが開始していない
+    //--------------------------------------------------------------------------
+    sts_result = sts_io_i2c_mst_tran_end();
+    if (sts_result != ESP_ERR_INVALID_STATE) {
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_02 No.0 Error sts=%d", sts_result);
+    }
+
+    //--------------------------------------------------------------------------
+    // データ読み込み
+    // エラーケース：ポート番号エラー
+    //--------------------------------------------------------------------------
+    // アドレス
+    ts_i2c_mst_address_t s_address;
+    s_address.e_port_no = I2C_NUM_1;
     s_address.u16_address = 0x3E;
-    //--------------------------------------------------------------------------
-    // データ読み込み
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_read(u8_rx_data, 8);
-    if (sts_result != ESP_ERR_INVALID_STATE) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.1 Error");
+    sts_result = sts_io_i2c_mst_rx(&s_address, u8_rx_data, 8);
+    if (sts_result != ESP_ERR_NOT_FOUND) {
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_02 No.1 Error sts=%d", sts_result);
     }
-    //--------------------------------------------------------------------------
-    // データ読み込み
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_read_stop(u8_rx_data, 8);
-    if (sts_result != ESP_ERR_INVALID_STATE) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.2 Error");
-    }
+
     //--------------------------------------------------------------------------
     // データ書き込み
+    // エラーケース：アドレスエラー
     //--------------------------------------------------------------------------
+    s_address.e_port_no = I2C_NUM_0;
+    s_address.u16_address = 0;
     u8_tx_data[0] = 0x12;
     u8_tx_data[1] = 0x13;
     u8_tx_data[2] = 0x14;
-    sts_result = sts_io_i2c_mst_write(u8_tx_data, 3, true);
-    if (sts_result != ESP_ERR_INVALID_STATE) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.3 Error");
+    u8_tx_data[3] = 0x22;
+    u8_tx_data[4] = 0x23;
+    u8_tx_data[5] = 0x24;
+    sts_result = sts_io_i2c_mst_tx(&s_address, u8_tx_data, 6);
+    if (sts_result != ESP_ERR_INVALID_ARG) {
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_02 No.2 Error sts=%d", sts_result);
     }
+
     //--------------------------------------------------------------------------
     // データ書き込み
+    // エラーケース：送信データなし
     //--------------------------------------------------------------------------
-    u8_tx_data[0] = 0x22;
-    u8_tx_data[1] = 0x23;
-    u8_tx_data[2] = 0x24;
-    sts_result = sts_io_i2c_mst_write_stop(u8_tx_data, 3, true);
-    if (sts_result != ESP_ERR_INVALID_STATE) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.4 Error");
-    }
-    //==========================================================================
-    // スタートコンディションの送信
-    //==========================================================================
-    sts_result = sts_io_i2c_mst_start_write(s_address);
-    if (sts_result != ESP_OK) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.5 Error");
-    }
-    //--------------------------------------------------------------------------
-    // 初期化処理
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_init(I2C_NUM_0, I2C_FREQ_HZ_STD, GPIO_NUM_17, GPIO_NUM_16, GPIO_PULLUP_ENABLE);
-    if (sts_result != ESP_ERR_INVALID_STATE) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.6 Error");
-    }
-    //--------------------------------------------------------------------------
-    // トランザクション開始
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_begin();
-    if (sts_result != ESP_ERR_INVALID_STATE) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.7 Error");
-    }
-    //--------------------------------------------------------------------------
-    // トランザクション終了
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_end();
-    if (sts_result != ESP_ERR_INVALID_STATE) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.8 Error");
-    }
-    //--------------------------------------------------------------------------
-    // 読み込みスタートコンディションの送信
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_start_read(s_address);
-    if (sts_result != ESP_ERR_INVALID_STATE) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.9 Error");
-    }
-    //--------------------------------------------------------------------------
-    // 書き込みスタートコンディションの送信
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_start_write(s_address);
-    if (sts_result != ESP_ERR_INVALID_STATE) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.10 Error");
-    }
-    //--------------------------------------------------------------------------
-    // Ping
-    //--------------------------------------------------------------------------
-    sts_result = sts_io_i2c_mst_ping(s_address);
-    if (sts_result != ESP_ERR_INVALID_STATE) {
-        ESP_LOGE(TAG, "v_task_chk_i2c No.11 Error");
+    s_address.e_port_no = I2C_NUM_0;
+    s_address.u16_address = 0x3E;
+    sts_result = sts_io_i2c_mst_tx(&s_address, NULL, 6);
+    if (sts_result != ESP_ERR_INVALID_ARG) {
+        ESP_LOGE(TAG, "v_task_chk_com_i2c_mst_02 No.3 Error sts=%d", sts_result);
     }
 }
 
@@ -5182,10 +4885,10 @@ static void v_task_chk_adxl345(void* args) {
     //==========================================================================
     // ADXL345初期化
     //==========================================================================
-    ts_i2c_address_t s_address;
+    ts_i2c_mst_address_t s_address;
     s_address.e_port_no = I2C_NUM_0;
     s_address.u16_address = I2C_ADDR_ADXL345_H;
-    esp_err_t sts = sts_adxl345_init(s_address, 0x0A);
+    esp_err_t sts = sts_adxl345_init(&s_address, 0x0A);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "v_task_chk_adxl345 | sts_adxl345_init OK");
     } else {
@@ -5194,7 +4897,7 @@ static void v_task_chk_adxl345(void* args) {
     //==========================================================================
     // 較正処理
     //==========================================================================
-    sts = sts_adxl345_zeroing(s_address);
+    sts = sts_adxl345_zeroing(&s_address);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "v_task_chk_adxl345 | sts_adxl345_calibration OK");
     } else {
@@ -5203,12 +4906,12 @@ static void v_task_chk_adxl345(void* args) {
     //==========================================================================
     // 加速度読み込みテスト
     //==========================================================================
-    sts_adxl345_set_offset(s_address, -1, -3, -60);
+    sts_adxl345_set_offset(&s_address, -1, -3, -60);
 //    sts_adxl345_set_offset(s_address, 0, 0, 0);
 //    sts_adxl345_zeroing(s_address);
 //    sts_adxl345_set_data_format(s_address, DRV_ADXL345_4G, true, false, false);
     ts_adxl345_register_t s_register;
-    sts_adxl345_read(s_address, &s_register);
+    sts_adxl345_read(&s_address, &s_register);
     ESP_LOGI(TAG, "sts_adxl345_read O(%d,%d,%d)", s_register.i8_offset_x, s_register.i8_offset_y, s_register.i8_offset_z);
     ts_adxl345_axes_data_t s_gdata;
 //    int8_t i8_offset = -128;
@@ -5222,8 +4925,8 @@ static void v_task_chk_adxl345(void* args) {
 //            sts_adxl345_set_offset(s_address, i8_offset, i8_offset, i8_offset);
 //            ESP_LOGI(TAG, "sts_adxl345_read O:f(%d,%d,%d)", i8_offset, i8_offset, i8_offset);
 //        }
-        sts_adxl345_read_g(s_address, &s_gdata);
-        int16_t i16_g = i16_adxl345_conv_g_val(&s_gdata, false);
+        sts_adxl345_read_g(&s_address, &s_gdata);
+        int16_t i16_g = i16_adxl345_conv_g_val(s_gdata, false);
         ESP_LOGI(TAG, "sts_adxl345_read G:f(%d,%d,%d)=%d", s_gdata.i16_data_x, s_gdata.i16_data_y, s_gdata.i16_data_z, i16_g);
     }
 }
@@ -5246,37 +4949,37 @@ static void v_task_chk_lis3dh(void* args) {
     //==========================================================================
     // 初期設定
     //==========================================================================
-    ts_i2c_address_t s_address;
+    ts_i2c_mst_address_t s_address;
     s_address.e_port_no = I2C_NUM_0;
     s_address.u16_address = 0x18;
     // レート設定
     ESP_LOGI(TAG, "LIS3DH set rate");
-    esp_err_t sts = sts_lis3dh_set_rate(s_address, false, DRV_LIS3DH_RATE_LPW_1HZ);
+    esp_err_t sts = sts_lis3dh_set_rate(&s_address, false, DRV_LIS3DH_RATE_LPW_1HZ);
     if (sts != ESP_OK) {
         return;
     }
     // 各軸の有効化
     ESP_LOGI(TAG, "LIS3DH enable axis");
-    sts = sts_lis3dh_set_enable_axis(s_address, true, true, true);
+    sts = sts_lis3dh_set_enable_axis(&s_address, true, true, true);
     if (sts != ESP_OK) {
         return;
     }
     // 計測データ更新設定
     ESP_LOGI(TAG, "LIS3DH upd settings");
-    sts = sts_lis3dh_set_upd_settings(s_address, false, false);
+    sts = sts_lis3dh_set_upd_settings(&s_address, false, false);
     if (sts != ESP_OK) {
         return;
     }
     // レンジ設定
     ESP_LOGI(TAG, "LIS3DH set range");
-    sts = sts_lis3dh_set_range(s_address, DRV_LIS3DH_RANGE_2G, true);
+    sts = sts_lis3dh_set_range(&s_address, DRV_LIS3DH_RANGE_2G, true);
     if (sts != ESP_OK) {
         return;
     }
     // FIFOモード
     ESP_LOGI(TAG, "LIS3DH set fifo mode");
 //    sts = sts_lis3dh_set_fifo_mode(s_address, DRV_LIS3DH_MODE_STREAM);
-    sts = sts_lis3dh_set_fifo_mode(s_address, DRV_LIS3DH_MODE_BYPASS);
+    sts = sts_lis3dh_set_fifo_mode(&s_address, DRV_LIS3DH_MODE_BYPASS);
     if (sts != ESP_OK) {
         return;
     }
@@ -5285,7 +4988,7 @@ static void v_task_chk_lis3dh(void* args) {
     // who am i
     //==========================================================================
     ESP_LOGI(TAG, "LIS3DH who am i");
-    sts = sts_lis3dh_who_am_i(s_address);
+    sts = sts_lis3dh_who_am_i(&s_address);
     if (sts != ESP_OK) {
         return;
     }
@@ -5297,13 +5000,13 @@ static void v_task_chk_lis3dh(void* args) {
     for (i_cnt = 0; i_cnt < 100000; i_cnt++) {
         // FIFOカウント読み込み
         uint8_t u8_fifo_cnt;
-        esp_err_t sts = sts_lis3dh_fifo_cnt(s_address, &u8_fifo_cnt);
+        esp_err_t sts = sts_lis3dh_fifo_cnt(&s_address, &u8_fifo_cnt);
         if (sts != ESP_OK) {
             return;
         }
         // 加速度読み込み
         ts_lis3dh_axes_data_t s_axes_data;
-        sts = sts_lis3dh_acceleration(s_address, &s_axes_data);
+        sts = sts_lis3dh_acceleration(&s_address, &s_axes_data);
         if (sts != ESP_OK) {
             return;
         }
@@ -5348,14 +5051,14 @@ static void v_task_chk_mpu6050(void* args) {
  ******************************************************************************/
 static void v_task_chk_mpu6050_00() {
     // アドレス
-    ts_i2c_address_t s_address;
+    ts_i2c_mst_address_t s_address;
     s_address.e_port_no = I2C_NUM_0;
     s_address.u16_address = I2C_ADDR_MPU_6050_L;
     esp_err_t sts;
     //==========================================================================
     // 初期処理
     //==========================================================================
-    sts = sts_mpu_6050_init(s_address, DRV_MPU_6050_ACCEL_RANGE_2G, DRV_MPU_6050_GYRO_RANGE_250);
+    sts = sts_mpu_6050_init(&s_address, DRV_MPU_6050_ACCEL_RANGE_2G, DRV_MPU_6050_GYRO_RANGE_250);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_init:OK");
     } else {
@@ -5366,7 +5069,7 @@ static void v_task_chk_mpu6050_00() {
     //==========================================================================
     // サンプルレート = Gyroscope Output Rate / (1 + SMPLRT_DIV)
     // Gyroscope Output Rate ＝8KHz(DLPFが有効の場合は1KHz)
-    sts = sts_mpu_6050_set_smplrt_div(s_address, 0x00);
+    sts = sts_mpu_6050_set_smplrt_div(&s_address, 0x00);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_set_smplrt_div:OK");
     } else {
@@ -5376,7 +5079,7 @@ static void v_task_chk_mpu6050_00() {
     // 設定：ローパスフィルター
     //==========================================================================
     // 加速度:260Hz以上をカット、ジャイロ:258Hz以上をカット
-    sts = sts_mpu_6050_set_dlpf_cfg(s_address, DRV_MPU_6050_LPF_260_256);
+    sts = sts_mpu_6050_set_dlpf_cfg(&s_address, DRV_MPU_6050_LPF_260_256);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_set_dlpf_cfg:OK");
     } else {
@@ -5385,7 +5088,7 @@ static void v_task_chk_mpu6050_00() {
     //==========================================================================
     // 設定：ハイパスフィルター
     //==========================================================================
-    sts = sts_mpu_6050_set_accel_hpf(s_address, DRV_MPU_6050_ACCEL_HPF_0P63HZ);
+    sts = sts_mpu_6050_set_accel_hpf(&s_address, DRV_MPU_6050_ACCEL_HPF_0P63HZ);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_set_accel_hpf:OK");
     } else {
@@ -5394,7 +5097,7 @@ static void v_task_chk_mpu6050_00() {
     //==========================================================================
     // 設定：ジャイロレンジ
     //==========================================================================
-    sts = sts_mpu_6050_set_gyro_range(s_address, DRV_MPU_6050_GYRO_RANGE_250);
+    sts = sts_mpu_6050_set_gyro_range(&s_address, DRV_MPU_6050_GYRO_RANGE_250);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_set_gyro_range:OK");
     } else {
@@ -5403,7 +5106,7 @@ static void v_task_chk_mpu6050_00() {
     //==========================================================================
     // 設定：加速度レンジ
     //==========================================================================
-    sts = sts_mpu_6050_set_accel_range(s_address, DRV_MPU_6050_ACCEL_RANGE_2G);
+    sts = sts_mpu_6050_set_accel_range(&s_address, DRV_MPU_6050_ACCEL_RANGE_2G);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_set_accel_range:OK");
     } else {
@@ -5413,7 +5116,7 @@ static void v_task_chk_mpu6050_00() {
     // 設定：FIFO有効無効設定
     //==========================================================================
     // FIFO無効化
-    sts = sts_mpu_6050_set_fifo_enable(s_address, false, false, false, false, false);
+    sts = sts_mpu_6050_set_fifo_enable(&s_address, false, false, false, false, false);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_set_fifo_enable:OK");
     } else {
@@ -5422,7 +5125,7 @@ static void v_task_chk_mpu6050_00() {
     //==========================================================================
     // クロック設定 ※内部オシレータ8MHz
     //==========================================================================
-    sts = sts_mpu_6050_set_clock(s_address, DRV_MPU_6050_CLK_INTERNAL);
+    sts = sts_mpu_6050_set_clock(&s_address, DRV_MPU_6050_CLK_INTERNAL);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_set_clock:OK");
     } else {
@@ -5431,7 +5134,7 @@ static void v_task_chk_mpu6050_00() {
     //==========================================================================
     // who am i
     //==========================================================================
-    sts = sts_mpu_6050_who_am_i(s_address);
+    sts = sts_mpu_6050_who_am_i(&s_address);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_who_am_i:OK");
     } else {
@@ -5440,7 +5143,7 @@ static void v_task_chk_mpu6050_00() {
     //==========================================================================
     // zeroing accel
     //==========================================================================
-    sts = sts_mpu_6050_zeroing_accel(s_address);
+    sts = sts_mpu_6050_zeroing_accel(&s_address);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_zeroing_accel:OK");
     } else {
@@ -5449,7 +5152,7 @@ static void v_task_chk_mpu6050_00() {
     //==========================================================================
     // zeroing gyro
     //==========================================================================
-    sts = sts_mpu_6050_zeroing_gyro(s_address);
+    sts = sts_mpu_6050_zeroing_gyro(&s_address);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_zeroing_accel:OK");
     } else {
@@ -5478,7 +5181,7 @@ static void v_task_chk_mpu6050_00() {
     //==========================================================================
     // FIFO有効無効設定
     //==========================================================================
-    sts = sts_mpu_6050_set_fifo_enable(s_address, true, true, true, true, true);
+    sts = sts_mpu_6050_set_fifo_enable(&s_address, true, true, true, true, true);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_set_fifo_enable:OK");
     } else {
@@ -5487,7 +5190,7 @@ static void v_task_chk_mpu6050_00() {
     //==========================================================================
     // FIFO Reset
     //==========================================================================
-    sts = sts_mpu_6050_fifo_reset(s_address);
+    sts = sts_mpu_6050_fifo_reset(&s_address);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_fifo_reset:OK");
     } else {
@@ -5499,7 +5202,7 @@ static void v_task_chk_mpu6050_00() {
     // 5msecウェイト
     i64_dtm_delay_msec(5);
     int16_t i16_cnt;
-    sts = sts_mpu_6050_fifo_cnt(s_address, &i16_cnt);
+    sts = sts_mpu_6050_fifo_cnt(&s_address, &i16_cnt);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_fifo_cnt:OK cnt:%d", i16_cnt);
     } else {
@@ -5513,7 +5216,7 @@ static void v_task_chk_mpu6050_00() {
     //==========================================================================
     // FIFO有効無効設定
     //==========================================================================
-    sts = sts_mpu_6050_set_fifo_enable(s_address, false, false, false, false, false);
+    sts = sts_mpu_6050_set_fifo_enable(&s_address, false, false, false, false, false);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_set_fifo_enable:OK");
     } else {
@@ -5522,7 +5225,7 @@ static void v_task_chk_mpu6050_00() {
     //==========================================================================
     // FIFO Reset
     //==========================================================================
-    sts = sts_mpu_6050_fifo_reset(s_address);
+    sts = sts_mpu_6050_fifo_reset(&s_address);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_fifo_reset:OK");
     } else {
@@ -5533,7 +5236,7 @@ static void v_task_chk_mpu6050_00() {
     //==========================================================================
     // ウェイト
     i64_dtm_delay_msec(10);
-    sts = sts_mpu_6050_fifo_cnt(s_address, &i16_cnt);
+    sts = sts_mpu_6050_fifo_cnt(&s_address, &i16_cnt);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_fifo_cnt:OK cnt:%d", i16_cnt);
     } else {
@@ -5542,7 +5245,7 @@ static void v_task_chk_mpu6050_00() {
     //==========================================================================
     // 加速度セルフテスト
     //==========================================================================
-    sts = sts_mpu_6050_set_accel_self_test(s_address, true, true, true);
+    sts = sts_mpu_6050_set_accel_self_test(&s_address, true, true, true);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_set_accel_self_test:OK");
     } else {
@@ -5551,7 +5254,7 @@ static void v_task_chk_mpu6050_00() {
     //==========================================================================
     // ジャイロセルフテスト設定
     //==========================================================================
-    sts = sts_mpu_6050_set_gyro_self_test(s_address, true, true, true);
+    sts = sts_mpu_6050_set_gyro_self_test(&s_address, true, true, true);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_set_gyro_self_test:OK");
     } else {
@@ -5567,7 +5270,7 @@ static void v_task_chk_mpu6050_00() {
     //==========================================================================
     // スリープサイクル設定
     //==========================================================================
-    sts = sts_mpu_6050_set_sleep_cycle(s_address, DRV_MPU_6050_SLEEP_CYCLE_1000);
+    sts = sts_mpu_6050_set_sleep_cycle(&s_address, DRV_MPU_6050_SLEEP_CYCLE_1000);
     if (sts == ESP_OK) {
         ESP_LOGI(TAG, "MPU6050 sts_mpu_6050_set_sleep_cycle:OK");
     } else {
@@ -5591,14 +5294,14 @@ static void v_task_chk_mpu6050_00() {
  ******************************************************************************/
 static void v_mpu6050_read() {
     // アドレス
-    ts_i2c_address_t s_address;
+    ts_i2c_mst_address_t s_address;
     s_address.e_port_no = I2C_NUM_0;
     s_address.u16_address = I2C_ADDR_MPU_6050_L;
     //==========================================================================
     // 加速度読み込み
     //==========================================================================
     ts_mpu_6050_axes_data_t s_accel;
-    esp_err_t sts = sts_mpu_6050_read_accel(s_address, &s_accel);
+    esp_err_t sts = sts_mpu_6050_read_accel(&s_address, &s_accel);
     if (sts != ESP_OK) {
         return;
     }
@@ -5611,7 +5314,7 @@ static void v_mpu6050_read() {
     // 340 LSB/degrees and Offset 35 degrees and Difference -521
     // ((temperature + (35 * 340) - 521) / 340.0)
     float f_temp;
-    sts = sts_mpu_6050_read_celsius(s_address, &f_temp);
+    sts = sts_mpu_6050_read_celsius(&s_address, &f_temp);
     if (sts != ESP_OK) {
         return;
     }
@@ -5620,7 +5323,7 @@ static void v_mpu6050_read() {
     //==========================================================================
     // ジャイロ
     ts_mpu_6050_axes_data_t s_gyro;
-    sts = sts_mpu_6050_read_gyro(s_address, &s_gyro);
+    sts = sts_mpu_6050_read_gyro(&s_address, &s_gyro);
     if (sts != ESP_OK) {
         return;
     }
@@ -5650,7 +5353,7 @@ static void v_mpu6050_read() {
  ******************************************************************************/
 static void v_mpu6050_fifo_read() {
     // アドレス
-    ts_i2c_address_t s_address;
+    ts_i2c_mst_address_t s_address;
     s_address.e_port_no = I2C_NUM_0;
     s_address.u16_address = I2C_ADDR_MPU_6050_L;
     //==========================================================================
@@ -5659,7 +5362,7 @@ static void v_mpu6050_fifo_read() {
     int16_t i16_data[7];
     int i_idx;
     for (i_idx = 0; i_idx < 7; i_idx++) {
-        esp_err_t sts = sts_mpu_6050_fifo_data(s_address, &i16_data[i_idx]);
+        esp_err_t sts = sts_mpu_6050_fifo_data(&s_address, &i16_data[i_idx]);
         if (sts != ESP_OK) {
             ESP_LOGE(TAG, "MPU6050 sts_mpu_6050_fifo_data:ERRROR");
             return;

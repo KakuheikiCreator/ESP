@@ -95,11 +95,22 @@ const char STR_BASE64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0
  *
  ******************************************************************************/
 bool b_vutil_valid_gpio(gpio_num_t gpio_no) {
+#if defined(CONFIG_IDF_TARGET_ESP32)
     // 利用不可能なピン番号を判定
     return !(gpio_no < GPIO_NUM_3 || gpio_no > GPIO_NUM_39 ||
-              gpio_no == 20 || gpio_no == 24 ||
-              gpio_no == 28 || gpio_no == 29 ||
-              gpio_no == 30 || gpio_no == 31);
+             gpio_no == 20 || gpio_no == 24 || gpio_no == 28 || gpio_no == 29 || gpio_no == 30 || gpio_no == 31);
+#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+    // 利用不可能なピン番号を判定
+    return !(gpio_no < GPIO_NUM_0 || gpio_no > GPIO_NUM_21) && !(gpio_no > GPIO_NUM_10 && gpio_no < GPIO_NUM_18);
+#elif defined(CONFIG_IDF_TARGET_ESP32C6)
+    // 利用不可能なピン番号を判定
+    return !(gpio_no < GPIO_NUM_0 || gpio_no > GPIO_NUM_23);
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+    // 利用不可能なピン番号を判定
+    return !(gpio_no < GPIO_NUM_0 || gpio_no > GPIO_NUM_46) && !(gpio_no > GPIO_NUM_21 && gpio_no < GPIO_NUM_35);
+#else
+#error Target CONFIG_IDF_TARGET is not supported
+#endif
 }
 
 //==============================================================================
@@ -436,7 +447,6 @@ int i_vutil_strcmp(const char* pc_str1, const char* pc_str2) {
     return strcmp(pc_str1, pc_str2);
 }
 
-
 /*******************************************************************************
  *
  * NAME: i_vutil_index_of
@@ -546,7 +556,7 @@ bool b_vutil_replace_char(char* pc_str, char c_ch, char c_rep) {
  *   None.
  ******************************************************************************/
 int i_vutil_substr(char* pc_to, const char* pc_from,
-                     uint32_t u32_pos, uint32_t u32_len) {
+                   uint32_t u32_pos, uint32_t u32_len) {
     // 入力チェック
     if (pc_to == NULL || pc_from == NULL) {
         return -1;
@@ -884,8 +894,8 @@ bool b_vutil_set_u32_rand_array(uint32_t* pu32_rand_array,
  * None.
  ******************************************************************************/
 bool b_vutil_set_rand_string(char* pc_rand_string,
-                                 const char* pc_src_string,
-                                 const uint32_t u32_len) {
+                             const char* pc_src_string,
+                             const uint32_t u32_len) {
     // 入力チェック
     if (pc_rand_string == NULL || pc_src_string == NULL) {
         return false;
@@ -918,7 +928,7 @@ bool b_vutil_set_rand_string(char* pc_rand_string,
  * None.
  ******************************************************************************/
 extern bool b_vutil_set_rand_lwr_alphanumeric(char* pc_rand_string,
-                                               const uint32_t u32_len) {
+                                              const uint32_t u32_len) {
     return b_vutil_set_rand_string(pc_rand_string, STR_LOWER_ALPHANUMERIC, u32_len);
 }
 
@@ -939,7 +949,7 @@ extern bool b_vutil_set_rand_lwr_alphanumeric(char* pc_rand_string,
  * None.
  ******************************************************************************/
 extern bool b_vutil_set_rand_upr_alphanumeric(char* pc_rand_string,
-                                               const uint32_t u32_len) {
+                                              const uint32_t u32_len) {
     return b_vutil_set_rand_string(pc_rand_string, STR_UPPER_ALPHANUMERIC, u32_len);
 }
 
@@ -1530,8 +1540,8 @@ int i_vutil_base64_decode(uint8_t* pu8_dst, const char* pc_src) {
  *
  ******************************************************************************/
 uint8_t u8_vutil_masking(uint8_t u8_val,
-                           const uint8_t* pu8_mask,
-                           uint8_t u8_len) {
+                         const uint8_t* pu8_mask,
+                         uint8_t u8_len) {
     // 入力チェック
     if (pu8_mask == NULL) {
         return 0;
@@ -1561,8 +1571,8 @@ uint8_t u8_vutil_masking(uint8_t u8_val,
  *
  ******************************************************************************/
 uint32_t u32_vutil_masking(uint32_t u32_val,
-                             const uint8_t* pu8_mask,
-                             uint8_t u8_len) {
+                           const uint8_t* pu8_mask,
+                           uint8_t u8_len) {
     // 入力チェック
     if (pu8_mask == NULL) {
         return 0;
@@ -1591,8 +1601,8 @@ uint32_t u32_vutil_masking(uint32_t u32_val,
  *
  ******************************************************************************/
 void v_vutil_masking(uint8_t* pu8_token,
-                        const uint8_t* pu8_mask,
-                        uint8_t u8_len) {
+                     const uint8_t* pu8_mask,
+                     uint8_t u8_len) {
     // 入力チェック
     if (pu8_token == NULL || pu8_mask == NULL || u8_len == 0) {
         return;

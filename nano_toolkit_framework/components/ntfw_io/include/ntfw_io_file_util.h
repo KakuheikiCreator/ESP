@@ -31,63 +31,28 @@ extern "C" {
 /***      Include files                                                     ***/
 /******************************************************************************/
 #include <stdbool.h>
+#include <esp_system.h>
 #include <esp_err.h>
 #include <esp_vfs_fat.h>
-#include <sdmmc_cmd.h>
-#include <cJSON.h>
+#include <driver/gpio.h>
 #include <driver/sdmmc_host.h>
 #include <hal/spi_types.h>
-
+#include <sdmmc_cmd.h>
+#include <cJSON.h>
 
 /******************************************************************************/
 /***      Macro Definitions                                                 ***/
 /******************************************************************************/
-// SPIモードで接続も可能
-//#define USE_SDMMC_HS2_MODE
-//#define USE_SDMMC_HSPI_MODE
-#define USE_SDMMC_VSPI_MODE
-
-// HSPIモード
-#ifdef USE_SDMMC_HSPI_MODE
-  #ifndef PIN_NUM_SDMMC_MISO
-  #define PIN_NUM_SDMMC_MISO GPIO_NUM_12
-  #endif
-  #ifndef PIN_NUM_SDMMC_MOSI
-  #define PIN_NUM_SDMMC_MOSI GPIO_NUM_13
-  #endif
-  #ifndef PIN_NUM_SDMMC_CLK
-  #define PIN_NUM_SDMMC_CLK  GPIO_NUM_14
-  #endif
-  #ifndef PIN_NUM_SDMMC_CS
-  #define PIN_NUM_SDMMC_CS   GPIO_NUM_15
-  #endif
-#endif
-
-// VSPIモード
-#ifdef USE_SDMMC_VSPI_MODE
-  #ifndef PIN_NUM_SDMMC_MISO
-  #define PIN_NUM_SDMMC_MISO GPIO_NUM_19
-  #endif
-  #ifndef PIN_NUM_SDMMC_MOSI
-  #define PIN_NUM_SDMMC_MOSI GPIO_NUM_23
-  #endif
-  #ifndef PIN_NUM_SDMMC_CLK
-  #define PIN_NUM_SDMMC_CLK  GPIO_NUM_18
-  #endif
-  #ifndef PIN_NUM_SDMMC_CS
-  #define PIN_NUM_SDMMC_CS   GPIO_NUM_5
-  #endif
-#endif
 
 /******************************************************************************/
 /***      Type Definitions                                                  ***/
 /******************************************************************************/
 /** 構造体：SDMMC情報 */
 typedef struct {
-    char c_speed[8];                                  // 接続速度
-    char c_card_name[16];                             // カード名前
-    char c_card_type[16];                             // カードタイプ
-    char c_card_size[16];                             // カードサイズ
+    char c_speed[8];            // 接続速度
+    char c_card_name[16];       // カード名前
+    char c_card_type[16];       // カードタイプ
+    char c_card_size[16];       // カードサイズ
 } ts_sdmmc_info_t;
 
 /******************************************************************************/
@@ -154,26 +119,18 @@ extern cJSON* ps_futil_cjson_parse_file(const char* pc_path, long l_max_size);
 extern esp_err_t sts_futil_cjson_write_file(const char* pc_path, cJSON* ps_cjson);
 
 //==============================================================================
-// SDMMC関連関数
+// SDカード関連関数
 //==============================================================================
-/** SDMMCカードのマウント（HS接続 4bit mode） */
-extern sdmmc_card_t* ps_futil_sdmmc_hs_mount(char* pc_path,
-                                              gpio_num_t e_gpio_num_cs,
-                                              gpio_num_t e_gpio_num_cd,
-                                              gpio_num_t e_gpio_num_wp,
-                                              esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg);
-/** SDMMCカードのマウント（HSPI接続） */
-extern sdmmc_card_t* ps_futil_sdmmc_hspi_mount(char* pc_path,
-                                                gpio_num_t e_gpio_num_cs,
-                                                gpio_num_t e_gpio_num_cd,
-                                                gpio_num_t e_gpio_num_wp,
-                                                esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg);
-/** SDMMCカードのマウント（VSPI接続） */
-extern sdmmc_card_t* ps_futil_sdmmc_vspi_mount(char* pc_path,
-                                                gpio_num_t e_gpio_num_cs,
-                                                gpio_num_t e_gpio_num_cd,
-                                                gpio_num_t e_gpio_num_wp,
-                                                esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg);
+#if defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32S3)
+/** SDカードのマウント（HS接続 4bit mode） */
+extern sdmmc_card_t* ps_futil_sdmmc_mount(char* pc_path,
+                                          sdmmc_slot_config_t* ps_slot_cfg,
+                                          esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg);
+#endif
+/** SDカードのマウント（SPI接続） */
+extern sdmmc_card_t* ps_futil_sdspi_mount(char* pc_path,
+                                          sdspi_device_config_t* ps_device_cfg,
+                                          esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg);
 /** SDMMCカードのアンマウント */
 extern esp_err_t sts_futil_sdmmc_unmount();
 /** SDMMCカードのアンマウント(card指定) */

@@ -30,11 +30,10 @@ extern "C" {
 /******************************************************************************/
 /***      Include files                                                     ***/
 /******************************************************************************/
-#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <esp_system.h>
-#include "ntfw_io_i2c_master.h"
+#include <esp_err.h>
+#include "ntfw_io_i2c_mst.h"
 
 /******************************************************************************/
 /***      Macro Definitions                                                 ***/
@@ -140,22 +139,22 @@ typedef struct {
 /***      Exported Functions                                                ***/
 /******************************************************************************/
 /** センサー初期化処理 */
-extern esp_err_t sts_adxl345_init(ts_i2c_address_t s_address, uint8_t u8_rate);
+extern esp_err_t sts_adxl345_init(ts_i2c_mst_address_t* ps_address, uint8_t u8_rate);
 /** デフォルト値編集 */
 extern void v_adxl345_edit_default(ts_adxl345_register_t* ps_register);
 /** レジスタ情報読み込み */
-extern esp_err_t sts_adxl345_read(ts_i2c_address_t s_address, ts_adxl345_register_t* ps_register);
+extern esp_err_t sts_adxl345_read(ts_i2c_mst_address_t* ps_address, ts_adxl345_register_t* ps_register);
 /** 加速度（XYZ軸）読み込み */
-extern esp_err_t sts_adxl345_read_g(ts_i2c_address_t s_address, ts_adxl345_axes_data_t* ps_axes_data);
+extern esp_err_t sts_adxl345_read_g(ts_i2c_mst_address_t* ps_address, ts_adxl345_axes_data_t* ps_axes_data);
 /** レジスタ情報書き込み */
-extern esp_err_t sts_adxl345_write(ts_i2c_address_t s_address, ts_adxl345_register_t* ps_register);
+extern esp_err_t sts_adxl345_write(ts_i2c_mst_address_t* ps_address, ts_adxl345_register_t* ps_register);
 /** 較正処理 */
-extern esp_err_t sts_adxl345_calibration(ts_i2c_address_t s_address,
-                                          int8_t i8_abs_x,
-                                          int8_t i8_abs_y,
-                                          int8_t i8_abs_z);
+extern esp_err_t sts_adxl345_calibration(ts_i2c_mst_address_t* ps_address,
+                                         int8_t i8_abs_x,
+                                         int8_t i8_abs_y,
+                                         int8_t i8_abs_z);
 /** ゼロイング処理 */
-extern esp_err_t sts_adxl345_zeroing(ts_i2c_address_t s_address);
+extern esp_err_t sts_adxl345_zeroing(ts_i2c_mst_address_t* ps_address);
 /** 加速度取得（XYZ軸） */
 extern ts_adxl345_axes_data_t s_adxl345_g_data(ts_adxl345_register_t* ps_register);
 /** アクティブイベントステータス取得 */
@@ -165,49 +164,49 @@ extern ts_adxl345_axes_sts_t s_adxl345_tap_status(ts_adxl345_register_t* ps_regi
 /** 割り込みステータス取得 */
 extern ts_adxl345_interrupt_sts_t s_adxl345_int_status(ts_adxl345_register_t* ps_register);
 /** 設定：オフセット */
-extern esp_err_t sts_adxl345_set_offset(ts_i2c_address_t s_address, int8_t i8_ofs_x, int8_t i8_ofs_y, int8_t i8_ofs_z);
+extern esp_err_t sts_adxl345_set_offset(ts_i2c_mst_address_t* ps_address, int8_t i8_ofs_x, int8_t i8_ofs_y, int8_t i8_ofs_z);
 /** 設定：電力モード・データレート */
-extern esp_err_t sts_adxl345_set_bw_rate(ts_i2c_address_t s_address, bool b_low_pwr, uint8_t u8Rate);
+extern esp_err_t sts_adxl345_set_bw_rate(ts_i2c_mst_address_t* ps_address, bool b_low_pwr, uint8_t u8Rate);
 /** 設定：出力フォーマット（Gレンジ、精度、左右寄せ、割り込み） */
-extern esp_err_t sts_adxl345_set_data_format(ts_i2c_address_t s_address,
-                                              te_adxl345_range_t e_range,
-                                              bool b_full_res, bool b_justify, bool b_int_inv);
+extern esp_err_t sts_adxl345_set_data_format(ts_i2c_mst_address_t* ps_address,
+                                             te_adxl345_range_t e_range,
+                                             bool b_full_res, bool b_justify, bool b_int_inv);
 /** 設定：出力制御（セルフテスト、SPI出力モード） */
-extern esp_err_t sts_adxl345_set_output_ctl(ts_i2c_address_t s_address, bool b_self_test, bool b_spi_mode);
+extern esp_err_t sts_adxl345_set_output_ctl(ts_i2c_mst_address_t* ps_address, bool b_self_test, bool b_spi_mode);
 /** 設定：スリープ（オートスリープ、スリープ、スリープ時周波数） */
-extern esp_err_t sts_adxl345_set_sleep(ts_i2c_address_t s_address, bool b_auto_sleep, bool b_sleep, uint8_t u8_sleep_rate);
+extern esp_err_t sts_adxl345_set_sleep(ts_i2c_mst_address_t* ps_address, bool b_auto_sleep, bool b_sleep, uint8_t u8_sleep_rate);
 /** 設定：計測モード（スタンバイ、アクティブ・インアクティブリンク） */
-extern esp_err_t sts_adxl345_set_measure(ts_i2c_address_t s_address, bool b_measure, bool b_link);
+extern esp_err_t sts_adxl345_set_measure(ts_i2c_mst_address_t* ps_address, bool b_measure, bool b_link);
 /** 設定：FIFO制御（モード、トリガ出力先、プールサイズ閾値） */
-extern esp_err_t sts_adxl345_set_fifo_ctl(ts_i2c_address_t s_address,
-                                           te_adxl345_mode_t e_mode,
-                                           bool b_trigger,
-                                           uint8_t u8_samples);
+extern esp_err_t sts_adxl345_set_fifo_ctl(ts_i2c_mst_address_t* ps_address,
+                                          te_adxl345_mode_t e_mode,
+                                          bool b_trigger,
+                                          uint8_t u8_samples);
 /** 設定：有効割り込み編集（タップ・アクティブ・自由落下等） */
-extern esp_err_t sts_adxl345_set_int_enable(ts_i2c_address_t s_address, ts_adxl345_interrupt_sts_t s_status);
+extern esp_err_t sts_adxl345_set_int_enable(ts_i2c_mst_address_t* ps_address, ts_adxl345_interrupt_sts_t* ps_status);
 /** 設定：割り込み出力先編集（タップ・アクティブ・自由落下等） */
-extern esp_err_t sts_adxl345_set_int_map(ts_i2c_address_t s_address, ts_adxl345_interrupt_sts_t s_status);
+extern esp_err_t sts_adxl345_set_int_map(ts_i2c_mst_address_t* ps_address, ts_adxl345_interrupt_sts_t* ps_status);
 /** 設定：タップ閾値編集（加速度、継続時間） */
-extern esp_err_t sts_adxl345_set_tap_threshold(ts_i2c_address_t s_address, uint8_t u8_threshold, uint8_t u8_duration);
+extern esp_err_t sts_adxl345_set_tap_threshold(ts_i2c_mst_address_t* ps_address, uint8_t u8_threshold, uint8_t u8_duration);
 /** 設定：ダブルタップ閾値編集（間隔、測定期間） */
-extern esp_err_t sts_adxl345_set_dbl_tap_threshold(ts_i2c_address_t s_address, uint8_t u8_latent, uint8_t u8_window);
+extern esp_err_t sts_adxl345_set_dbl_tap_threshold(ts_i2c_mst_address_t* ps_address, uint8_t u8_latent, uint8_t u8_window);
 /** タップ設定編集（タップ間のタップ有効無効、タップ有効軸） */
-extern esp_err_t sts_adxl345_set_tap_axes(ts_i2c_address_t s_address, bool b_suppress, ts_adxl345_axes_sts_t s_axes_sts);
+extern esp_err_t sts_adxl345_set_tap_axes(ts_i2c_mst_address_t* ps_address, bool b_suppress, ts_adxl345_axes_sts_t* ps_axes_sts);
 /** アクティブ制御編集（加速度、絶対／相対、有効軸） */
-extern esp_err_t sts_adxl345_set_active_ctl(ts_i2c_address_t s_address,
-                                             uint8_t u8_act_th,
-                                             bool b_acdc,
-                                             ts_adxl345_axes_sts_t s_axes_sts);
+extern esp_err_t sts_adxl345_set_active_ctl(ts_i2c_mst_address_t* ps_address,
+                                            uint8_t u8_act_th,
+                                            bool b_acdc,
+                                            ts_adxl345_axes_sts_t* ps_axes_sts);
 /** インアクティブ制御編集（加速度、継続時間、絶対／相対、有効軸） */
-extern esp_err_t sts_adxl345_set_in_active_ctl(ts_i2c_address_t s_address,
-                                                uint8_t u8_inact_th,
-                                                uint8_t u8_inact_time,
-                                                bool b_acdc,
-                                                ts_adxl345_axes_sts_t s_axes_sts);
+extern esp_err_t sts_adxl345_set_in_active_ctl(ts_i2c_mst_address_t* ps_address,
+                                               uint8_t u8_inact_th,
+                                               uint8_t u8_inact_time,
+                                               bool b_acdc,
+                                               ts_adxl345_axes_sts_t* ps_axes_sts);
 /** 自由落下閾値編集（加速度、継続時間） */
-extern esp_err_t sts_adxl345_set_free_fall(ts_i2c_address_t s_address, uint8_t u8_thresh_ff, uint8_t u8_time_ff);
+extern esp_err_t sts_adxl345_set_free_fall(ts_i2c_mst_address_t* ps_address, uint8_t u8_thresh_ff, uint8_t u8_time_ff);
 /** 加速度算出処理（ニュートン法で概算したXYZ軸の合成値） */
-extern int16_t i16_adxl345_conv_g_val(ts_adxl345_axes_data_t *s_axes_data, bool b_round_up);
+extern int16_t i16_adxl345_conv_g_val(ts_adxl345_axes_data_t s_axes_data, bool b_round_up);
 
 #if defined __cplusplus
 }

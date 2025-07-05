@@ -1,0 +1,13 @@
+{
+  "msg_list": [
+    {"msg_id": "E0000", "msg": "Boot Error"},
+    {"msg_id": "E0001", "msg": "Scan Timeout"},
+    {"msg_id": "E0002", "msg": "Connection Error"},
+    {"msg_id": "E0003", "msg": "Pairing Error"},
+    {"msg_id": "E0004", "msg": "No remote ticket"},
+    {"msg_id": "E0005", "msg": "Status Error"},
+    {"msg_id": "E0006", "msg": "TxRx Error"},
+    {"msg_id": "E0007", "msg": "Timeout Error"},
+    {"msg_id": "E0008", "msg": "Sensor Alarm"}
+  ]
+}

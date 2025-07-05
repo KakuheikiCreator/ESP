@@ -30,12 +30,10 @@ extern "C" {
 /******************************************************************************/
 /***        Include files                                                   ***/
 /******************************************************************************/
-#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <esp_system.h>
 #include <esp_err.h>
-#include "ntfw_io_i2c_master.h"
+#include "ntfw_io_i2c_mst.h"
 
 /******************************************************************************/
 /***        Macro Definitions                                               ***/

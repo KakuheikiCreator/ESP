@@ -26,7 +26,10 @@
 /******************************************************************************/
 #include "ntfw_io_gpio_util.h"
 
+#include <esp_log.h>
 #include <esp_adc/adc_cali.h>
+#include "esp_err.h"
+#include "hal/gpio_types.h"
 #include "ntfw_com_value_util.h"
 #include "ntfw_com_mem_alloc.h"
 
@@ -48,12 +51,6 @@
 /** ログ出力タグ */
 //static const char* LOG_TAG = "Debug";
 
-/** SPI CS GPIO NUMBER*/
-static const gpio_num_t e_spi_pin_cs[SPI_HOST_MAX] = {
-    GPIO_NUM_11, GPIO_NUM_5, GPIO_NUM_15
-};
-
-
 /******************************************************************************/
 /***      Local Function Prototypes                                         ***/
 /******************************************************************************/
@@ -61,6 +58,312 @@ static const gpio_num_t e_spi_pin_cs[SPI_HOST_MAX] = {
 /******************************************************************************/
 /***      Exported Functions                                                ***/
 /******************************************************************************/
+
+/*******************************************************************************
+ *
+ * NAME: sts_input_pin_map
+ *
+ * DESCRIPTION: input pin mode setting
+ *
+ * PARAMETERS:      Name            RW  Usage
+ * uint64_t         u64_pin_map     R   ピンマップ
+ * bool             b_pullup        R   プルアップフラグ
+ * bool             b_pulldown      R   プルダウンフラグ
+ *
+ * RETURNS:
+ *   esp_err_t: 結果ステータス
+ *
+ * NOTES:
+ * None.
+ ******************************************************************************/
+esp_err_t sts_input_pin_map(uint64_t u64_pin_map, bool b_pullup, bool b_pulldown) {
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    // ピンマップのチェック
+    if ((u64_pin_map | GPIO_INPUT_PIN_MAP) != GPIO_INPUT_PIN_MAP) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    //==========================================================================
+    // ピンマップ設定処理
+    //==========================================================================
+    // GPIO setting
+    gpio_config_t s_gpio_spi_cfg;
+    // ピンマップ
+    s_gpio_spi_cfg.pin_bit_mask = u64_pin_map;
+    // ピンモード
+    s_gpio_spi_cfg.mode = GPIO_MODE_INPUT;
+    // プルアップ
+    if (b_pullup) {
+        s_gpio_spi_cfg.pull_up_en   = GPIO_PULLUP_ENABLE;
+    } else {
+        s_gpio_spi_cfg.pull_up_en   = GPIO_PULLUP_DISABLE;
+    }
+    // プルダウン
+    if (b_pulldown) {
+        s_gpio_spi_cfg.pull_down_en = GPIO_PULLDOWN_ENABLE;
+    } else {
+        s_gpio_spi_cfg.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    }
+    // 割り込み無効
+    s_gpio_spi_cfg.intr_type = GPIO_INTR_DISABLE;
+    // GPIO config
+    return gpio_config(&s_gpio_spi_cfg);
+}
+
+/*******************************************************************************
+ *
+ * NAME: sts_output_pin_map
+ *
+ * DESCRIPTION: output pin mode setting
+ *
+ * PARAMETERS:      Name            RW  Usage
+ * uint64_t         u64_pin_map     R   ピンマップ
+ * bool             b_open_drain    R   オープンドレインフラグ
+ * bool             b_pullup        R   プルアップフラグ
+ * bool             b_pulldown      R   プルダウンフラグ
+ *
+ * RETURNS:
+ *   esp_err_t: 結果ステータス
+ *
+ * NOTES:
+ * None.
+ ******************************************************************************/
+esp_err_t sts_output_pin_map(uint64_t u64_pin_map, bool b_open_drain, bool b_pullup, bool b_pulldown) {
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    // ピンマップのチェック
+    if ((u64_pin_map | GPIO_OUTPUT_PIN_MAP) != GPIO_OUTPUT_PIN_MAP) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    //==========================================================================
+    // ピンマップ設定処理
+    //==========================================================================
+    // GPIO setting
+    gpio_config_t s_gpio_spi_cfg;
+    // ピンマップ
+    s_gpio_spi_cfg.pin_bit_mask = u64_pin_map;
+    // ピンモード
+    if (b_open_drain) {
+        s_gpio_spi_cfg.mode     = GPIO_MODE_OUTPUT_OD;
+    } else {
+        s_gpio_spi_cfg.mode     = GPIO_MODE_OUTPUT;
+    }
+    // プルアップ
+    if (b_pullup) {
+        s_gpio_spi_cfg.pull_up_en   = GPIO_PULLUP_ENABLE;
+    } else {
+        s_gpio_spi_cfg.pull_up_en   = GPIO_PULLUP_DISABLE;
+    }
+    // プルダウン
+    if (b_pullup) {
+        s_gpio_spi_cfg.pull_down_en = GPIO_PULLDOWN_ENABLE;
+    } else {
+        s_gpio_spi_cfg.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    }
+    // 割り込み無効
+    s_gpio_spi_cfg.intr_type    = GPIO_INTR_DISABLE;
+    // GPIO config
+    return gpio_config(&s_gpio_spi_cfg);
+}
+
+/*******************************************************************************
+ *
+ * NAME: sts_io_pin_map
+ *
+ * DESCRIPTION: input output pin mode setting
+ *
+ * PARAMETERS:      Name            RW  Usage
+ * uint64_t         u64_pin_map     R   ピンマップ
+ * bool             b_open_drain    R   オープンドレインフラグ
+ * bool             b_pullup        R   プルアップフラグ
+ * bool             b_pulldown      R   プルダウンフラグ
+ *
+ * RETURNS:
+ *   esp_err_t: 結果ステータス
+ *
+ * NOTES:
+ * None.
+ ******************************************************************************/
+esp_err_t sts_io_pin_map(uint64_t u64_pin_map, bool b_open_drain, bool b_pullup, bool b_pulldown) {
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    // ピンマップのチェック
+    if ((u64_pin_map | GPIO_IO_PIN_MAP) != GPIO_IO_PIN_MAP) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    //==========================================================================
+    // ピンマップ設定処理
+    //==========================================================================
+    // GPIO setting
+    gpio_config_t s_gpio_spi_cfg;
+    // ピンマップ
+    s_gpio_spi_cfg.pin_bit_mask = u64_pin_map;
+    // ピンモード
+    if (b_open_drain) {
+        s_gpio_spi_cfg.mode = GPIO_MODE_INPUT_OUTPUT_OD;
+    } else {
+        s_gpio_spi_cfg.mode = GPIO_MODE_INPUT_OUTPUT;
+    }
+    // プルアップ
+    if (b_pullup) {
+        s_gpio_spi_cfg.pull_up_en = GPIO_PULLUP_ENABLE;
+    } else {
+        s_gpio_spi_cfg.pull_up_en = GPIO_PULLUP_DISABLE;
+    }
+    // プルダウン
+    if (b_pullup) {
+        s_gpio_spi_cfg.pull_down_en = GPIO_PULLDOWN_ENABLE;
+    } else {
+        s_gpio_spi_cfg.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    }
+    // 割り込み無効
+    s_gpio_spi_cfg.intr_type    = GPIO_INTR_DISABLE;
+    // GPIO config
+    return gpio_config(&s_gpio_spi_cfg);
+}
+
+/*******************************************************************************
+ *
+ * NAME: sts_interrupt_pin_map
+ *
+ * DESCRIPTION: interrupt pin map mode setting
+ *
+ * PARAMETERS:      Name            RW  Usage
+ * uint64_t         u64_pin_map     R   ピンマップ
+ * gpio_int_type_t  e_int_type      R   割り込みタイプ
+ *
+ * RETURNS:
+ *   esp_err_t: 結果ステータス
+ *
+ * NOTES:
+ * None.
+ ******************************************************************************/
+esp_err_t sts_interrupt_pin_map(uint64_t u64_pin_map, gpio_int_type_t e_int_type) {
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    // ピンマップのチェック
+    if ((u64_pin_map | GPIO_IO_PIN_MAP) != GPIO_IO_PIN_MAP) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    // 割り込みタイプのチェック
+    if (e_int_type >= GPIO_INTR_MAX) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    //==========================================================================
+    // 割り込みピンマップ設定処理
+    //==========================================================================
+    esp_err_t sts_val = ESP_OK;
+    uint64_t u64_wk_pin_map = u64_pin_map;
+    int i_gpio_idx = GPIO_NUM_0;
+    while (u64_wk_pin_map > 0) {
+        if ((u64_wk_pin_map & 0x01) == 0x01) {
+            sts_val = gpio_set_intr_type(i_gpio_idx, e_int_type);
+            if (sts_val !=  ESP_OK) {
+                return sts_val;
+            }
+        }
+        u64_wk_pin_map = u64_wk_pin_map >> 1;
+        i_gpio_idx++;
+    }
+    // setting result
+    return sts_val;
+}
+
+/*******************************************************************************
+ *
+ * NAME: sts_interrupt_enable
+ *
+ * DESCRIPTION: enable the interrupt pin map
+ *
+ * PARAMETERS:      Name            RW  Usage
+ * uint64_t         u64_pin_map     R   ピンマップ
+ *
+ * RETURNS:
+ *   esp_err_t: 結果ステータス
+ *
+ * NOTES:
+ * None.
+ ******************************************************************************/
+esp_err_t sts_interrupt_enable(uint64_t u64_pin_map) {
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    // ピンマップのチェック
+    if ((u64_pin_map | GPIO_IO_PIN_MAP) != GPIO_IO_PIN_MAP) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    //==========================================================================
+    // 割り込みピンマップ設定処理
+    //==========================================================================
+    esp_err_t sts_val = ESP_OK;
+    uint64_t u64_wk_pin_map = u64_pin_map;
+    int i_gpio_idx = GPIO_NUM_0;
+    while (u64_wk_pin_map > 0) {
+        if ((u64_wk_pin_map & 0x01) == 0x01) {
+            sts_val = gpio_intr_enable(i_gpio_idx);
+            if (sts_val !=  ESP_OK) {
+                return sts_val;
+            }
+        }
+        u64_wk_pin_map = u64_wk_pin_map >> 1;
+        i_gpio_idx++;
+    }
+    // setting result
+    return sts_val;    
+}
+
+/*******************************************************************************
+ *
+ * NAME: sts_interrupt_disable
+ *
+ * DESCRIPTION: enable the interrupt pin map
+ *
+ * PARAMETERS:      Name            RW  Usage
+ * uint64_t         u64_pin_map     R   ピンマップ
+ *
+ * RETURNS:
+ *   esp_err_t: 結果ステータス
+ *
+ * NOTES:
+ * None.
+ ******************************************************************************/
+esp_err_t sts_interrupt_disable(uint64_t u64_pin_map) {
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    // ピンマップのチェック
+    if ((u64_pin_map | GPIO_IO_PIN_MAP) != GPIO_IO_PIN_MAP) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    //==========================================================================
+    // 割り込みピンマップ設定処理
+    //==========================================================================
+    esp_err_t sts_val = ESP_OK;
+    uint64_t u64_wk_pin_map = u64_pin_map;
+    int i_gpio_idx = GPIO_NUM_0;
+    while (u64_wk_pin_map > 0) {
+        if ((u64_wk_pin_map & 0x01) == 0x01) {
+            sts_val = gpio_intr_disable(i_gpio_idx);
+            if (sts_val !=  ESP_OK) {
+                return sts_val;
+            }
+        }
+        u64_wk_pin_map = u64_wk_pin_map >> 1;
+        i_gpio_idx++;
+    }
+    // setting result
+    return sts_val;    
+}
 
 /*******************************************************************************
  *
@@ -170,7 +473,7 @@ ts_adc_oneshot_context* ps_adc_oneshot_calibration_ctx(adc_unit_t e_unit,
             adc_cali_line_fitting_efuse_val_t e_cali_val;
             adc_cali_scheme_line_fitting_check_efuse(&e_cali_val);
             if (e_cali_val == ADC_CALI_LINE_FITTING_EFUSE_VAL_DEFAULT_VREF) {
-                s_cali_config.default_vref = NTFW_ADC_DEFAULT_VREF;
+                s_cali_config.default_vref = GPIO_ADC_DEFAULT_VREF;
             }
             // ADC キャリブレーション ラインのフィッティング スキーム
             sts_val = adc_cali_create_scheme_line_fitting(&s_cali_config, ps_ctx->ps_calibration_handle);
@@ -334,32 +637,72 @@ int i_adc_oneshot_voltage(ts_adc_oneshot_context* ps_ctx, adc_channel_t e_adc_ch
 
 /*******************************************************************************
  *
- * NAME: sts_spi_mst_bus_initialize
+ * NAME: sts_spi_mst_bus_init
  *
  * DESCRIPTION: SPI master initialize
  *
  * PARAMETERS:              Name            RW  Usage
- * ts_adc_oneshot_context*  ps_ctx          RW  ADCワンショットコンテキスト
- * adc_channel_t            e_adc_channel   R   ADCチャンネル
- * bool                     b_pullup        R   プルアップフラグ
+ * spi_host_device_t        e_host_id       R   ホストID
+ * const spi_bus_config_t*  ps_bus_cfg      R   SPIバス設定
+ * spi_dma_chan_t           e_dma_chan      R   SPI DMAチャンネル
+ * bool                     b_pullup        R   プルアップ
  *
  * RETURNS:
- *   int: 読み取った電圧(mV)
+ *   esp_err_t: 結果ステータス
  *
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_spi_mst_bus_initialize(spi_host_device_t e_host_id,
-                                     const spi_bus_config_t* ps_bus_cfg,
-                                     spi_dma_chan_t e_dma_chan,
-                                     bool b_pullup) {
+esp_err_t sts_spi_mst_bus_init(spi_host_device_t e_host_id,
+                               const spi_bus_config_t* ps_bus_cfg,
+                               spi_dma_chan_t e_dma_chan,
+                               bool b_pullup) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
-    // HOST ID
+    // SPI HOST ID
     if (e_host_id >= SPI_HOST_MAX) {
         return ESP_ERR_INVALID_ARG;
     }
+    // NULL判定
+    if (ps_bus_cfg == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+#if defined(CONFIG_IDF_TARGET_ESP32)
+    //  SPI HOST ID
+    if (e_host_id == SPI2_HOST) {
+        // SPI2_HOST = HSPI
+        // MOSI
+        if (ps_bus_cfg->mosi_io_num != GPIO_NUM_13) {
+            return ESP_ERR_INVALID_ARG;
+        }
+        // MISO ※GPIO_12は起動時にプルアップされていると起動不可なので別の場合がある
+        if (!b_vutil_valid_pin(ps_bus_cfg->miso_io_num)) {
+            return ESP_ERR_INVALID_ARG;
+        }
+        // SCLK
+        if (ps_bus_cfg->sclk_io_num != GPIO_NUM_14) {
+            return ESP_ERR_INVALID_ARG;
+        }
+    } else if (e_host_id == SPI3_HOST) {
+        // SPI3_HOST = VSPI
+        // MOSI
+        if (ps_bus_cfg->mosi_io_num != GPIO_NUM_23) {
+            return ESP_ERR_INVALID_ARG;
+        }
+        // MISO
+        if (ps_bus_cfg->miso_io_num != GPIO_NUM_19) {
+            return ESP_ERR_INVALID_ARG;
+        }
+        // SCLK
+        if (ps_bus_cfg->sclk_io_num != GPIO_NUM_18) {
+            return ESP_ERR_INVALID_ARG;
+        }
+    } else {
+        // SPI1_HOST is disabled
+        return ESP_ERR_INVALID_ARG;
+    }
+#else
     // MOSI
     if (!b_vutil_valid_pin(ps_bus_cfg->mosi_io_num)) {
         return ESP_ERR_INVALID_ARG;
@@ -372,53 +715,38 @@ esp_err_t sts_spi_mst_bus_initialize(spi_host_device_t e_host_id,
     if (!b_vutil_valid_pin(ps_bus_cfg->sclk_io_num)) {
         return ESP_ERR_INVALID_ARG;
     }
+#endif
 
     //==========================================================================
-    // 初期処理
+    // ピン初期処理
     //==========================================================================
     // GPIO Reset
     gpio_reset_pin(ps_bus_cfg->mosi_io_num);
     gpio_reset_pin(ps_bus_cfg->miso_io_num);
     gpio_reset_pin(ps_bus_cfg->sclk_io_num);
-    gpio_reset_pin(e_spi_pin_cs[e_host_id]);
+    // GPIO map output
+    uint64_t u64_spi_pin_map = 0x00;
+    u64_spi_pin_map |= (1ULL << ps_bus_cfg->mosi_io_num);   // MOSI
+    u64_spi_pin_map |= (1ULL << ps_bus_cfg->miso_io_num);   // MISO
+    u64_spi_pin_map |= (1ULL << ps_bus_cfg->sclk_io_num);   // SCLK
     // WP(Write Protect)
-    bool b_quadwp = b_vutil_valid_pin(ps_bus_cfg->quadwp_io_num);
-    if (b_quadwp) {
+    if (b_vutil_valid_pin(ps_bus_cfg->quadwp_io_num)) {
+        // ピンリセット
         gpio_reset_pin(ps_bus_cfg->quadwp_io_num);
+        // ピンマップ編集
+        u64_spi_pin_map |= (1ULL << ps_bus_cfg->quadwp_io_num);
     }
     // HD(Hold)
-    bool b_quadhd = b_vutil_valid_pin(ps_bus_cfg->quadhd_io_num);
-    if (b_quadhd) {
+    if (b_vutil_valid_pin(ps_bus_cfg->quadhd_io_num)) {
+        // ピンリセット
         gpio_reset_pin(ps_bus_cfg->quadhd_io_num);
+        // ピンマップ編集
+        u64_spi_pin_map |= (1ULL << ps_bus_cfg->quadhd_io_num);
     }
-
-    //==========================================================================
-    // プルアップ判定
-    //==========================================================================
-    if (b_pullup) {
-        // GPIO map output
-        uint64_t u64_spi_pin_map = 0x00;
-        u64_spi_pin_map |= (1ULL << ps_bus_cfg->mosi_io_num);   // MOSI
-        u64_spi_pin_map |= (1ULL << ps_bus_cfg->miso_io_num);   // MISO
-        u64_spi_pin_map |= (1ULL << ps_bus_cfg->sclk_io_num);   // SCLK
-        u64_spi_pin_map |= (1ULL << e_spi_pin_cs[e_host_id]);   // CS
-        // WP(Write Protect)
-        if (b_quadwp) {
-            u64_spi_pin_map |= (1ULL << ps_bus_cfg->quadwp_io_num);
-        }
-        // HD(Hold)
-        if (b_quadhd) {
-            u64_spi_pin_map |= (1ULL << ps_bus_cfg->quadhd_io_num);
-        }
-        // GPIO setting
-        gpio_config_t s_gpio_spi_cfg;
-        s_gpio_spi_cfg.pin_bit_mask = u64_spi_pin_map;
-        s_gpio_spi_cfg.mode         = GPIO_MODE_INPUT_OUTPUT_OD;
-        s_gpio_spi_cfg.pull_up_en   = GPIO_PULLUP_ENABLE;
-        s_gpio_spi_cfg.pull_down_en = GPIO_PULLDOWN_DISABLE;
-        s_gpio_spi_cfg.intr_type    = GPIO_INTR_DISABLE;
-        // GPIO config
-        gpio_config(&s_gpio_spi_cfg);
+    // 入出力ピン設定
+    esp_err_t sts_val = sts_io_pin_map(u64_spi_pin_map, true, b_pullup, false);
+    if (sts_val != ESP_OK) {
+        return sts_val;
     }
 
     //==========================================================================
@@ -426,7 +754,6 @@ esp_err_t sts_spi_mst_bus_initialize(spi_host_device_t e_host_id,
     //==========================================================================
     return spi_bus_initialize(e_host_id, ps_bus_cfg, e_dma_chan);
 }
-
 
 /******************************************************************************/
 /***      Local Functions                                                   ***/

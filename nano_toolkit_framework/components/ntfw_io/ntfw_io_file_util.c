@@ -27,14 +27,18 @@
 #include "ntfw_io_file_util.h"
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/unistd.h>
+#include <esp_system.h>
+#include <esp_err.h>
 #include <freertos/task.h>
-#include <driver/sdspi_host.h>
-#include "ntfw_com_mem_alloc.h"
-#include "ntfw_com_value_util.h"
+#include <driver/sdmmc_host.h>
+#include <sdmmc_cmd.h>
+#include <ntfw_com_mem_alloc.h>
+#include <ntfw_com_value_util.h>
 
 /******************************************************************************/
 /***      Macro Definitions                                                 ***/
@@ -48,10 +52,10 @@
 /******************************************************************************/
 /***      Type Definitions                                                  ***/
 /******************************************************************************/
-/** 構造体：SDMMCマウント情報 */
+/** 構造体：SDマウント情報 */
 typedef struct {
     char* pc_mnt_path;          // マウントパス
-    sdmmc_card_t* ps_card;      // SDMMCカード情報
+    sdmmc_card_t* ps_card;      // SDカード情報
 } ts_sdmmc_mount_info_t;
 
 /** mutex init function */
@@ -66,17 +70,29 @@ typedef void (*tf_initialize)();
 /******************************************************************************/
 /** ミューテックス */
 static SemaphoreHandle_t s_mutex = NULL;
-/** SDMMCマウント情報 */
-static ts_sdmmc_mount_info_t s_sdmmc_mnt_info_list[] = {
-    {
+
+/** SDマウント情報（HS接続4bitモード） */
+static ts_sdmmc_mount_info_t s_sdmmc_mnt_info = {
+    .pc_mnt_path = NULL,    // マウントパス
+    .ps_card     = NULL     // SDMMCカード情報
+};
+// デバイス判定
+#if defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32S3)
+#endif
+
+/** SDマウント情報（SPI接続） */
+static ts_sdmmc_mount_info_t s_sdspi_mnt_info_list[SPI_HOST_MAX] = {
+#if defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32S3)
+ {
         .pc_mnt_path = NULL,    // マウントパス
         .ps_card     = NULL     // SDMMCカード情報
     },
-    {
+#endif
+ {
         .pc_mnt_path = NULL,    // マウントパス
         .ps_card     = NULL     // SDMMCカード情報
     },
-    {
+ {
         .pc_mnt_path = NULL,    // マウントパス
         .ps_card     = NULL     // SDMMCカード情報
     }
@@ -99,29 +115,22 @@ static bool b_member_copy(const char* pc_src, const char* pc_dest);
 static bool b_make_directory(const char* pc_path);
 /** テンポラリファイルのパス（動的確保）の生成 */
 static char* pc_temp_file_path(const char* pc_path);
-/** SDMMCのHSマウント処理 */
-static sdmmc_card_t* ps_sdmmc_hs_mount(char* pc_path,
-                                        gpio_num_t e_gpio_num_cs,
-                                        gpio_num_t e_gpio_num_cd,
-                                        gpio_num_t e_gpio_num_wp,
-                                        esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg);
-/** SDMMCのSPIマウント処理 */
-static sdmmc_card_t* ps_sdmmc_spi_mount(char* pc_path,
-                                         spi_host_device_t e_slot,
-                                         gpio_num_t e_gpio_num_cs,
-                                         gpio_num_t e_gpio_num_cd,
-                                         gpio_num_t e_gpio_num_wp,
-                                         esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg);
+#if defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32S3)
+/** SDMMCのマウント処理 */
+static sdmmc_card_t* ps_sdmmc_mount(char* pc_path,
+                                    sdmmc_slot_config_t* ps_slot_cfg,
+                                    esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg);
+#endif
+/** SDSPIのマウント処理 */
+static sdmmc_card_t* ps_sdspi_mount(char* pc_path,
+                                    sdspi_device_config_t* ps_device_cfg,
+                                    esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg);
 /** SDMMCアンマウント処理(card指定) */
 static esp_err_t sts_sdmmc_unmount(ts_sdmmc_mount_info_t* ps_mount);
 /** SDMMCアンマウント処理(card指定) */
 static esp_err_t sts_sdmmc_edit_info(ts_sdmmc_info_t* ps_info, sdmmc_card_t* ps_card);
-
-
-/** slotに対応したSDMMCマウント情報の取得 */
-static ts_sdmmc_mount_info_t* ps_sdmmc_spi_mount_info(spi_host_device_t e_slot);
 /** cardに対応したSDMMCマウント情報の取得 */
-static ts_sdmmc_mount_info_t* ps_sdmmc_mount_info_card(sdmmc_card_t* ps_card);
+static ts_sdmmc_mount_info_t* ps_sdmmc_mount_info(sdmmc_card_t* ps_card);
 
 /******************************************************************************/
 /***      Exported Functions                                                ***/
@@ -834,17 +843,16 @@ esp_err_t sts_futil_cjson_write_file(const char* pc_path, cJSON* ps_cjson) {
     return ESP_OK;
 }
 
+#if defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32S3)
 /*******************************************************************************
  *
- * NAME: ps_futil_sdmmc_hs_mount
+ * NAME: ps_futil_sdmmc_mount
  *
  * DESCRIPTION:SDMMCカードのマウント（HS接続 4bit mode）
  *
  * PARAMETERS:                          Name            RW  Usage
  * char*                                pc_path         R   マウントパス
- * gpio_num_t                           e_gpio_num_cs   R   チップセレクト
- * gpio_num_t                           e_gpio_num_cd   R   カード挿入ピン番号（未設定：SDMMC_SLOT_NO_CD）
- * gpio_num_t                           e_gpio_num_wp   R   ライトプロテクトピン番号（未設定：SDMMC_SLOT_NO_WP）
+ * sdmmc_slot_config_t*                 ps_slot_cfg     R   スロット設定
  * esp_vfs_fat_sdmmc_mount_config_t*    ps_mount_cfg    R   同時オープンファイル数
  *
  * RETURNS:
@@ -853,11 +861,9 @@ esp_err_t sts_futil_cjson_write_file(const char* pc_path, cJSON* ps_cjson) {
  * NOTES:
  * None.
  ******************************************************************************/
-sdmmc_card_t* ps_futil_sdmmc_hs_mount(char* pc_path,
-                                      gpio_num_t e_gpio_num_cs,
-                                      gpio_num_t e_gpio_num_cd,
-                                      gpio_num_t e_gpio_num_wp,
-                                      esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg) {
+sdmmc_card_t* ps_futil_sdmmc_mount(char* pc_path,
+                                   sdmmc_slot_config_t* ps_slot_cfg,
+                                   esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg) {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
@@ -871,11 +877,9 @@ sdmmc_card_t* ps_futil_sdmmc_hs_mount(char* pc_path,
     //==========================================================================
     // SDMMCマウント
     //==========================================================================
-    sdmmc_card_t* ps_card = ps_sdmmc_hs_mount(pc_path,
-                                              e_gpio_num_cs,
-                                              e_gpio_num_cd,
-                                              e_gpio_num_wp,
-                                              ps_mount_cfg);
+    sdmmc_card_t* ps_card = ps_sdmmc_mount(pc_path,
+                                           ps_slot_cfg,
+                                           ps_mount_cfg);
 
     //==========================================================================
     // クリティカルセクション終了
@@ -885,18 +889,17 @@ sdmmc_card_t* ps_futil_sdmmc_hs_mount(char* pc_path,
     // 結果返信
     return ps_card;
 }
+#endif
 
 /*******************************************************************************
  *
- * NAME: ps_futil_sdmmc_hspi_mount
+ * NAME: ps_futil_sdspi_mount
  *
- * DESCRIPTION:SDMMCカードのマウント（HSPI接続）
+ * DESCRIPTION:SDMMCカードのマウント（SPI接続）
  *
  * PARAMETERS:                          Name            RW  Usage
  * char*                                pc_path         R   マウントパス
- * gpio_num_t                           e_gpio_num_cs   R   チップセレクト
- * gpio_num_t                           e_gpio_num_cd   R   カード挿入ピン番号（未設定：SDMMC_SLOT_NO_CD）
- * gpio_num_t                           e_gpio_num_wp   R   ライトプロテクトピン番号（未設定：SDMMC_SLOT_NO_WP）
+ * sdspi_device_config_t*               ps_device_cfg   R   SPIデバイス設定
  * esp_vfs_fat_sdmmc_mount_config_t*    ps_mount_cfg    R   同時オープンファイル数
  *
  * RETURNS:
@@ -905,11 +908,9 @@ sdmmc_card_t* ps_futil_sdmmc_hs_mount(char* pc_path,
  * NOTES:
  * None.
  ******************************************************************************/
-sdmmc_card_t* ps_futil_sdmmc_hspi_mount(char* pc_path,
-                                        gpio_num_t e_gpio_num_cs,
-                                        gpio_num_t e_gpio_num_cd,
-                                        gpio_num_t e_gpio_num_wp,
-                                        esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg) {
+sdmmc_card_t* ps_futil_sdspi_mount(char* pc_path,
+                                   sdspi_device_config_t* ps_device_cfg,
+                                   esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg) {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
@@ -923,12 +924,9 @@ sdmmc_card_t* ps_futil_sdmmc_hspi_mount(char* pc_path,
     //==========================================================================
     // SDMMCマウント
     //==========================================================================
-    sdmmc_card_t* ps_card = ps_sdmmc_spi_mount(pc_path,
-                                               HSPI_HOST,
-                                               e_gpio_num_cs,
-                                               e_gpio_num_cd,
-                                               e_gpio_num_wp,
-                                               ps_mount_cfg);
+    sdmmc_card_t* ps_card = ps_sdspi_mount(pc_path,
+                                           ps_device_cfg,
+                                           ps_mount_cfg);
 
     //==========================================================================
     // クリティカルセクション終了
@@ -939,58 +937,16 @@ sdmmc_card_t* ps_futil_sdmmc_hspi_mount(char* pc_path,
     return ps_card;
 }
 
-/*******************************************************************************
- *
- * NAME: ps_futil_sdmmc_vspi_mount
- *
- * DESCRIPTION:SDMMCカードのマウント（VSPI接続）
- *
- * PARAMETERS:                          Name            RW  Usage
- * char*                                pc_path         R   マウントパス
- * gpio_num_t                           e_gpio_num_cs   R   チップセレクト
- * gpio_num_t                           e_gpio_num_cd   R   カード挿入ピン番号（未設定：SDMMC_SLOT_NO_CD）
- * gpio_num_t                           e_gpio_num_wp   R   ライトプロテクトピン番号（未設定：SDMMC_SLOT_NO_WP）
- * esp_vfs_fat_sdmmc_mount_config_t*    ps_mount_cfg    R   同時オープンファイル数
- *
- * RETURNS:
- *   sdmmc_card_t*: SDカード情報
- *
- * NOTES:
- * None.
- ******************************************************************************/
-sdmmc_card_t* ps_futil_sdmmc_vspi_mount(char* pc_path,
-                                        gpio_num_t e_gpio_num_cs,
-                                        gpio_num_t e_gpio_num_cd,
-                                        gpio_num_t e_gpio_num_wp,
-                                        esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg) {
-    //==========================================================================
-    // クリティカルセクション開始
-    //==========================================================================
-    // ミューテックスの初期化
-    pf_mutex_init();
-    // クリティカルセクション開始
-    if (xSemaphoreTakeRecursive(s_mutex, COM_FUTIL_BLOCK_TIME) == pdFALSE) {
-        return NULL;
-    }
+//------------------------------------------------------------------------------
+// ESP32の場合、HSPIとVSPIによる接続をサポート
+// BEGIN:defined(CONFIG_IDF_TARGET_ESP32)
+//------------------------------------------------------------------------------
+#if defined(CONFIG_IDF_TARGET_ESP32)
 
-    //==========================================================================
-    // SDMMCマウント
-    //==========================================================================
-    sdmmc_card_t* ps_card = ps_sdmmc_spi_mount(pc_path,
-                                               VSPI_HOST,
-                                               e_gpio_num_cs,
-                                               e_gpio_num_cd,
-                                               e_gpio_num_wp,
-                                               ps_mount_cfg);
-
-    //==========================================================================
-    // クリティカルセクション終了
-    //==========================================================================
-    xSemaphoreGiveRecursive(s_mutex);
-
-    // 結果返信
-    return ps_card;
-}
+//------------------------------------------------------------------------------
+// END:defined(CONFIG_IDF_TARGET_ESP32)
+//------------------------------------------------------------------------------
+#endif
 
 /*******************************************************************************
  *
@@ -1023,8 +979,8 @@ esp_err_t sts_futil_sdmmc_unmount() {
     esp_err_t sts_val = ESP_OK;
     ts_sdmmc_mount_info_t* ps_mount;
     uint8_t u8_idx;
-    for (u8_idx = 0; u8_idx < 3 && sts_val == ESP_OK; u8_idx++) {
-        ps_mount = &s_sdmmc_mnt_info_list[u8_idx];
+    for (u8_idx = 0; u8_idx < SPI_HOST_MAX && sts_val == ESP_OK; u8_idx++) {
+        ps_mount = &s_sdspi_mnt_info_list[u8_idx];
         if (ps_mount->pc_mnt_path != NULL) {
             sts_val = sts_sdmmc_unmount(ps_mount);
         }
@@ -1045,7 +1001,8 @@ esp_err_t sts_futil_sdmmc_unmount() {
  *
  * DESCRIPTION:SDMMCカードのアンマウント(card指定)
  *
- * PARAMETERS:      Name            RW  Usage
+ * PARAMETERS:      Name        RW  Usage
+ * sdmmc_card_t*    ps_card     R   SDMMCカード情報
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -1055,6 +1012,13 @@ esp_err_t sts_futil_sdmmc_unmount() {
  ******************************************************************************/
 esp_err_t sts_futil_sdmmc_unmount_card(sdmmc_card_t* ps_card) {
     //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    if (ps_card == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
     // ミューテックスの初期化
@@ -1063,11 +1027,17 @@ esp_err_t sts_futil_sdmmc_unmount_card(sdmmc_card_t* ps_card) {
     if (xSemaphoreTakeRecursive(s_mutex, COM_FUTIL_BLOCK_TIME) == pdFALSE) {
         return ESP_ERR_TIMEOUT;
     }
-
+    
     //==========================================================================
-    // SDMMCアンマウント
+    // SDアンマウント
     //==========================================================================
-    esp_err_t sts_val = sts_sdmmc_unmount(ps_sdmmc_mount_info_card(ps_card));
+    esp_err_t sts_val = ESP_ERR_INVALID_ARG;
+    // マウントの有無を判定
+    ts_sdmmc_mount_info_t* ps_mount = ps_sdmmc_mount_info(ps_card);
+    if (ps_mount != NULL) {
+        // SDアンマウント
+        sts_val = sts_sdmmc_unmount(ps_mount);
+    }
 
     //==========================================================================
     // クリティカルセクション終了
@@ -1382,18 +1352,17 @@ static char* pc_temp_file_path(const char* pc_path) {
     return pc_file_path;
 }
 
+#if defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32S3)
 /*******************************************************************************
  *
- * NAME: ps_sdmmc_hs_mount
+ * NAME: ps_sdmmc_mount
  *
- * DESCRIPTION:SDMMCカードのマウント（HS接続 4bit mode）
+ * DESCRIPTION:SDMMCのマウント処理（HS接続 4bit mode）
  *
  * PARAMETERS:                          Name            RW  Usage
- * char*                                pc_path         R   マウント先のパス
- * gpio_num_t                           e_gpio_num_cs   R   チップセレクト
- * gpio_num_t                           e_gpio_num_cd   R   カード挿入ピン番号（未設定：SDMMC_SLOT_NO_CD）
- * gpio_num_t                           e_gpio_num_wp   R   ライトプロテクトピン番号（未設定：SDMMC_SLOT_NO_WP）
- * esp_vfs_fat_sdmmc_mount_config_t*    ps_mount_cfg    R   マウント設定
+ * char*                                pc_path         R   マウントパス
+ * sdmmc_slot_config_t*                 ps_slot_cfg     R   スロット設定
+ * esp_vfs_fat_sdmmc_mount_config_t*    ps_mount_cfg    R   同時オープンファイル数
  *
  * RETURNS:
  *   sdmmc_card_t*:処理ステータス
@@ -1401,11 +1370,9 @@ static char* pc_temp_file_path(const char* pc_path) {
  * NOTES:
  * None.
  ******************************************************************************/
-static sdmmc_card_t* ps_sdmmc_hs_mount(char* pc_path,
-                                        gpio_num_t e_gpio_num_cs,
-                                        gpio_num_t e_gpio_num_cd,
-                                        gpio_num_t e_gpio_num_wp,
-                                        esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg) {
+static sdmmc_card_t* ps_sdmmc_mount(char* pc_path,
+                                    sdmmc_slot_config_t* ps_slot_cfg,
+                                    esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
@@ -1413,22 +1380,43 @@ static sdmmc_card_t* ps_sdmmc_hs_mount(char* pc_path,
     if (!b_futil_valid_path(pc_path)) {
         return NULL;
     }
-    // スロット情報
-    ts_sdmmc_mount_info_t* ps_mount = &s_sdmmc_mnt_info_list[0];
-    if (ps_mount->pc_mnt_path != NULL) {
-        // 既にマウント済み
+    // スロット設定
+    if (ps_slot_cfg == NULL) {
         return NULL;
     }
-    // チップセレクト
-    if (!b_vutil_valid_gpio(e_gpio_num_cs) && e_gpio_num_cs != GPIO_NUM_NC) {
+// デバイス判定
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+    // SDカードのCMDピン
+    if (!b_vutil_valid_gpio(ps_slot_cfg->cmd)) {
         return NULL;
     }
+    // SDカードのCLKピン
+    if (!b_vutil_valid_gpio(ps_slot_cfg->clk)) {
+        return NULL;
+    }
+    // SDカードのD0ピン
+    if (!b_vutil_valid_gpio(ps_slot_cfg->d0)) {
+        return NULL;
+    }
+    // SDカードのD1ピン
+    if (!b_vutil_valid_gpio(ps_slot_cfg->d1)) {
+        return NULL;
+    }
+    // SDカードのD2ピン
+    if (!b_vutil_valid_gpio(ps_slot_cfg->d2)) {
+        return NULL;
+    }
+    // SDカードのD3ピン
+    if (!b_vutil_valid_gpio(ps_slot_cfg->d3)) {
+        return NULL;
+    }
+#endif
     // SDカードの挿入検出ピン
-    if (!b_vutil_valid_gpio(e_gpio_num_cd) && e_gpio_num_cd != GPIO_NUM_NC) {
+    if (!b_vutil_valid_gpio(ps_slot_cfg->cd) && ps_slot_cfg->cd != GPIO_NUM_NC) {
         return NULL;
     }
     // SDカードのライトプロテクトピン
-    if (!b_vutil_valid_gpio(e_gpio_num_wp) && e_gpio_num_wp != GPIO_NUM_NC) {
+    if (!b_vutil_valid_gpio(ps_slot_cfg->wp) && ps_slot_cfg->wp != GPIO_NUM_NC) {
         return NULL;
     }
     // マウント設定
@@ -1437,26 +1425,46 @@ static sdmmc_card_t* ps_sdmmc_hs_mount(char* pc_path,
     }
 
     //==========================================================================
-    // HS接続のピン設定
+    // スロット情報
+    //==========================================================================
+    if (s_sdmmc_mnt_info.pc_mnt_path != NULL) {
+        // 既にマウント済み
+        return NULL;
+    }
+
+    //==========================================================================
+    // ピン設定
     //==========================================================================
     // SDカードスロットに接続しているデフォルトピン（4bitモード）をプルアップ
-    gpio_set_pull_mode(GPIO_NUM_14, GPIO_PULLUP_ONLY);  // CLK
+#if defined(CONFIG_IDF_TARGET_ESP32)
     gpio_set_pull_mode(GPIO_NUM_15, GPIO_PULLUP_ONLY);  // CMD
+    gpio_set_pull_mode(GPIO_NUM_14, GPIO_PULLUP_ONLY);  // CLK
     gpio_set_pull_mode(GPIO_NUM_2,  GPIO_PULLUP_ONLY);  // D0
     gpio_set_pull_mode(GPIO_NUM_4,  GPIO_PULLUP_ONLY);  // D1
     gpio_set_pull_mode(GPIO_NUM_12, GPIO_PULLUP_ONLY);  // D2
     gpio_set_pull_mode(GPIO_NUM_13, GPIO_PULLUP_ONLY);  // D3
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+    gpio_set_pull_mode(ps_slot_cfg->cmd, GPIO_PULLUP_ONLY); // CMD
+    gpio_set_pull_mode(ps_slot_cfg->clk, GPIO_PULLUP_ONLY); // CLK
+    gpio_set_pull_mode(ps_slot_cfg->d0, GPIO_PULLUP_ONLY);  // D0
+    gpio_set_pull_mode(ps_slot_cfg->d1, GPIO_PULLUP_ONLY);  // D1
+    gpio_set_pull_mode(ps_slot_cfg->d2, GPIO_PULLUP_ONLY);  // D2
+    gpio_set_pull_mode(ps_slot_cfg->d3, GPIO_PULLUP_ONLY);  // D3
+#endif
     // SDカードの挿入検出ピン
-    if (e_gpio_num_cd != GPIO_NUM_NC) {
-        gpio_set_pull_mode(e_gpio_num_cd, GPIO_PULLUP_ONLY);   // CD
+    if (ps_slot_cfg->cd != GPIO_NUM_NC) {
+        gpio_set_pull_mode(ps_slot_cfg->cd, GPIO_PULLUP_ONLY);  // CD
     }
     // SDカードのライトプロテクトピン
-    if (e_gpio_num_wp != GPIO_NUM_NC) {
-        gpio_set_pull_mode(e_gpio_num_wp, GPIO_PULLUP_ONLY);   // WP
+    if (ps_slot_cfg->wp != GPIO_NUM_NC) {
+        gpio_set_pull_mode(ps_slot_cfg->wp, GPIO_PULLUP_ONLY);  // WP
     }
-    // カードの挿入状態を取得
-    if (e_gpio_num_cd != GPIO_NUM_NC) {
-        if (gpio_get_level(e_gpio_num_cd) != 0x00) {
+
+    //==========================================================================
+    // SDの挿入チェック
+    //==========================================================================
+    if (ps_slot_cfg->cd != GPIO_NUM_NC) {
+        if (gpio_get_level(ps_slot_cfg->cd) != 0x00) {
             // カード未入力
             return NULL;
         }
@@ -1468,11 +1476,9 @@ static sdmmc_card_t* ps_sdmmc_hs_mount(char* pc_path,
     // SDMMCのホストコントローラ情報生成
     sdmmc_host_t s_host = SDMMC_HOST_DEFAULT();
     s_host.max_freq_khz = SDMMC_FREQ_HIGHSPEED;
-    // SDMMCカードのスロット設定を生成
-    sdmmc_slot_config_t s_slot_cfg = SDMMC_SLOT_CONFIG_DEFAULT();
     // SDカード情報
     sdmmc_card_t* ps_card = NULL;
-    esp_err_t sts_val = esp_vfs_fat_sdmmc_mount(pc_path, &s_host, &s_slot_cfg, ps_mount_cfg, &ps_card);
+    esp_err_t sts_val = esp_vfs_fat_sdmmc_mount(pc_path, &s_host, ps_slot_cfg, ps_mount_cfg, &ps_card);
     // マウントの成否を判定
     if (sts_val != ESP_OK) {
         return NULL;
@@ -1482,27 +1488,25 @@ static sdmmc_card_t* ps_sdmmc_hs_mount(char* pc_path,
     // マウント情報を更新
     //==========================================================================
     // マウントパス
-    ps_mount->pc_mnt_path = (char*)pv_mem_malloc(strlen(pc_path) + 1);
-    strcpy(ps_mount->pc_mnt_path, pc_path);
+    s_sdmmc_mnt_info.pc_mnt_path = (char*)pv_mem_malloc(strlen(pc_path) + 1);
+    strcpy(s_sdmmc_mnt_info.pc_mnt_path, pc_path);
     // カード情報
-    ps_mount->ps_card = ps_card;
+    s_sdmmc_mnt_info.ps_card = ps_card;
 
-    // 完了ステータス返却
+    // 結果返信
     return ps_card;
 }
+#endif
 
 /*******************************************************************************
  *
- * NAME: ps_sdmmc_spi_mount
+ * NAME: ps_sdspi_mount
  *
- * DESCRIPTION:SDMMCカードのマウント（HS接続 4bit mode）
+ * DESCRIPTION:SDMMCカードのマウント（SPI接続）
  *
  * PARAMETERS:                          Name            RW  Usage
  * char*                                pc_path         R   マウント先のパス
- * spi_host_device_t                    e_slot          R   スロット
- * gpio_num_t                           e_gpio_num_cs   R   チップセレクト
- * gpio_num_t                           e_gpio_num_cd   R   カード挿入ピン番号（未設定：SDMMC_SLOT_NO_CD）
- * gpio_num_t                           e_gpio_num_wp   R   ライトプロテクトピン番号（未設定：SDMMC_SLOT_NO_WP）
+ * sdspi_device_config_t*               ps_device_cfg   R   SPIデバイス設定
  * esp_vfs_fat_sdmmc_mount_config_t*    ps_mount_cfg    R   マウント設定
  *
  * RETURNS:
@@ -1511,12 +1515,9 @@ static sdmmc_card_t* ps_sdmmc_hs_mount(char* pc_path,
  * NOTES:
  * None.
  ******************************************************************************/
-static sdmmc_card_t* ps_sdmmc_spi_mount(char* pc_path,
-                                         spi_host_device_t e_slot,
-                                         gpio_num_t e_gpio_num_cs,
-                                         gpio_num_t e_gpio_num_cd,
-                                         gpio_num_t e_gpio_num_wp,
-                                         esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg) {
+static sdmmc_card_t* ps_sdspi_mount(char* pc_path,
+                                    sdspi_device_config_t* ps_device_cfg,
+                                    esp_vfs_fat_sdmmc_mount_config_t* ps_mount_cfg) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
@@ -1524,66 +1525,68 @@ static sdmmc_card_t* ps_sdmmc_spi_mount(char* pc_path,
     if (!b_futil_valid_path(pc_path)) {
         return NULL;
     }
-    // スロット情報
-    ts_sdmmc_mount_info_t* ps_mount = ps_sdmmc_spi_mount_info(e_slot);
-    if (ps_mount == NULL) {
+    // SPIデバイス設定
+    if (ps_device_cfg == NULL) {
         return NULL;
     }
-    if (ps_mount->pc_mnt_path != NULL) {
-        // 既にマウント済み
+    // SPIホストID
+    if (ps_device_cfg->host_id < SPI1_HOST || ps_device_cfg->host_id >= SPI_HOST_MAX) {
         return NULL;
     }
     // チップセレクト
-    if (!b_vutil_valid_gpio(e_gpio_num_cs) && e_gpio_num_cs != GPIO_NUM_NC) {
+    if (!b_vutil_valid_gpio(ps_device_cfg->gpio_cs) && ps_device_cfg->gpio_cs != GPIO_NUM_NC) {
         return NULL;
     }
     // SDカードの挿入検出ピン
-    if (!b_vutil_valid_gpio(e_gpio_num_cd) && e_gpio_num_cd != GPIO_NUM_NC) {
+    if (!b_vutil_valid_gpio(ps_device_cfg->gpio_cd) && ps_device_cfg->gpio_cd != GPIO_NUM_NC) {
         return NULL;
     }
     // SDカードのライトプロテクトピン
-    if (!b_vutil_valid_gpio(e_gpio_num_wp) && e_gpio_num_wp != GPIO_NUM_NC) {
+    if (!b_vutil_valid_gpio(ps_device_cfg->gpio_wp) && ps_device_cfg->gpio_wp != GPIO_NUM_NC) {
         return NULL;
     }
     // マウント設定
     if (ps_mount_cfg == NULL) {
         return NULL;
     }
+    // スロット情報
+    ts_sdmmc_mount_info_t* ps_mount = &s_sdspi_mnt_info_list[ps_device_cfg->host_id];
+    if (ps_mount->pc_mnt_path != NULL) {
+        // 既にマウント済み
+        return NULL;
+    }
 
     //==========================================================================
-    // HS接続のピン設定
+    // SPI接続のピン設定
     //==========================================================================
     // SDカードの挿入検出ピン
-    if (e_gpio_num_cd != GPIO_NUM_NC) {
-        gpio_set_pull_mode(e_gpio_num_cd, GPIO_PULLUP_ONLY);   // CD
+    if (ps_device_cfg->gpio_cd != GPIO_NUM_NC) {
+        gpio_set_pull_mode(ps_device_cfg->gpio_cd, GPIO_PULLUP_ONLY);   // CD
     }
     // SDカードのライトプロテクトピン
-    if (e_gpio_num_wp != GPIO_NUM_NC) {
-        gpio_set_pull_mode(e_gpio_num_wp, GPIO_PULLUP_ONLY);   // WP
+    if (ps_device_cfg->gpio_wp != GPIO_NUM_NC) {
+        gpio_set_pull_mode(ps_device_cfg->gpio_wp, GPIO_PULLUP_ONLY);   // WP
     }
-    // カードの挿入状態を取得
-    if (e_gpio_num_cd != GPIO_NUM_NC) {
-        if (gpio_get_level(e_gpio_num_cd) != 0x00) {
+
+    //==========================================================================
+    // カードの挿入状況をチェック
+    //==========================================================================
+    if (ps_device_cfg->gpio_cd != GPIO_NUM_NC) {
+        if (gpio_get_level(ps_device_cfg->gpio_cd) != 0x00) {
             // カード未入力
             return NULL;
         }
     }
 
     //==========================================================================
-    // SPIマウント処理
+    // SDSPIマウント処理
     //==========================================================================
     // ホスト情報
     sdmmc_host_t s_host = SDSPI_HOST_DEFAULT();
-    s_host.slot = e_slot;
-    // デバイス設定
-    sdspi_device_config_t s_device_cfg = SDSPI_DEVICE_CONFIG_DEFAULT();
-    s_device_cfg.host_id = e_slot;          // ホストID
-    s_device_cfg.gpio_cs = e_gpio_num_cs;   // チップセレクト
-    s_device_cfg.gpio_cd = e_gpio_num_cd;   // SDカードの挿入検出ライン
-    s_device_cfg.gpio_wp = e_gpio_num_wp;   // SDカードのライトプロテクト
+    s_host.slot = ps_device_cfg->host_id;
     // SDカードをマウント
     sdmmc_card_t* ps_card = NULL;
-    esp_err_t sts_val = esp_vfs_fat_sdspi_mount(pc_path, &s_host, &s_device_cfg, ps_mount_cfg, &ps_card);
+    esp_err_t sts_val = esp_vfs_fat_sdspi_mount(pc_path, &s_host, ps_device_cfg, ps_mount_cfg, &ps_card);
     if (sts_val != ESP_OK) {
         // マウント出来なかった場合
         return NULL;
@@ -1619,17 +1622,6 @@ static sdmmc_card_t* ps_sdmmc_spi_mount(char* pc_path,
  ******************************************************************************/
 static esp_err_t sts_sdmmc_unmount(ts_sdmmc_mount_info_t* ps_mount) {
     //==========================================================================
-    // 入力チェック
-    //==========================================================================
-    if (ps_mount == NULL) {
-        return ESP_ERR_INVALID_ARG;
-    }
-    if (ps_mount->pc_mnt_path == NULL) {
-        // 既にアンマウント済み
-        return ESP_ERR_INVALID_ARG;
-    }
-
-    //==========================================================================
     // SDMMCをアンマウント
     //==========================================================================
     esp_err_t sts_val = esp_vfs_fat_sdcard_unmount(ps_mount->pc_mnt_path, ps_mount->ps_card);
@@ -1654,7 +1646,7 @@ static esp_err_t sts_sdmmc_unmount(ts_sdmmc_mount_info_t* ps_mount) {
  *
  * NAME: sts_sdmmc_edit_info
  *
- * DESCRIPTION:SDMMCアンマウント処理(card指定)
+ * DESCRIPTION:SDMMCカードの情報編集
  *
  * PARAMETERS:          Name        RW  Usage
  * ts_sdmmc_info_t*     ps_info     R   SDMMC情報
@@ -1680,7 +1672,7 @@ static esp_err_t sts_sdmmc_edit_info(ts_sdmmc_info_t* ps_info, sdmmc_card_t* ps_
         return sts_val;
     }
     // マウント情報の有無
-    ts_sdmmc_mount_info_t* ps_mount = ps_sdmmc_mount_info_card(ps_card);
+    ts_sdmmc_mount_info_t* ps_mount = ps_sdmmc_mount_info(ps_card);
     if (ps_mount == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
@@ -1740,45 +1732,45 @@ static esp_err_t sts_sdmmc_edit_info(ts_sdmmc_info_t* ps_info, sdmmc_card_t* ps_
     return ESP_OK;
 }
 
-/** SDMMCマウント情報の取得 */
-static ts_sdmmc_mount_info_t* ps_sdmmc_spi_mount_info(spi_host_device_t e_slot) {
-    // 対象を判別
-    ts_sdmmc_mount_info_t* ps_mount;
-    switch (e_slot) {
-    case SPI2_HOST:
-        ps_mount = &s_sdmmc_mnt_info_list[1];
-        break;
-    case SPI3_HOST:
-        ps_mount = &s_sdmmc_mnt_info_list[2];
-        break;
-    default:
-        return NULL;
-    }
-    // 対象無しの場合
-    return ps_mount;
-}
-
-/** cardに対応したSDMMCマウント情報の取得 */
-static ts_sdmmc_mount_info_t* ps_sdmmc_mount_info_card(sdmmc_card_t* ps_card) {
+#if defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32S3)
+#endif
+/*******************************************************************************
+ *
+ * NAME: ps_sdmmc_mount_info
+ *
+ * DESCRIPTION:cardに対応したSDマウント情報の取得
+ *
+ * PARAMETERS:          Name        RW  Usage
+ * ts_sdmmc_info_t*     ps_info     R   SDMMC情報
+ * sdmmc_card_t*        ps_card     R   SDMMCカード情報
+ *
+ * RETURNS:
+ *   esp_err_t:処理ステータス
+ *
+ * NOTES:
+ * None.
+ ******************************************************************************/
+static ts_sdmmc_mount_info_t* ps_sdmmc_mount_info(sdmmc_card_t* ps_card) {
     // 入力チェック
     if (ps_card == NULL) {
         return NULL;
     }
-    // 対象を判別
+    // SDMMCのマウント情報をチェック
+    if (s_sdmmc_mnt_info.ps_card == ps_card) {
+        return &s_sdmmc_mnt_info;
+    }
+    // SDSPIのマウント情報を検索
     ts_sdmmc_mount_info_t* ps_mount;
-    if (s_sdmmc_mnt_info_list[0].ps_card == ps_card) {
-        ps_mount = &s_sdmmc_mnt_info_list[0];
-    } else if (s_sdmmc_mnt_info_list[1].ps_card == ps_card) {
-        ps_mount = &s_sdmmc_mnt_info_list[1];
-    } else if (s_sdmmc_mnt_info_list[2].ps_card == ps_card) {
-        ps_mount = &s_sdmmc_mnt_info_list[2];
-    } else {
-        return NULL;
+    int i_idx;
+    for (i_idx = 0; i_idx < SPI_HOST_MAX; i_idx++) {
+        ps_mount = &s_sdspi_mnt_info_list[i_idx];
+        if (ps_mount->ps_card == ps_card) {
+            return ps_mount;
+        }
     }
     // 対象無しの場合
-    return ps_mount;
+    return NULL;
 }
-
 
 /******************************************************************************/
 /***      END OF FILE                                                       ***/

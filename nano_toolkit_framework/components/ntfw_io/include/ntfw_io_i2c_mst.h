@@ -2,12 +2,12 @@
  *
  * COMPONENT:Nano Toolkit Framework
  *
- * MODULE :common I2C library header file
+ * MODULE :common I2C master library header file
  *
- * CREATED:2019/11/17 12:09:00
+ * CREATED:2025/01/15 05:01:00
  * AUTHOR :Kakuheiki.Nakanohito
  *
- * DESCRIPTION:I2Cの共通系ライブラリ
+ * DESCRIPTION:I2Cマスタの共通系ライブラリ
  *
  * CHANGE HISTORY:
  *
@@ -20,8 +20,8 @@
  * https://opensource.org/licenses/mit-license.php
  *
  ******************************************************************************/
-#ifndef  __NTFW_IO_I2C_MST_H__
-#define  __NTFW_IO_I2C_MST_H__
+#ifndef  __NTFW_IO_I2C_MSTN_H__
+#define  __NTFW_IO_I2C_MSTN_H__
 
 #if defined __cplusplus
 extern "C" {
@@ -32,7 +32,8 @@ extern "C" {
 /******************************************************************************/
 #include <stdio.h>
 #include <stdbool.h>
-#include <driver/i2c.h>
+#include <esp_err.h>
+#include <driver/i2c_master.h>
 
 
 /******************************************************************************/
@@ -46,7 +47,7 @@ extern "C" {
 /**
  * ポート番号判定
  */
-#define b_io_i2c_mst_valid_port(port_num) (port_num == I2C_NUM_0 || port_num == I2C_NUM_1)
+#define b_io_i2c_mst_valid_port(port_num) (port_num >= I2C_NUM_0 && port_num < I2C_NUM_MAX)
 /**
  * 7bitアドレス判定
  * 0～0b00000111はシステムで予約、0b01111000以降もシステムで予約
@@ -67,17 +68,18 @@ extern "C" {
 /******************************************************************************/
 /** I2Cバススピードモード */
 typedef enum {
-    I2C_FREQ_HZ_LOW  = 10000,	// 低速モード
-    I2C_FREQ_HZ_STD  = 100000,	// 標準モード
-    I2C_FREQ_HZ_FAST = 400000,	// ファーストモード
-    I2C_FREQ_HZ_1M   = 1000000,	// 1Mbpsモード
-} ts_i2c_freq_mode_t;
+    I2C_MST_FREQ_HZ_LOW  = 10000,   // 低速モード
+    I2C_MST_FREQ_HZ_STD  = 100000,  // 標準モード
+    I2C_MST_FREQ_HZ_FAST = 400000,  // ファーストモード
+    I2C_MST_FREQ_HZ_1M   = 1000000, // 1Mbpsモード
+    I2C_MST_FREQ_HZ_MAX,            // MAX
+} ts_i2c_mst_freq_mode_t;
 
 /** 構造体：デバイスアドレス */
 typedef struct {
-    i2c_port_t e_port_no;		// I2Cポート番号
-    uint16_t u16_address;       // I2Cスレーブアドレス（10bit時：0b011110～）
-} ts_i2c_address_t;
+    i2c_port_t e_port_no;   // I2Cポート番号
+    uint16_t u16_address;   // I2Cスレーブアドレス（10bit時：0b011110～）
+} ts_i2c_mst_address_t;
 
 /******************************************************************************/
 /***      Exported Variables                                                ***/
@@ -97,36 +99,53 @@ typedef struct {
 //==============================================================================
 // マスター側機能（I2Cバスアクセス）
 //==============================================================================
-/** I2Cマスタ初期化処理 */
-extern esp_err_t sts_io_i2c_mst_init(i2c_port_t e_port_no,
-                                      ts_i2c_freq_mode_t e_freq,
-                                      gpio_num_t e_scl_pin,
-                                      gpio_num_t e_sda_pin,
-                                      gpio_pullup_t e_pullup);
+/** I2Cバスの初期処理 */
+extern esp_err_t sts_io_i2c_mst_bus_init(i2c_port_num_t e_port_no,
+                                         ts_i2c_mst_freq_mode_t e_freq,
+                                         gpio_num_t e_scl_pin,
+                                         gpio_num_t e_sda_pin,
+                                         bool b_pullup);
+/** I2Cバスのリソース解放処理 */
+extern esp_err_t sts_io_i2c_mst_bus_deinit(i2c_port_num_t e_port_no);
+/** I2Cバスのデバイス設定追加処理 */
+extern esp_err_t sts_io_i2c_mst_add_device(ts_i2c_mst_address_t* ps_address);
+/** I2Cバスのデバイス設定リソース解放処理 */
+extern esp_err_t sts_io_i2c_mst_del_device(ts_i2c_mst_address_t* ps_address);
+/** I2Cバスのタイムアウト時間を設定（バス初期化時デフォルト：-1） */
+extern esp_err_t sts_io_i2c_mst_set_timeout_ms(i2c_port_num_t e_port_no, int i_max_wait_ms);
 /** トランザクション開始 */
-extern esp_err_t sts_io_i2c_mst_begin();
+extern esp_err_t sts_io_i2c_mst_tran_begin();
 /** トランザクション終了 */
-extern esp_err_t sts_io_i2c_mst_end();
-/** 読み込みスタートコンディションの送信 */
-extern esp_err_t sts_io_i2c_mst_start_read(ts_i2c_address_t s_address);
-/** 書き込みスタートコンディションの送信 */
-extern esp_err_t sts_io_i2c_mst_start_write(ts_i2c_address_t s_address);
-/** スレーブからの読み込み処理 */
-extern esp_err_t sts_io_i2c_mst_read(uint8_t *pu8_data, size_t t_data_len);
-/** スレーブからの読み込み処理 */
-extern esp_err_t sts_io_i2c_mst_read_stop(uint8_t *pu8_data, size_t t_data_len);
-/** スレーブへの書き込み処理（配列） */
-extern esp_err_t sts_io_i2c_mst_write(uint8_t* pu8_data, size_t t_data_len, bool b_ack_flg);
-/** スレーブへの書き込み処理（配列） */
-extern esp_err_t sts_io_i2c_mst_write_stop(uint8_t* pu8_data, size_t t_data_len, bool b_ack_flg);
-/** スレーブへのPing処理 */
-extern esp_err_t sts_io_i2c_mst_ping(ts_i2c_address_t s_address);
+extern esp_err_t sts_io_i2c_mst_tran_end();
+/** I2Cスレーブへのデータ送信処理 */
+extern esp_err_t sts_io_i2c_mst_tx(ts_i2c_mst_address_t* ps_address,
+                                   const uint8_t* pu8_tx_data,
+                                   const size_t t_tx_len);
+/** I2Cスレーブへのデータ送受信処理 */
+extern esp_err_t sts_io_i2c_mst_txrx(ts_i2c_mst_address_t* ps_address,
+                                     const uint8_t* pu8_tx_data,
+                                     const size_t t_tx_len, 
+                                     uint8_t* pu8_rx_data,
+                                     size_t t_rx_len);
+/** I2Cスレーブからのデータ受信処理 */
+extern esp_err_t sts_io_i2c_mst_rx(ts_i2c_mst_address_t* ps_address,
+                                   uint8_t* pu8_rx_data,
+                                   size_t t_rx_len);
+/** I2Cバスとデバイスのハンドル取得 */
+extern esp_err_t sts_io_i2c_mst_get_handle(ts_i2c_mst_address_t* ps_address,
+                                           i2c_master_bus_handle_t* ps_bus_hndl,
+                                           i2c_master_dev_handle_t* ps_dev_hndl);
+/** I2Cバスのリセット */
+extern esp_err_t sts_io_i2c_mst_bus_reset(i2c_port_num_t e_port_no);
+/** I2Cアドレスタイプ取得 */
+extern i2c_addr_bit_len_t e_io_i2c_mst_adress_type(uint16_t u16_address);
 
 #if defined __cplusplus
 }
 #endif
 
-#endif  /* __NTFW_IO_I2C_MST_H__ */
+#endif  /* __NTFW_IO_I2C_MSTN_
+H__ */
 
 /******************************************************************************/
 /***      END OF FILE                                                       ***/

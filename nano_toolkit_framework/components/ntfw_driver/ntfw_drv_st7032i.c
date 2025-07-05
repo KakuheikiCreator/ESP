@@ -39,31 +39,31 @@
 #endif
 
 // Address Read/Write
-#define I2C_ADDR_ST7032I        (0x3E)
+#define I2C_ADDR_ST7032I            (0x3E)
 
 // Control byte
-#define ST7032I_RS_CMD               (0x00)
-#define ST7032I_RS_DATA              (0x40)
+#define ST7032I_RS_CMD              (0x00)
+#define ST7032I_RS_DATA             (0x40)
 
 // Instruction commands
-#define ST7032I_CMD_CLEAR_DISP       (0x01)
-#define ST7032I_CMD_RETURN_HOME      (0x02)
-#define ST7032I_CMD_ENTRY_MODE_DEF   (0x06)
-#define ST7032I_CMD_DISP_CNTR_DEF    (0x08)
-#define ST7032I_CMD_CURSOR_SHIFT_L   (0x10)
-#define ST7032I_CMD_CURSOR_SHIFT_R   (0x14)
-#define ST7032I_CMD_OSC_FREQ         (0x14)
-#define ST7032I_CMD_DISP_SHIFT_L     (0x18)
-#define ST7032I_CMD_DISP_SHIFT_R     (0x1C)
-#define ST7032I_CMD_FUNC_SET_DEF     (0x38)
-#define ST7032I_CMD_FUNC_SET_EX      (0x39)
-#define ST7032I_CMD_SET_CG_ADDR      (0x40)
-#define ST7032I_CMD_SET_DD_ADDR      (0x80)
-#define ST7032I_CMD_SET_ICON_ADDR    (0x40)
-#define ST7032I_CMD_DISP_CNTR_EX     (0x50)
-#define ST7032I_CMD_FOLLOWER_CNTR    (0x6C)
-#define ST7032I_CMD_CONTRAST_LOW     (0x70)
-#define ST7032I_CMD_DATA_WRITE       (0x80)
+#define ST7032I_CMD_CLEAR_DISP      (0x01)
+#define ST7032I_CMD_RETURN_HOME     (0x02)
+#define ST7032I_CMD_ENTRY_MODE_DEF  (0x06)
+#define ST7032I_CMD_DISP_CNTR_DEF   (0x08)
+#define ST7032I_CMD_CURSOR_SHIFT_L  (0x10)
+#define ST7032I_CMD_CURSOR_SHIFT_R  (0x14)
+#define ST7032I_CMD_OSC_FREQ        (0x14)
+#define ST7032I_CMD_DISP_SHIFT_L    (0x18)
+#define ST7032I_CMD_DISP_SHIFT_R    (0x1C)
+#define ST7032I_CMD_FUNC_SET_DEF    (0x38)
+#define ST7032I_CMD_FUNC_SET_EX     (0x39)
+#define ST7032I_CMD_SET_CG_ADDR     (0x40)
+#define ST7032I_CMD_SET_DD_ADDR     (0x80)
+#define ST7032I_CMD_SET_ICON_ADDR   (0x40)
+#define ST7032I_CMD_DISP_CNTR_EX    (0x50)
+#define ST7032I_CMD_FOLLOWER_CNTR   (0x6C)
+#define ST7032I_CMD_CONTRAST_LOW    (0x70)
+#define ST7032I_CMD_DATA_WRITE      (0x80)
 
 /******************************************************************************/
 /***        Type Definitions                                                ***/
@@ -73,7 +73,7 @@
  */
 typedef struct {
     // I2Cアドレス
-    ts_i2c_address_t s_address;
+    ts_i2c_mst_address_t s_address;
     // コントラスト
     uint8_t u8_contrast;
     // アイコン表示
@@ -137,7 +137,7 @@ esp_err_t sts_st7032i_init(i2c_port_t e_port_num) {
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -146,12 +146,17 @@ esp_err_t sts_st7032i_init(i2c_port_t e_port_num) {
     // 初期化処理シーケンス
     //==========================================================================
     do {
-        // 初期処理
-        ts_st7032i_state_t* ps_state = &s_state[e_port_num];
         // アドレス生成
-        ts_i2c_address_t s_address;
+        ts_i2c_mst_address_t s_address;
         s_address.e_port_no   = e_port_num;
         s_address.u16_address = I2C_ADDR_ST7032I;
+        // Device Add
+        sts_result = sts_io_i2c_mst_add_device(&s_address);
+        if (sts_result != ESP_OK) {
+            break;
+        }
+        // 初期処理
+        ts_st7032i_state_t* ps_state = &s_state[e_port_num];
         // LCD状態の初期化
         ps_state->s_address       = s_address;
         ps_state->u8_contrast     = 40;
@@ -199,7 +204,7 @@ esp_err_t sts_st7032i_init(i2c_port_t e_port_num) {
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス返却
     return sts_result;
@@ -233,7 +238,7 @@ esp_err_t sts_st7032i_disp_control(i2c_port_t e_port_num, te_st7032i_disp_sts_t 
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -275,7 +280,7 @@ esp_err_t sts_st7032i_disp_control(i2c_port_t e_port_num, te_st7032i_disp_sts_t 
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス
     return sts_result;
@@ -313,7 +318,7 @@ esp_err_t sts_st7032i_set_contrast(i2c_port_t e_port_num, uint8_t u8_contrast) {
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -330,7 +335,7 @@ esp_err_t sts_st7032i_set_contrast(i2c_port_t e_port_num, uint8_t u8_contrast) {
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータスを返却
     return sts_result;
@@ -363,7 +368,7 @@ esp_err_t sts_st7032i_clear_screen(i2c_port_t e_port_num) {
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -376,7 +381,7 @@ esp_err_t sts_st7032i_clear_screen(i2c_port_t e_port_num) {
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス返却
     return sts_result;
@@ -453,7 +458,7 @@ esp_err_t sts_st7032i_set_cursor(i2c_port_t e_port_num, uint8_t u8_row_no, uint8
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -468,7 +473,7 @@ esp_err_t sts_st7032i_set_cursor(i2c_port_t e_port_num, uint8_t u8_row_no, uint8
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 実行結果の返却
     return sts_result;
@@ -501,7 +506,7 @@ esp_err_t sts_st7032i_return_home(i2c_port_t e_port_num) {
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -514,7 +519,7 @@ esp_err_t sts_st7032i_return_home(i2c_port_t e_port_num) {
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス返却
     return sts_result;
@@ -547,7 +552,7 @@ esp_err_t sts_st7032i_cursor_shift_l(i2c_port_t e_port_num) {
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -560,7 +565,7 @@ esp_err_t sts_st7032i_cursor_shift_l(i2c_port_t e_port_num) {
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス返却
     return sts_result;
@@ -593,7 +598,7 @@ esp_err_t sts_st7032i_cursor_shift_r(i2c_port_t e_port_num) {
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -606,7 +611,7 @@ esp_err_t sts_st7032i_cursor_shift_r(i2c_port_t e_port_num) {
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス返却
     return sts_result;
@@ -641,7 +646,7 @@ esp_err_t sts_st7032i_char_regist(i2c_port_t e_port_num, uint8_t u8_ch, uint8_t*
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -665,7 +670,7 @@ esp_err_t sts_st7032i_char_regist(i2c_port_t e_port_num, uint8_t u8_ch, uint8_t*
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス返却
     return sts_result;
@@ -699,7 +704,7 @@ esp_err_t sts_st7032i_write_char(i2c_port_t e_port_num, char c_ch) {
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -713,7 +718,7 @@ esp_err_t sts_st7032i_write_char(i2c_port_t e_port_num, char c_ch) {
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 実行結果の返却
     return sts_result;
@@ -747,7 +752,7 @@ esp_err_t sts_st7032i_write_string(i2c_port_t e_port_num, char* pc_str) {
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -760,7 +765,7 @@ esp_err_t sts_st7032i_write_string(i2c_port_t e_port_num, char* pc_str) {
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス返却
     return sts_result;
@@ -795,7 +800,7 @@ esp_err_t sts_st7032i_write_icon(i2c_port_t e_port_num, uint8_t u8_reg_addr, uin
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_result = sts_io_i2c_mst_begin();
+    esp_err_t sts_result = sts_io_i2c_mst_tran_begin();
     if (sts_result != ESP_OK) {
         return sts_result;
     }
@@ -829,7 +834,7 @@ esp_err_t sts_st7032i_write_icon(i2c_port_t e_port_num, uint8_t u8_reg_addr, uin
     //==========================================================================
     // I2Cトランザクションの終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス返却
     return sts_result;
@@ -858,14 +863,9 @@ esp_err_t sts_st7032i_write_icon(i2c_port_t e_port_num, uint8_t u8_reg_addr, uin
 static esp_err_t sts_write_cmd(ts_st7032i_state_t* ps_state, uint8_t u8_cmd) {
     // コマンド実行が可能になるまで待つ
     i64_dtm_delay_until_usec(ps_state->i64_next_exec);
-    // スタートコンディション
-    esp_err_t sts_result = sts_io_i2c_mst_start_write(ps_state->s_address);
-    if (sts_result != ESP_OK) {
-        return sts_result;
-    }
     // コマンドの送信
     uint8_t u8_tx_data[] = {ST7032I_RS_CMD, u8_cmd};
-    sts_result = sts_io_i2c_mst_write_stop(u8_tx_data, 2, true);
+    esp_err_t sts_result = sts_io_i2c_mst_tx(&ps_state->s_address, u8_tx_data, 2);
     // 次回コマンド実行可能時刻を更新
     ps_state->i64_next_exec = i64_next_exec_time(u8_cmd);
     // 完了ステータス返信
@@ -919,13 +919,8 @@ static esp_err_t sts_write_data_list(ts_st7032i_state_t* ps_state, uint8_t* pu8_
     memcpy(&u8_tx_data[1], pu8_data, t_len);
     // コマンド実行が可能になるまで待つ
     i64_dtm_delay_until_usec(ps_state->i64_next_exec);
-    // スタートコンディション
-    esp_err_t sts_result = sts_io_i2c_mst_start_write(ps_state->s_address);
-    if (sts_result != ESP_OK) {
-        return sts_result;
-    }
     // 制御バイトとデータの送信
-    sts_result = sts_io_i2c_mst_write_stop(u8_tx_data, t_list_size, true);
+    esp_err_t sts_result = sts_io_i2c_mst_tx(&ps_state->s_address, u8_tx_data, t_list_size);
     // 次回コマンド実行可能時刻を更新
     ps_state->i64_next_exec = i64_next_exec_time(ST7032I_CMD_DATA_WRITE);
     // 完了ステータス返信

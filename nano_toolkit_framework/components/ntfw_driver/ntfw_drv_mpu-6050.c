@@ -25,7 +25,10 @@
 /******************************************************************************/
 #include "ntfw_drv_mpu-6050.h"
 
+#include <stdbool.h>
 #include <string.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include "ntfw_com_value_util.h"
 #include "ntfw_com_date_time.h"
 
@@ -33,15 +36,19 @@
 /***      Macro Definitions                                                 ***/
 /******************************************************************************/
 /** 待ち時間：クリティカルセクション */
-#define EVT_TAKE_WAIT_TICK  (1000 / portTICK_PERIOD_MS)
+#define EVT_TAKE_WAIT_TICK          (1000 / portTICK_PERIOD_MS)
 // レジスタアドレス（Read用）
-#define MPU_6050_CALIBRATION_CNT        (5)
-#define MPU_6050_READ_START             (0x1D)
-#define MPU_6050_READ_LENGTH            (29)
+#define MPU_6050_CALIBRATION_CNT    (5)
+#define MPU_6050_READ_START         (0x1D)
+#define MPU_6050_READ_LENGTH        (29)
 
 /******************************************************************************/
 /***      Type Definitions                                                  ***/
 /******************************************************************************/
+/**
+ * ミューテックス取得処理
+ */
+typedef SemaphoreHandle_t (*tf_get_mutex_t)();
 
 /******************************************************************************/
 /***      Exported Variables                                                ***/
@@ -60,18 +67,18 @@ static ts_mpu_6050_axes_data_t s_gyro_zeroing_data = {0, 0, 0};
 /******************************************************************************/
 /***      Local Function Prototypes                                         ***/
 /******************************************************************************/
+/** ミューテックス取得処理（初期処理） */
+static SemaphoreHandle_t get_mutex_init();
+/** ミューテックス取得処理 */
+static SemaphoreHandle_t get_mutex();
+/** ミューテックス取得関数 */
+static volatile tf_get_mutex_t pf_get_mutex = get_mutex_init;
 // 有効アドレスチェック
-static bool b_valid_address(ts_i2c_address_t s_address);
+static bool b_valid_address(ts_i2c_mst_address_t* ps_address);
 /** 有効加速度レンジチェック */
 static bool b_valid_accel_range(te_mpu_6050_accel_range_t e_accel_range);
 /** 有効ジャイロレンジチェック */
 static bool b_valid_gyro_range(te_mpu_6050_gyro_range_t e_gyro_range);
-// レジスタの1バイト読み込み
-static esp_err_t sts_read_byte(ts_i2c_address_t s_address, uint8_t u8_reg_address, uint8_t* pu8_data);
-// レジスタの読み込み
-static esp_err_t sts_read(ts_i2c_address_t s_address, uint8_t u8_reg_address, uint8_t* pu8_data, uint8_t u8_size);
-// レジスタへの書き込み
-static esp_err_t sts_write_byte(ts_i2c_address_t s_address, uint8_t u8_address, uint8_t u8_data);
 
 /******************************************************************************/
 /***        Exported Functions                                              ***/
@@ -83,7 +90,7 @@ static esp_err_t sts_write_byte(ts_i2c_address_t s_address, uint8_t u8_address, 
  * DESCRIPTION:初期化処理
  *
  * PARAMETERS:                  Name            RW  Usage
- * ts_i2c_address_t             s_address       R   I2Cアドレス（ポート番号とスレーブアドレス）
+ * ts_i2c_mst_address_t*        ps_address      R   I2Cアドレス（ポート番号とスレーブアドレス）
  * te_mpu_6050_accel_range_t    e_accel_range   R   加速度のレンジ
  * te_mpu_6050_gyro_range_t     e_gyro_range    R   ジャイロのレンジ
  *
@@ -93,14 +100,14 @@ static esp_err_t sts_write_byte(ts_i2c_address_t s_address, uint8_t u8_address, 
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_init(ts_i2c_address_t s_address,
+esp_err_t sts_mpu_6050_init(ts_i2c_mst_address_t* ps_address,
                             te_mpu_6050_accel_range_t e_accel_range,
                             te_mpu_6050_gyro_range_t e_gyro_range) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // I2Cアドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
     }
     // 加速度レンジ
@@ -118,52 +125,53 @@ esp_err_t sts_mpu_6050_init(ts_i2c_address_t s_address,
     // 結果ステータス
     esp_err_t sts_val = ESP_OK;
     do {
-        // ミューテックスの初期化
-        if (s_mutex == NULL) {
-            s_mutex = xSemaphoreCreateRecursiveMutex();
+        // デバイス追加
+        sts_val = sts_io_i2c_mst_add_device(ps_address);
+        if (sts_val != ESP_OK) {
+            break;
         }
         // デバイスリセット
-        sts_val = sts_mpu_6050_device_reset(s_address);
+        sts_val = sts_mpu_6050_device_reset(ps_address);
         if (sts_val != ESP_OK) {
             break;
         }
         // 内部オシレータ8MHz
-        sts_val = sts_mpu_6050_set_clock(s_address, DRV_MPU_6050_CLK_INTERNAL);
+        sts_val = sts_mpu_6050_set_clock(ps_address, DRV_MPU_6050_CLK_INTERNAL);
         if (sts_val != ESP_OK) {
             break;
         }
         // 分割数
-        sts_val = sts_mpu_6050_set_smplrt_div(s_address, 0x00);
+        sts_val = sts_mpu_6050_set_smplrt_div(ps_address, 0x00);
         if (sts_val != ESP_OK) {
             break;
         }
         // ローパスフィルタ
-        sts_val = sts_mpu_6050_set_dlpf_cfg(s_address, DRV_MPU_6050_LPF_260_256);
+        sts_val = sts_mpu_6050_set_dlpf_cfg(ps_address, DRV_MPU_6050_LPF_260_256);
         if (sts_val != ESP_OK) {
             break;
         }
         // ハイパスフィルタ
-        sts_val = sts_mpu_6050_set_accel_hpf(s_address, DRV_MPU_6050_ACCEL_HPF_RESET);
+        sts_val = sts_mpu_6050_set_accel_hpf(ps_address, DRV_MPU_6050_ACCEL_HPF_RESET);
         if (sts_val != ESP_OK) {
             break;
         }
         // 設定：加速度レンジ
-        sts_val = sts_mpu_6050_set_accel_range(s_address, e_accel_range);
+        sts_val = sts_mpu_6050_set_accel_range(ps_address, e_accel_range);
         if (sts_val != ESP_OK) {
             break;
         }
         // 設定：ジャイロレンジ
-        sts_val = sts_mpu_6050_set_gyro_range(s_address, e_gyro_range);
+        sts_val = sts_mpu_6050_set_gyro_range(ps_address, e_gyro_range);
         if (sts_val != ESP_OK) {
             break;
         }
         // FIFO無効化
-        sts_val = sts_mpu_6050_set_fifo_enable(s_address, false, false, false, false, false);
+        sts_val = sts_mpu_6050_set_fifo_enable(ps_address, false, false, false, false, false);
         if (sts_val != ESP_OK) {
             break;
         }
         // スリープサイクル無効化
-        sts_val = sts_mpu_6050_set_sleep_cycle(s_address, DRV_MPU_6050_SLEEP_CYCLE_NONE);
+        sts_val = sts_mpu_6050_set_sleep_cycle(ps_address, DRV_MPU_6050_SLEEP_CYCLE_NONE);
         // ゼロイング補正値をクリア
         v_mpu_6050_zeroing_clear();
     } while(false);
@@ -180,9 +188,9 @@ esp_err_t sts_mpu_6050_init(ts_i2c_address_t s_address,
  *   Gyroscope Output Rate ＝8KHz(DLPFが有効の場合は1KHz)
  *   サンプルレート = Gyroscope Output Rate / (1 + SMPLRT_DIV)
  *
- * PARAMETERS:          Name            RW  Usage
- *   ts_i2c_address_t   s_address       R   I2Cアドレス（ポート番号とスレーブアドレス）
- *   uint8_t            u8_div          R   分割数
+ * PARAMETERS:              Name        RW  Usage
+ *   ts_i2c_mst_address_t*  ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   uint8_t                u8_div      R   分割数
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -190,29 +198,35 @@ esp_err_t sts_mpu_6050_init(ts_i2c_address_t s_address,
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_set_smplrt_div(ts_i2c_address_t s_address, uint8_t u8_div) {
+esp_err_t sts_mpu_6050_set_smplrt_div(ts_i2c_mst_address_t* ps_address, uint8_t u8_div) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
     }
 
     //==========================================================================
-    // 分周数の設定処理
+    // I2Cトランザクションの開始
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
     if (sts_val != ESP_OK) {
         return sts_val;
     }
 
+    //==========================================================================
     // 分周数の設定処理
-    sts_val = sts_write_byte(s_address, 0x19, u8_div);
+    //==========================================================================
+    // I2Cスレーブへのデータ送信処理
+    uint8_t u8_tx_data[] = {0x19, u8_div};
+    // 分周数の設定処理
+    sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
 
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
@@ -225,7 +239,7 @@ esp_err_t sts_mpu_6050_set_smplrt_div(ts_i2c_address_t s_address, uint8_t u8_div
  * DESCRIPTION:加速度とジャイロのローパスフィルター設定
  *
  * PARAMETERS:                  Name        RW  Usage
- *   ts_i2c_address_t           s_address   R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   ts_i2c_mst_address_t*      ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
  *   te_mpu_6050_accel_lpf_t    u8_dlpf_cfg R   サンプリングレート
  *
  * RETURNS:
@@ -234,37 +248,48 @@ esp_err_t sts_mpu_6050_set_smplrt_div(ts_i2c_address_t s_address, uint8_t u8_div
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_set_dlpf_cfg(ts_i2c_address_t s_address, te_mpu_6050_accel_lpf_t u8_dlpf_cfg) {
+esp_err_t sts_mpu_6050_set_dlpf_cfg(ts_i2c_mst_address_t* ps_address, te_mpu_6050_accel_lpf_t u8_dlpf_cfg) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
+    }
+
+    //==========================================================================
+    // I2Cトランザクションの開始
+    //==========================================================================
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
+    if (sts_val != ESP_OK) {
+        return sts_val;
     }
 
     //==========================================================================
     // ローパスフィルター設定
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
-    if (sts_val != ESP_OK) {
-        return sts_val;
-    }
     do {
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x1A;
         // レジスタ読み込み
         uint8_t u8_data;
-        sts_val = sts_read_byte(s_address, 0x1A, &u8_data);
+        // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
         if (sts_val != ESP_OK) {
             break;
         }
         // データ編集
         u8_data = (u8_data & 0xF8) | (u8_dlpf_cfg & 0x07);
+        // 送信データ
+        uint8_t u8_tx_data[] = {0x1A, u8_data};
         // レジスタ書き込み
-        sts_val = sts_write_byte(s_address, 0x1A, u8_data);
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
     } while(false);
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス返却
     return sts_val;
@@ -276,11 +301,11 @@ esp_err_t sts_mpu_6050_set_dlpf_cfg(ts_i2c_address_t s_address, te_mpu_6050_acce
  *
  * DESCRIPTION:加速度セルフテスト
  *
- * PARAMETERS:          Name            RW  Usage
- *   ts_i2c_address_t   s_address       R   I2Cアドレス（ポート番号とスレーブアドレス）
- *   bool               b_x             R   セルフテスト有効無効（X軸）
- *   bool               b_y             R   セルフテスト有効無効（Y軸）
- *   bool               b_z             R   セルフテスト有効無効（Z軸）
+ * PARAMETERS:              Name        RW  Usage
+ *   ts_i2c_mst_address_t*  ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   bool                   b_x         R   セルフテスト有効無効（X軸）
+ *   bool                   b_y         R   セルフテスト有効無効（Y軸）
+ *   bool                   b_z         R   セルフテスト有効無効（Z軸）
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -288,37 +313,48 @@ esp_err_t sts_mpu_6050_set_dlpf_cfg(ts_i2c_address_t s_address, te_mpu_6050_acce
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_set_accel_self_test(ts_i2c_address_t s_address, bool b_x, bool b_y, bool b_z) {
+esp_err_t sts_mpu_6050_set_accel_self_test(ts_i2c_mst_address_t* ps_address, bool b_x, bool b_y, bool b_z) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
+    }
+
+    //==========================================================================
+    // I2Cトランザクションの開始
+    //==========================================================================
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
+    if (sts_val != ESP_OK) {
+        return sts_val;
     }
 
     //==========================================================================
     // 加速度セルフテスト
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
-    if (sts_val != ESP_OK) {
-        return sts_val;
-    }
     do {
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x1C;
         // レジスタ読み込み
         uint8_t u8_data;
-        sts_val = sts_read_byte(s_address, 0x1C, &u8_data);
+        // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
         if (sts_val != ESP_OK) {
             break;
         }
         // データ編集
         u8_data = (u8_data & 0x1F) | (b_x << 7) | ((b_y & 0x01) << 6) | ((b_z & 0x01) << 7);
+        // 送信データ
+        uint8_t u8_tx_data[] = {0x1C, u8_data};
         // レジスタ書き込み
-        sts_val = sts_write_byte(s_address, 0x1C, u8_data);
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
     } while(false);
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス
     return sts_val;
@@ -331,7 +367,7 @@ esp_err_t sts_mpu_6050_set_accel_self_test(ts_i2c_address_t s_address, bool b_x,
  * DESCRIPTION:加速度レンジ設定
  *
  * PARAMETERS:                  Name        RW  Usage
- *   ts_i2c_address_t           s_address   R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   ts_i2c_mst_address_t*      ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
  *   te_mpu_6050_accel_range_t  e_range     R   加速度レンジ
  *
  * RETURNS:
@@ -340,12 +376,12 @@ esp_err_t sts_mpu_6050_set_accel_self_test(ts_i2c_address_t s_address, bool b_x,
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_set_accel_range(ts_i2c_address_t s_address, te_mpu_6050_accel_range_t e_range) {
+esp_err_t sts_mpu_6050_set_accel_range(ts_i2c_mst_address_t* ps_address, te_mpu_6050_accel_range_t e_range) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
     }
     // 加速度レンジ
@@ -354,27 +390,38 @@ esp_err_t sts_mpu_6050_set_accel_range(ts_i2c_address_t s_address, te_mpu_6050_a
     }
 
     //==========================================================================
-    // 加速度レンジ設定
+    // I2Cトランザクションの開始
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
     if (sts_val != ESP_OK) {
         return sts_val;
     }
+
+    //==========================================================================
+    // 加速度レンジ設定
+    //==========================================================================
     do {
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x1C;
         // レジスタ読み込み
         uint8_t u8_data;
-        sts_val = sts_read_byte(s_address, 0x1C, &u8_data);
+        // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
         if (sts_val != ESP_OK) {
             break;
         }
         // データ編集
         u8_data = (u8_data & 0xE7) | ((e_range & 0x03) << 3);
+        // 送信データ
+        uint8_t u8_tx_data[] = {0x1C, u8_data};
         // レジスタ書き込み
-        sts_val = sts_write_byte(s_address, 0x1C, u8_data);
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
     } while(false);
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス
     return sts_val;
@@ -387,7 +434,7 @@ esp_err_t sts_mpu_6050_set_accel_range(ts_i2c_address_t s_address, te_mpu_6050_a
  * DESCRIPTION:ハイパスフィルタ設定
  *
  * PARAMETERS:                  Name        RW  Usage
- *   ts_i2c_address_t           s_address   R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   ts_i2c_mst_address_t*      ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
  *   te_mpu_6050_accel_hpf_t    e_hpf       R   加速度ハイパスフィルタ値
  *
  * RETURNS:
@@ -396,37 +443,48 @@ esp_err_t sts_mpu_6050_set_accel_range(ts_i2c_address_t s_address, te_mpu_6050_a
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_set_accel_hpf(ts_i2c_address_t s_address, te_mpu_6050_accel_hpf_t e_hpf) {
+esp_err_t sts_mpu_6050_set_accel_hpf(ts_i2c_mst_address_t* ps_address, te_mpu_6050_accel_hpf_t e_hpf) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
+    }
+
+    //==========================================================================
+    // I2Cトランザクションの開始
+    //==========================================================================
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
+    if (sts_val != ESP_OK) {
+        return sts_val;
     }
 
     //==========================================================================
     // ハイパスフィルタ設定
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
-    if (sts_val != ESP_OK) {
-        return sts_val;
-    }
     do {
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x1C;
         // レジスタ読み込み
         uint8_t u8_data;
-        sts_val = sts_read_byte(s_address, 0x1C, &u8_data);
+        // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
         if (sts_val != ESP_OK) {
             break;
         }
         // データ編集
         u8_data = (u8_data & 0xF8) | (e_hpf & 0x07);
+        // 送信データ
+        uint8_t u8_tx_data[] = {0x1C, u8_data};
         // レジスタ書き込み
-        sts_val = sts_write_byte(s_address, 0x1C, u8_data);
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
     } while(false);
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス返却
     return sts_val;
@@ -438,11 +496,11 @@ esp_err_t sts_mpu_6050_set_accel_hpf(ts_i2c_address_t s_address, te_mpu_6050_acc
  *
  * DESCRIPTION:ジャイロセルフテスト設定
  *
- * PARAMETERS:          Name            RW  Usage
- *   ts_i2c_address_t   s_address       R   I2Cアドレス（ポート番号とスレーブアドレス）
- *   bool               b_x             R   セルフテスト有効無効（X軸）
- *   bool               b_y             R   セルフテスト有効無効（Y軸）
- *   bool               b_z             R   セルフテスト有効無効（Z軸）
+ * PARAMETERS:              Name        RW  Usage
+ *   ts_i2c_mst_address_t*  ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   bool                   b_x         R   セルフテスト有効無効（X軸）
+ *   bool                   b_y         R   セルフテスト有効無効（Y軸）
+ *   bool                   b_z         R   セルフテスト有効無効（Z軸）
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -450,37 +508,48 @@ esp_err_t sts_mpu_6050_set_accel_hpf(ts_i2c_address_t s_address, te_mpu_6050_acc
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_set_gyro_self_test(ts_i2c_address_t s_address, bool b_x, bool b_y, bool b_z) {
+esp_err_t sts_mpu_6050_set_gyro_self_test(ts_i2c_mst_address_t* ps_address, bool b_x, bool b_y, bool b_z) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
+    }
+
+    //==========================================================================
+    // I2Cトランザクションの開始
+    //==========================================================================
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
+    if (sts_val != ESP_OK) {
+        return sts_val;
     }
 
     //==========================================================================
     // ジャイロセルフテスト設定
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
-    if (sts_val != ESP_OK) {
-        return sts_val;
-    }
     do {
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x1B;
         // レジスタ読み込み
         uint8_t u8_data;
-        sts_val = sts_read_byte(s_address, 0x1B, &u8_data);
+        // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
         if (sts_val != ESP_OK) {
             break;
         }
         // データ編集
         u8_data = (u8_data & 0x1F) | (b_x << 7) | ((b_y & 0x01) << 6) | ((b_z & 0x01) << 7);
+        // 送信データ
+        uint8_t u8_tx_data[] = {0x1B, u8_data};
         // レジスタ書き込み
-        sts_val = sts_write_byte(s_address, 0x1B, u8_data);
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
     } while(false);
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス返却
     return sts_val;
@@ -493,7 +562,7 @@ esp_err_t sts_mpu_6050_set_gyro_self_test(ts_i2c_address_t s_address, bool b_x, 
  * DESCRIPTION:ジャイロレンジ設定
  *
  * PARAMETERS:                  Name          RW  Usage
- *   ts_i2c_address_t           s_address     R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   ts_i2c_mst_address_t*      ps_address    R   I2Cアドレス（ポート番号とスレーブアドレス）
  *   te_mpu_6050_gyro_range_t   e_range       R   角速度レンジ
  *
  * RETURNS:
@@ -502,12 +571,12 @@ esp_err_t sts_mpu_6050_set_gyro_self_test(ts_i2c_address_t s_address, bool b_x, 
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_set_gyro_range(ts_i2c_address_t s_address, te_mpu_6050_gyro_range_t e_range) {
+esp_err_t sts_mpu_6050_set_gyro_range(ts_i2c_mst_address_t* ps_address, te_mpu_6050_gyro_range_t e_range) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
     }
     // ジャイロレンジ
@@ -516,27 +585,38 @@ esp_err_t sts_mpu_6050_set_gyro_range(ts_i2c_address_t s_address, te_mpu_6050_gy
     }
 
     //==========================================================================
-    // ジャイロレンジ設定
+    // I2Cトランザクションの開始
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
     if (sts_val != ESP_OK) {
         return sts_val;
     }
+
+    //==========================================================================
+    // ジャイロレンジ設定
+    //==========================================================================
     do {
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x1B;
         // レジスタ読み込み
         uint8_t u8_data;
-        sts_val = sts_read_byte(s_address, 0x1B, &u8_data);
+        // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
         if (sts_val != ESP_OK) {
             break;
         }
         // データ編集
         u8_data = (u8_data & 0xE7) | ((e_range & 0x03) << 3);
+        // 送信データ
+        uint8_t u8_tx_data[] = {0x1B, u8_data};
         // レジスタ書き込み
-        sts_val = sts_write_byte(s_address, 0x1B, u8_data);
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
     } while(false);
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス返却
     return sts_val;
@@ -548,13 +628,13 @@ esp_err_t sts_mpu_6050_set_gyro_range(ts_i2c_address_t s_address, te_mpu_6050_gy
  *
  * DESCRIPTION:FIFO有効無効設定
  *
- * PARAMETERS:          Name            RW  Usage
- *   ts_i2c_address_t   s_address       R   I2Cアドレス（ポート番号とスレーブアドレス）
- *   bool               b_temp          R   FIFO有効フラグ（温度）
- *   bool               b_x             R   FIFO有効フラグ（X軸）
- *   bool               b_y             R   FIFO有効フラグ（Y軸）
- *   bool               b_z             R   FIFO有効フラグ（Z軸）
- *   bool               b_accel         R   FIFO有効フラグ（加速度）
+ * PARAMETERS:              Name        RW  Usage
+ *   ts_i2c_mst_address_t*  ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   bool                   b_temp      R   FIFO有効フラグ（温度）
+ *   bool                   b_x         R   FIFO有効フラグ（X軸）
+ *   bool                   b_y         R   FIFO有効フラグ（Y軸）
+ *   bool                   b_z         R   FIFO有効フラグ（Z軸）
+ *   bool                   b_accel     R   FIFO有効フラグ（加速度）
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -562,40 +642,50 @@ esp_err_t sts_mpu_6050_set_gyro_range(ts_i2c_address_t s_address, te_mpu_6050_gy
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_set_fifo_enable(ts_i2c_address_t s_address, bool b_temp, bool b_x, bool b_y, bool b_z, bool b_accel) {
+esp_err_t sts_mpu_6050_set_fifo_enable(ts_i2c_mst_address_t* ps_address, bool b_temp, bool b_x, bool b_y, bool b_z, bool b_accel) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
+    }
+
+    //==========================================================================
+    // I2Cトランザクションの開始
+    //==========================================================================
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
+    if (sts_val != ESP_OK) {
+        return sts_val;
     }
 
     //==========================================================================
     // FIFO有効無効設定
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
-    if (sts_val != ESP_OK) {
-        return sts_val;
-    }
     do {
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x23;
         // レジスタ読み込み
         uint8_t u8_data;
-        sts_val = sts_read_byte(s_address, 0x23, &u8_data);
+        // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
         if (sts_val != ESP_OK) {
             break;
         }
         // データ編集
         uint8_t u8_fifo = (b_temp << 7) | ((b_x & 0x01) << 6) | ((b_y & 0x01) << 5) | ((b_z & 0x01) << 4) | ((b_accel & 0x01) << 3);
         u8_data = (u8_data & 0x07) | u8_fifo;
+        // 送信データ
+        uint8_t u8_tx_data[] = {0x23, u8_data};
         // レジスタ書き込み
-        sts_val = sts_write_byte(s_address, 0x23, u8_data);
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
         if (sts_val != ESP_OK) {
             break;
         }
+        // レジスタアドレス
+        u8_reg_address = 0x6A;
         // レジスタ読み込み
-        sts_val = sts_read_byte(s_address, 0x6A, &u8_data);
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
         if (sts_val != ESP_OK) {
             break;
         }
@@ -605,11 +695,17 @@ esp_err_t sts_mpu_6050_set_fifo_enable(ts_i2c_address_t s_address, bool b_temp, 
         } else {
             u8_data = u8_data | 0x44;
         }
+        // 送信データ
+        u8_tx_data[0] = 0x6A;
+        u8_tx_data[1] = u8_data;
         // レジスタ書き込み
-        sts_val = sts_write_byte(s_address, 0x6A, u8_data);
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
     } while(false);
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス返却
     return sts_val;
@@ -630,7 +726,7 @@ esp_err_t sts_mpu_6050_set_fifo_enable(ts_i2c_address_t s_address, bool b_temp, 
  *   7：クロックを停止し、タイミングジェネレーターをリセット状態に保つ
  *
  * PARAMETERS:              Name        RW  Usage
- *   ts_i2c_address_t       s_address   R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   ts_i2c_mst_address_t*  ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
  *   te_mpu_6050_clock_t    e_clock     R   クロック設定
  *
  * RETURNS:
@@ -640,37 +736,48 @@ esp_err_t sts_mpu_6050_set_fifo_enable(ts_i2c_address_t s_address, bool b_temp, 
  *   none.
  *
  ******************************************************************************/
-esp_err_t sts_mpu_6050_set_clock(ts_i2c_address_t s_address, te_mpu_6050_clock_t e_clock) {
+esp_err_t sts_mpu_6050_set_clock(ts_i2c_mst_address_t* ps_address, te_mpu_6050_clock_t e_clock) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
+    }
+
+    //==========================================================================
+    // I2Cトランザクションの開始
+    //==========================================================================
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
+    if (sts_val != ESP_OK) {
+        return sts_val;
     }
 
     //==========================================================================
     // クロック設定
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
-    if (sts_val != ESP_OK) {
-        return sts_val;
-    }
     do {
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x6B;
         // レジスタ読み込み
         uint8_t u8_data;
-        sts_val = sts_read_byte(s_address, 0x6B, &u8_data);
+        // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
         if (sts_val != ESP_OK) {
             break;
         }
         // データ編集
         u8_data = (u8_data & 0xF8) | (e_clock & 0x07);
+        // 送信データ
+        uint8_t u8_tx_data[] = {0x6B, u8_data};
         // レジスタ書き込み
-        sts_val = sts_write_byte(s_address, 0x6B, u8_data);
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
     } while(false);
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス返却
     return sts_val;
@@ -683,7 +790,7 @@ esp_err_t sts_mpu_6050_set_clock(ts_i2c_address_t s_address, te_mpu_6050_clock_t
  * DESCRIPTION:スリープサイクル設定
  *
  * PARAMETERS:              Name        RW  Usage
- *   ts_i2c_address_t       s_address   R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   ts_i2c_mst_address_t*  ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
  *   te_mpu_6050_cycle_t    e_cycle     R   スリープサイクル設定
  *
  * RETURNS:
@@ -692,27 +799,33 @@ esp_err_t sts_mpu_6050_set_clock(ts_i2c_address_t s_address, te_mpu_6050_clock_t
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_set_sleep_cycle(ts_i2c_address_t s_address, te_mpu_6050_cycle_t e_cycle) {
+esp_err_t sts_mpu_6050_set_sleep_cycle(ts_i2c_mst_address_t* ps_address, te_mpu_6050_cycle_t e_cycle) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
+    }
+
+    //==========================================================================
+    // I2Cトランザクションの開始
+    //==========================================================================
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
+    if (sts_val != ESP_OK) {
+        return sts_val;
     }
 
     //==========================================================================
     // スリープサイクル設定
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
-    if (sts_val != ESP_OK) {
-        return sts_val;
-    }
     do {
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x6B;
         // レジスタ読み込み
         uint8_t u8_data;
-        sts_val = sts_read_byte(s_address, 0x6B, &u8_data);
+         // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
         if (sts_val != ESP_OK) {
             break;
         }
@@ -724,23 +837,33 @@ esp_err_t sts_mpu_6050_set_sleep_cycle(ts_i2c_address_t s_address, te_mpu_6050_c
         } else {
             u8_data = (u8_data & 0x0F) | 0x20;
         }
+        // 送信データ
+        uint8_t u8_tx_data[] = {0x6B, u8_data};
         // レジスタ書き込み
-        sts_val = sts_write_byte(s_address, 0x6B, u8_data);
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
         if (sts_val != ESP_OK) {
             break;
         }
-        // レジスタ読み込み
-        sts_val = sts_read_byte(s_address, 0x6C, &u8_data);
+        // レジスタアドレス
+        u8_reg_address = 0x6C;
+        // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
         if (sts_val != ESP_OK) {
             break;
         }
         // スリープサイクル編集
         u8_data = (e_cycle << 6) | (u8_data & 0x3F);
+        // 送信データ
+        u8_tx_data[0] = 0x6C;
+        u8_tx_data[1] = u8_data;
         // レジスタ書き込み
-        sts_val = sts_write_byte(s_address, 0x6C, u8_data);
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
     } while(false);
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス返却
     return sts_val;
@@ -753,7 +876,7 @@ esp_err_t sts_mpu_6050_set_sleep_cycle(ts_i2c_address_t s_address, te_mpu_6050_c
  * DESCRIPTION: 加速度（XYZ軸）読み込み
  *
  * PARAMETERS:                  Name          RW  Usage
- *   ts_i2c_address_t           s_address     R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   ts_i2c_mst_address_t       ps_address    R   I2Cアドレス（ポート番号とスレーブアドレス）
  *   ts_mpu_6050_axes_data_t    ps_axes_data  W   編集対象の加速度データポインタ
  *
  * RETURNS:
@@ -762,12 +885,12 @@ esp_err_t sts_mpu_6050_set_sleep_cycle(ts_i2c_address_t s_address, te_mpu_6050_c
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_read_accel(ts_i2c_address_t s_address, ts_mpu_6050_axes_data_t* ps_axes_data) {
+esp_err_t sts_mpu_6050_read_accel(ts_i2c_mst_address_t* ps_address, ts_mpu_6050_axes_data_t* ps_axes_data) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -775,7 +898,7 @@ esp_err_t sts_mpu_6050_read_accel(ts_i2c_address_t s_address, ts_mpu_6050_axes_d
     // ゼロイング補正値
     //==========================================================================
     // クリティカルセクション開始
-    if (xSemaphoreTakeRecursive(s_mutex, EVT_TAKE_WAIT_TICK) != pdTRUE) {
+    if (xSemaphoreTakeRecursive(pf_get_mutex(), EVT_TAKE_WAIT_TICK) != pdTRUE) {
         return ESP_ERR_INVALID_STATE;
     }
 
@@ -785,21 +908,25 @@ esp_err_t sts_mpu_6050_read_accel(ts_i2c_address_t s_address, ts_mpu_6050_axes_d
     int16_t i16_data_z = s_accel_zeroing_data.i16_data_z;
 
     // クリティカルセクション終了
-    xSemaphoreGiveRecursive(s_mutex);
+    xSemaphoreGiveRecursive(pf_get_mutex());
 
     //==========================================================================
-    // 加速度（XYZ軸）読み込み
+    // I2Cトランザクションの開始
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
     if (sts_val != ESP_OK) {
         return sts_val;
     }
 
+    //==========================================================================
+    // 加速度（XYZ軸）読み込み
+    //==========================================================================
     do {
-        // レジスタ読み込み
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x3B;
+        // I2Cスレーブへのレジスタアドレスを送信し、データを受信
         uint8_t u8_data[6];
-        sts_val = sts_read(s_address, 0x3B, u8_data, 6);
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, u8_data, 6);
         if (sts_val != ESP_OK) {
             break;
         }
@@ -816,8 +943,10 @@ esp_err_t sts_mpu_6050_read_accel(ts_i2c_address_t s_address, ts_mpu_6050_axes_d
         ps_axes_data->i16_data_z = u_conv.i16_values[2] - i16_data_z;
     } while(false);
 
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果ステータス返却
     return sts_val;
@@ -829,9 +958,9 @@ esp_err_t sts_mpu_6050_read_accel(ts_i2c_address_t s_address, ts_mpu_6050_axes_d
  *
  * DESCRIPTION: 温度（摂氏）読み込み
  *
- * PARAMETERS:             Name          RW  Usage
- *   ts_i2c_address_t      s_address     R   I2Cアドレス（ポート番号とスレーブアドレス）
- *   float*                pf_temp       W   編集対象
+ * PARAMETERS:              Name        RW  Usage
+ *   ts_i2c_mst_address_t*  ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   float*                 pf_temp     W   編集対象
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -839,28 +968,34 @@ esp_err_t sts_mpu_6050_read_accel(ts_i2c_address_t s_address, ts_mpu_6050_axes_d
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_read_celsius(ts_i2c_address_t s_address, float* pf_temp) {
+esp_err_t sts_mpu_6050_read_celsius(ts_i2c_mst_address_t* ps_address, float* pf_temp) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
+    }
+
+    //==========================================================================
+    // I2Cトランザクションの開始
+    //==========================================================================
+    // トランザクション開始
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
+    if (sts_val != ESP_OK) {
+        return sts_val;
     }
 
     //==========================================================================
     // 温度（摂氏）読み込み
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
-    if (sts_val != ESP_OK) {
-        return sts_val;
-    }
-
     do {
+        // アドレス
+        uint8_t u8_reg_address = 0x41;
         // レジスタ読み込み
         uint8_t u8_data[2];
-        esp_err_t sts_val = sts_read(s_address, 0x41, u8_data, 2);
+        // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+        esp_err_t sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, u8_data, 2);
         if (sts_val != ESP_OK) {
             break;
         }
@@ -873,8 +1008,10 @@ esp_err_t sts_mpu_6050_read_celsius(ts_i2c_address_t s_address, float* pf_temp) 
         *pf_temp = f_mpu_6050_celsius(u_conv.i16_values[0]);
     } while(false);
 
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
@@ -886,9 +1023,9 @@ esp_err_t sts_mpu_6050_read_celsius(ts_i2c_address_t s_address, float* pf_temp) 
  *
  * DESCRIPTION: ジャイロ（XYZ軸）読み込み
  *
- * PARAMETERS:                  Name          RW  Usage
- *   ts_i2c_address_t           s_address     R   I2Cアドレス（ポート番号とスレーブアドレス）
- *   ts_mpu_6050_axes_data_t    ps_axes_data  W   編集対象の加速度データポインタ
+ * PARAMETERS:                  Name            RW  Usage
+ *   ts_i2c_mst_address_t*      ps_address      R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   ts_mpu_6050_axes_data_t    ps_axes_data    W   編集対象の加速度データポインタ
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -896,12 +1033,12 @@ esp_err_t sts_mpu_6050_read_celsius(ts_i2c_address_t s_address, float* pf_temp) 
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_read_gyro(ts_i2c_address_t s_address, ts_mpu_6050_axes_data_t* ps_axes_data) {
+esp_err_t sts_mpu_6050_read_gyro(ts_i2c_mst_address_t* ps_address, ts_mpu_6050_axes_data_t* ps_axes_data) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -909,7 +1046,7 @@ esp_err_t sts_mpu_6050_read_gyro(ts_i2c_address_t s_address, ts_mpu_6050_axes_da
     // ゼロイング補正値
     //==========================================================================
     // クリティカルセクション開始
-    if (xSemaphoreTakeRecursive(s_mutex, EVT_TAKE_WAIT_TICK) != pdTRUE) {
+    if (xSemaphoreTakeRecursive(pf_get_mutex(), EVT_TAKE_WAIT_TICK) != pdTRUE) {
         return ESP_ERR_INVALID_STATE;
     }
 
@@ -919,21 +1056,26 @@ esp_err_t sts_mpu_6050_read_gyro(ts_i2c_address_t s_address, ts_mpu_6050_axes_da
     int16_t i16_data_z = s_gyro_zeroing_data.i16_data_z;
 
     // クリティカルセクション終了
-    xSemaphoreGiveRecursive(s_mutex);
+    xSemaphoreGiveRecursive(pf_get_mutex());
 
     //==========================================================================
-    // ジャイロ（XYZ軸）読み込み
+    // I2Cトランザクションの開始
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
     if (sts_val != ESP_OK) {
         return sts_val;
     }
 
+    //==========================================================================
+    // ジャイロ（XYZ軸）読み込み
+    //==========================================================================
     do {
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x43;
         // レジスタ読み込み
         uint8_t u8_data[6];
-        esp_err_t sts_val = sts_read(s_address, 0x43, u8_data, 6);
+        // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, u8_data, 6);
         if (sts_val != ESP_OK) {
             break;
         }
@@ -950,8 +1092,10 @@ esp_err_t sts_mpu_6050_read_gyro(ts_i2c_address_t s_address, ts_mpu_6050_axes_da
         ps_axes_data->i16_data_z = u_conv.i16_values[2] - i16_data_z;
     } while(false);
 
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
@@ -963,8 +1107,8 @@ esp_err_t sts_mpu_6050_read_gyro(ts_i2c_address_t s_address, ts_mpu_6050_axes_da
  *
  * DESCRIPTION: FIFOリセット
  *
- * PARAMETERS:             Name          RW  Usage
- *   ts_i2c_address_t      s_address     R   I2Cアドレス（ポート番号とスレーブアドレス）
+ * PARAMETERS:              Name        RW  Usage
+ *   ts_i2c_mst_address_t*  ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -972,37 +1116,48 @@ esp_err_t sts_mpu_6050_read_gyro(ts_i2c_address_t s_address, ts_mpu_6050_axes_da
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_fifo_reset(ts_i2c_address_t s_address) {
+esp_err_t sts_mpu_6050_fifo_reset(ts_i2c_mst_address_t* ps_address) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
+    }
+
+    //==========================================================================
+    // I2Cトランザクションの開始
+    //==========================================================================
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
+    if (sts_val != ESP_OK) {
+        return sts_val;
     }
 
     //==========================================================================
     // FIFOリセット
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
-    if (sts_val != ESP_OK) {
-        return sts_val;
-    }
     do {
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x6A;
         // レジスタ読み込み
         uint8_t u8_data;
-        sts_val = sts_read_byte(s_address, 0x6A, &u8_data);
+        // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
         if (sts_val != ESP_OK) {
             break;
         }
         // データ編集
         u8_data = u8_data | 0x04;
+        // 送信データ
+        uint8_t u8_tx_data[] = {0x6A, u8_data};
         // レジスタ書き込み
-        sts_val = sts_write_byte(s_address, 0x6A, u8_data);
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
     } while(false);
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
@@ -1014,8 +1169,8 @@ esp_err_t sts_mpu_6050_fifo_reset(ts_i2c_address_t s_address) {
  *
  * DESCRIPTION: デバイスリセット
  *
- * PARAMETERS:             Name          RW  Usage
- *   ts_i2c_address_t      s_address     R   I2Cアドレス（ポート番号とスレーブアドレス）
+ * PARAMETERS:              Name        RW  Usage
+ *   ts_i2c_mst_address_t*  ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -1023,37 +1178,48 @@ esp_err_t sts_mpu_6050_fifo_reset(ts_i2c_address_t s_address) {
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_device_reset(ts_i2c_address_t s_address) {
+esp_err_t sts_mpu_6050_device_reset(ts_i2c_mst_address_t* ps_address) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
+    }
+
+    //==========================================================================
+    // I2Cトランザクションの開始
+    //==========================================================================
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
+    if (sts_val != ESP_OK) {
+        return sts_val;
     }
 
     //==========================================================================
     // デバイスリセット
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
-    if (sts_val != ESP_OK) {
-        return sts_val;
-    }
     do {
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x6B;
         // レジスタ読み込み
         uint8_t u8_data;
-        sts_val = sts_read_byte(s_address, 0x6B, &u8_data);
+        // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
         if (sts_val != ESP_OK) {
             break;
         }
         // データ編集
         u8_data = u8_data | 0x80;
+        // 送信データ
+        uint8_t u8_tx_data[] = {0x6B, u8_data};
         // レジスタ書き込み
-        sts_val = sts_write_byte(s_address, 0x6B, u8_data);
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
     } while(false);
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
@@ -1065,8 +1231,8 @@ esp_err_t sts_mpu_6050_device_reset(ts_i2c_address_t s_address) {
  *
  * DESCRIPTION: who am i
  *
- * PARAMETERS:             Name          RW  Usage
- *   ts_i2c_address_t      s_address     R   I2Cアドレス（ポート番号とスレーブアドレス）
+ * PARAMETERS:              Name        RW  Usage
+ *   ts_i2c_mst_address_t*  ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -1074,28 +1240,33 @@ esp_err_t sts_mpu_6050_device_reset(ts_i2c_address_t s_address) {
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_who_am_i(ts_i2c_address_t s_address) {
+esp_err_t sts_mpu_6050_who_am_i(ts_i2c_mst_address_t* ps_address) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
+    }
+
+    //==========================================================================
+    // I2Cトランザクションの開始
+    //==========================================================================
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
+    if (sts_val != ESP_OK) {
+        return sts_val;
     }
 
     //==========================================================================
     // who am i
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
-    if (sts_val != ESP_OK) {
-        return sts_val;
-    }
-
     do {
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x75;
         // レジスタ読み込み
         uint8_t u8_data;
-        sts_val = sts_read_byte(s_address, 0x75, &u8_data);
+        // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
         if (sts_val != ESP_OK) {
             break;
         }
@@ -1105,8 +1276,10 @@ esp_err_t sts_mpu_6050_who_am_i(ts_i2c_address_t s_address) {
         }
     } while(false);
 
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
@@ -1118,9 +1291,9 @@ esp_err_t sts_mpu_6050_who_am_i(ts_i2c_address_t s_address) {
  *
  * DESCRIPTION: Read FIFO data count
  *
- * PARAMETERS:             Name          RW  Usage
- *   ts_i2c_address_t      s_address     R   I2Cアドレス（ポート番号とスレーブアドレス）
- *   int16_t*              pi16_cnt      W   FIFOバッファサイズ
+ * PARAMETERS:              Name        RW  Usage
+ *   ts_i2c_mst_address_t*  ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   int16_t*               pi16_cnt    W   FIFOバッファサイズ
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -1128,28 +1301,33 @@ esp_err_t sts_mpu_6050_who_am_i(ts_i2c_address_t s_address) {
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_fifo_cnt(ts_i2c_address_t s_address, int16_t* pi16_cnt) {
+esp_err_t sts_mpu_6050_fifo_cnt(ts_i2c_mst_address_t* ps_address, int16_t* pi16_cnt) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
+    }
+
+    //==========================================================================
+    // I2Cトランザクションの開始
+    //==========================================================================
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
+    if (sts_val != ESP_OK) {
+        return sts_val;
     }
 
     //==========================================================================
     // Read FIFO data count
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
-    if (sts_val != ESP_OK) {
-        return sts_val;
-    }
-
     do {
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x72;
         // レジスタ読み込み
         uint8_t u8_data[2];
-        sts_val = sts_read(s_address, 0x72, u8_data, 2);
+        // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, u8_data, 2);
         if (sts_val != ESP_OK) {
             break;
         }
@@ -1160,8 +1338,10 @@ esp_err_t sts_mpu_6050_fifo_cnt(ts_i2c_address_t s_address, int16_t* pi16_cnt) {
         *pi16_cnt = u_conv.i16_values[0];
     } while(false);
 
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
@@ -1173,9 +1353,9 @@ esp_err_t sts_mpu_6050_fifo_cnt(ts_i2c_address_t s_address, int16_t* pi16_cnt) {
  *
  * DESCRIPTION: Read FIFO data
  *
- * PARAMETERS:             Name          RW  Usage
- *   ts_i2c_address_t      s_address     R   I2Cアドレス（ポート番号とスレーブアドレス）
- *   int16_t*              pi16_cnt      W   FIFOバッファデータ
+ * PARAMETERS:              Name        RW  Usage
+ *   ts_i2c_mst_address_t*  ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   int16_t*               pi16_cnt    W   FIFOバッファデータ
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -1183,28 +1363,34 @@ esp_err_t sts_mpu_6050_fifo_cnt(ts_i2c_address_t s_address, int16_t* pi16_cnt) {
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_fifo_data(ts_i2c_address_t s_address, int16_t* pi16_data) {
+esp_err_t sts_mpu_6050_fifo_data(ts_i2c_mst_address_t* ps_address, int16_t* pi16_data) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
+    }
+
+
+    //==========================================================================
+    // I2Cトランザクションの開始
+    //==========================================================================
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
+    if (sts_val != ESP_OK) {
+        return sts_val;
     }
 
     //==========================================================================
     // Read FIFO data
     //==========================================================================
-    // トランザクション開始
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
-    if (sts_val != ESP_OK) {
-        return sts_val;
-    }
-
     do {
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x74;
         // レジスタ読み込み
         uint8_t u8_data[2];
-        sts_val = sts_read(s_address, 0x74, u8_data, 2);
+        // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, u8_data, 2);
         if (sts_val != ESP_OK) {
             break;
         }
@@ -1215,8 +1401,10 @@ esp_err_t sts_mpu_6050_fifo_data(ts_i2c_address_t s_address, int16_t* pi16_data)
         *pi16_data = u_conv.i16_values[0];
     } while(false);
 
-    // トランザクション終了
-    sts_io_i2c_mst_end();
+    //==========================================================================
+    // I2Cトランザクションの終了
+    //==========================================================================
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
@@ -1228,8 +1416,8 @@ esp_err_t sts_mpu_6050_fifo_data(ts_i2c_address_t s_address, int16_t* pi16_data)
  *
  * DESCRIPTION: 加速度（XYZ軸）ゼロイング
  *
- * PARAMETERS:             Name          RW  Usage
- *   ts_i2c_address_t      s_address     R   I2Cアドレス（ポート番号とスレーブアドレス）
+ * PARAMETERS:              Name        RW  Usage
+ *   ts_i2c_mst_address_t*  ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -1237,12 +1425,12 @@ esp_err_t sts_mpu_6050_fifo_data(ts_i2c_address_t s_address, int16_t* pi16_data)
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_zeroing_accel(ts_i2c_address_t s_address) {
+esp_err_t sts_mpu_6050_zeroing_accel(ts_i2c_mst_address_t* ps_address) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -1263,7 +1451,7 @@ esp_err_t sts_mpu_6050_zeroing_accel(ts_i2c_address_t s_address) {
         // 指定時刻までディレイ（ミリ秒単位）
         i64_dtm_delay_until_msec(i64_next_msec);
         // 加速度を読み込み
-        sts_val = sts_mpu_6050_read_accel(s_address, &s_axes_data);
+        sts_val = sts_mpu_6050_read_accel(ps_address, &s_axes_data);
         if (sts_val != ESP_OK) {
             return sts_val;
         }
@@ -1279,7 +1467,7 @@ esp_err_t sts_mpu_6050_zeroing_accel(ts_i2c_address_t s_address) {
     // ゼロイング補正値を設定
     //==========================================================================
     // クリティカルセクション開始
-    if (xSemaphoreTakeRecursive(s_mutex, EVT_TAKE_WAIT_TICK) != pdTRUE) {
+    if (xSemaphoreTakeRecursive(pf_get_mutex(), EVT_TAKE_WAIT_TICK) != pdTRUE) {
         return ESP_ERR_INVALID_STATE;
     }
 
@@ -1288,7 +1476,7 @@ esp_err_t sts_mpu_6050_zeroing_accel(ts_i2c_address_t s_address) {
     s_accel_zeroing_data.i16_data_z = (int16_t)(i32_data_z / MPU_6050_CALIBRATION_CNT);
 
     // クリティカルセクション終了
-    xSemaphoreGiveRecursive(s_mutex);
+    xSemaphoreGiveRecursive(pf_get_mutex());
 
     // 結果ステータス返信
     return ESP_OK;
@@ -1300,8 +1488,8 @@ esp_err_t sts_mpu_6050_zeroing_accel(ts_i2c_address_t s_address) {
  *
  * DESCRIPTION: ジャイロ（XYZ軸）ゼロイング
  *
- * PARAMETERS:             Name          RW  Usage
- *   ts_i2c_address_t      s_address     R   I2Cアドレス（ポート番号とスレーブアドレス）
+ * PARAMETERS:              Name        RW  Usage
+ *   ts_i2c_mst_address_t*  ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -1309,12 +1497,12 @@ esp_err_t sts_mpu_6050_zeroing_accel(ts_i2c_address_t s_address) {
  * NOTES:
  *   None.
  ******************************************************************************/
-esp_err_t sts_mpu_6050_zeroing_gyro(ts_i2c_address_t s_address) {
+esp_err_t sts_mpu_6050_zeroing_gyro(ts_i2c_mst_address_t* ps_address) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
     // 有効アドレス
-    if (!b_valid_address(s_address)) {
+    if (!b_valid_address(ps_address)) {
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -1335,7 +1523,7 @@ esp_err_t sts_mpu_6050_zeroing_gyro(ts_i2c_address_t s_address) {
         // 指定時刻までディレイ（ミリ秒単位）
         i64_dtm_delay_until_msec(i64_next_msec);
         // ジャイロを読み込み
-        sts_val = sts_mpu_6050_read_gyro(s_address, &s_axes_data);
+        sts_val = sts_mpu_6050_read_gyro(ps_address, &s_axes_data);
         if (sts_val != ESP_OK) {
             return sts_val;
         }
@@ -1351,7 +1539,7 @@ esp_err_t sts_mpu_6050_zeroing_gyro(ts_i2c_address_t s_address) {
     // ゼロイング補正値を設定
     //==========================================================================
     // クリティカルセクション開始
-    if (xSemaphoreTakeRecursive(s_mutex, EVT_TAKE_WAIT_TICK) != pdTRUE) {
+    if (xSemaphoreTakeRecursive(pf_get_mutex(), EVT_TAKE_WAIT_TICK) != pdTRUE) {
         return ESP_ERR_INVALID_STATE;
     }
 
@@ -1361,7 +1549,7 @@ esp_err_t sts_mpu_6050_zeroing_gyro(ts_i2c_address_t s_address) {
     s_gyro_zeroing_data.i16_data_z = (int16_t)(i32_data_z / MPU_6050_CALIBRATION_CNT);
 
     // クリティカルセクション終了
-    xSemaphoreGiveRecursive(s_mutex);
+    xSemaphoreGiveRecursive(pf_get_mutex());
 
     // 結果ステータス返信
     return ESP_OK;
@@ -1384,7 +1572,7 @@ void v_mpu_6050_zeroing_clear() {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
-    if (xSemaphoreTakeRecursive(s_mutex, EVT_TAKE_WAIT_TICK) != pdTRUE) {
+    if (xSemaphoreTakeRecursive(pf_get_mutex(), EVT_TAKE_WAIT_TICK) != pdTRUE) {
         return;
     }
 
@@ -1401,7 +1589,7 @@ void v_mpu_6050_zeroing_clear() {
     //==========================================================================
     // クリティカルセクション終了
     //==========================================================================
-    xSemaphoreGiveRecursive(s_mutex);
+    xSemaphoreGiveRecursive(pf_get_mutex());
 }
 
 /*****************************************************************************
@@ -1432,9 +1620,46 @@ int16_t i16_mpu_6050_composite_value(ts_mpu_6050_axes_data_t* ps_axes_data, bool
     return (int16_t)u64_vutil_sqrt(u64_gpow, b_round_up);
 }
 
-/****************************************************************************/
-/***        Local Functions                                               ***/
-/****************************************************************************/
+/******************************************************************************/
+/***        Local Functions                                                 ***/
+/******************************************************************************/
+
+/*******************************************************************************
+ *
+ * NAME: get_mutex_init
+ *
+ * DESCRIPTION:ミューテックス取得処理（初期処理）
+ *
+ * PARAMETERS:          Name        RW  Usage
+ *
+ * RETURNS:
+ *   SemaphoreHandle_t ミューテックス
+ *
+ ******************************************************************************/
+static SemaphoreHandle_t get_mutex_init() {
+    // Mutexの初期化
+    if (s_mutex == NULL) {
+        s_mutex = xSemaphoreCreateRecursiveMutex();
+        pf_get_mutex = get_mutex;
+    }
+    return s_mutex;
+}
+
+/*******************************************************************************
+ *
+ * NAME: get_mutex
+ *
+ * DESCRIPTION:ミューテックス取得処理
+ *
+ * PARAMETERS:          Name        RW  Usage
+ *
+ * RETURNS:
+ *   SemaphoreHandle_t ミューテックス
+ *
+ ******************************************************************************/
+static SemaphoreHandle_t get_mutex() {
+    return s_mutex;
+}
 
 /*****************************************************************************
  *
@@ -1442,8 +1667,8 @@ int16_t i16_mpu_6050_composite_value(ts_mpu_6050_axes_data_t* ps_axes_data, bool
  *
  * DESCRIPTION:有効アドレスチェック
  *
- * PARAMETERS:          Name            RW  Usage
- *   ts_i2c_address_t   s_address       R   I2Cアドレス
+ * PARAMETERS:              Name            RW  Usage
+ *   ts_i2c_mst_address_t*  ps_address      R   I2Cアドレス
  *
  * RETURNS:
  *   true:有効なI2Cアドレス
@@ -1451,14 +1676,14 @@ int16_t i16_mpu_6050_composite_value(ts_mpu_6050_axes_data_t* ps_axes_data, bool
  * NOTES:
  * None.
  *****************************************************************************/
-static bool b_valid_address(ts_i2c_address_t s_address) {
-    // ポート番号
-    if (!b_io_i2c_mst_valid_port(s_address.e_port_no)) {
+static bool b_valid_address(ts_i2c_mst_address_t* ps_address) {
+    // NULLチェック
+    if (ps_address == NULL) {
         return false;
     }
     // アドレス
-    return (s_address.u16_address == I2C_ADDR_MPU_6050_L ||
-             s_address.u16_address == I2C_ADDR_MPU_6050_H);
+    return (ps_address->u16_address == I2C_ADDR_MPU_6050_L ||
+            ps_address->u16_address == I2C_ADDR_MPU_6050_H);
 }
 
 /*****************************************************************************
@@ -1499,95 +1724,6 @@ static bool b_valid_gyro_range(te_mpu_6050_gyro_range_t e_gyro_range) {
     return (e_gyro_range >= DRV_MPU_6050_GYRO_RANGE_250 && e_gyro_range <= DRV_MPU_6050_GYRO_RANGE_2000);
 }
 
-/*****************************************************************************
- *
- * NAME: sts_read_byte
- *
- * DESCRIPTION:デバイスから１バイト読み込み
- *
- * PARAMETERS:          Name            RW  Usage
- *   ts_i2c_address_t   s_address       R   I2Cアドレス
- *   uint8_t            u8_reg_address  R   レジスタアドレス
- *   uint8_t*           pu8_data        R   読み込みデータポインタ
- *
- * RETURNS:
- *   esp_err_t:結果ステータス
- *
- * NOTES:
- * None.
- *****************************************************************************/
-static esp_err_t sts_read_byte(ts_i2c_address_t s_address, uint8_t u8_reg_address, uint8_t* pu8_data) {
-    return sts_read(s_address, u8_reg_address, pu8_data, 1);
-}
-
-/*****************************************************************************
- *
- * NAME: sts_read
- *
- * DESCRIPTION:指定アドレスのレジスタから指定バイト数分のデータ読み込み
- *
- * PARAMETERS:          Name            RW  Usage
- *   ts_i2c_address_t   s_address       R   I2Cアドレス
- *   uint8_t            u8_reg_address  R   レジスタアドレス
- *   uint8_t*           pu8_data        R   読み込みデータポインタ
- *   uint8_t            u8_size         R   読み込みデータサイズ
- *
- * RETURNS:
- *   esp_err_t:結果ステータス
- *
- * NOTES:
- * None.
- *****************************************************************************/
-static esp_err_t sts_read(ts_i2c_address_t s_address, uint8_t u8_reg_address, uint8_t* pu8_data, uint8_t u8_size) {
-    // レジスタアドレスの書き込み開始
-    esp_err_t ts_sts = sts_io_i2c_mst_start_write(s_address);
-    if (ts_sts != ESP_OK) {
-        return ts_sts;
-    }
-    // レジスタアドレス書き込み
-    ts_sts = sts_io_i2c_mst_write(&u8_reg_address, 1, true);
-    if (ts_sts != ESP_OK) {
-        return ts_sts;
-    }
-    // 読み込み開始
-    ts_sts = sts_io_i2c_mst_start_read(s_address);
-    if (ts_sts != ESP_OK) {
-        return ts_sts;
-    }
-    // データ読み込み
-    return sts_io_i2c_mst_read_stop(pu8_data, u8_size);
-}
-
-/*****************************************************************************
- *
- * NAME: sts_write_byte
- *
- * DESCRIPTION:デバイスへのデータの書き込み
- *
- * PARAMETERS:          Name            RW  Usage
- *   ts_i2c_address_t   s_address       R   I2Cアドレス
- *   uint8_t            u8_address      R   レジスタアドレス
- *   uint8_t            u8_data         R   書き込みデータ
- *
- * RETURNS:
- *   esp_err_t:結果ステータス
- *
- * NOTES:
- * None.
- *****************************************************************************/
-static esp_err_t sts_write_byte(ts_i2c_address_t s_address,
-                                   uint8_t u8_address,
-                                   uint8_t u8_data) {
-    // 書き込み開始
-    esp_err_t ts_sts = sts_io_i2c_mst_start_write(s_address);
-    if (ts_sts != ESP_OK) {
-       return ts_sts;
-    }
-    // データ書き込み
-    uint8_t u8_tx_data[] = {u8_address, u8_data};
-    return sts_io_i2c_mst_write_stop(u8_tx_data, 2, true);
-}
-
-/****************************************************************************/
-/***        END OF FILE                                                   ***/
-/****************************************************************************/
+/******************************************************************************/
+/***        END OF FILE                                                     ***/
+/******************************************************************************/

@@ -18,6 +18,7 @@
  * https://opensource.org/licenses/mit-license.php
  *
  ******************************************************************************/
+
 /******************************************************************************/
 /***      Include files                                                     ***/
 /******************************************************************************/
@@ -27,9 +28,14 @@
 #include <freertos/semphr.h>
 
 /******************************************************************************/
+/***      HARDWARE: ESP32 ESP32S3                                           ***/
+/******************************************************************************/
+#if (CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S3)
+
+/******************************************************************************/
 /***      Macro Definitions                                                 ***/
 /******************************************************************************/
-#/** Demon process depth of stack */
+/** Demon process depth of stack */
 #define COM_TOUCHPAD_DEAMON_STACK_DEPTH (1024)
 /** Demon process priority */
 #define COM_TOUCHPAD_DEAMON_PRIORITIES  (configMAX_PRIORITIES - 4)
@@ -42,7 +48,11 @@ typedef struct {
     TaskHandle_t s_deamon_task;             // デーモンタスクハンドル
     QueueHandle_t s_sts_queue;              // タッチステータスキューハンドラ
     uint32_t u32_chk_target;                // チェック対象ステータス
+#if defined(CONFIG_IDF_TARGET_ESP32)
     uint16_t u16_threshold[TOUCH_PAD_MAX];  // 閾値
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+    uint32_t u32_threshold[TOUCH_PAD_MAX];  // 閾値
+#endif
 } ts_touchpad_status_t;
 
 /**
@@ -60,7 +70,11 @@ static ts_touchpad_status_t s_ctrl_sts = {
     .s_deamon_task  = NULL,     // デーモンタスクハンドル
     .s_sts_queue    = NULL,     // タッチステータスキューハンドラ
     .u32_chk_target = 0,        // チェック対象ステータス
+#if defined(CONFIG_IDF_TARGET_ESP32)
     .u16_threshold  = {IO_TOUCHPAD_DEFAULT_THRESHOLD}  // 閾値
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+    .u32_threshold  = {IO_TOUCHPAD_DEFAULT_THRESHOLD}  // 閾値
+#endif
 };
 
 /******************************************************************************/
@@ -136,11 +150,24 @@ esp_err_t sts_io_touchpad_init() {
         }
         // タッチセンサーの測定をハードウェアタイマー制御
         sts_val = touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
+        // ESP32の場合だけノイズフィルターを設定
+#if defined(CONFIG_IDF_TARGET_ESP32)
         if (sts_val != ESP_OK) {
             break;
         }
         // ノイズフィルタの適用開始：較正期間は10ミリ秒
         sts_val = touch_pad_filter_start(IO_TOUCHPAD_FILTER_PERIOD);
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+        // ノイズフィルタの適用開始：較正期間は10ミリ秒
+        touch_filter_config_t s_filter_cfg = {
+            .mode = TOUCH_PAD_FILTER_IIR_16,
+            .debounce_cnt = 1,
+            .noise_thr = 0,
+            .jitter_step = 4,
+            .smh_lvl = TOUCH_PAD_SMOOTH_IIR_2
+        };
+        sts_val = touch_pad_filter_set_config(&s_filter_cfg);
+#endif
     } while(false);
 
     // 結果返信
@@ -192,18 +219,34 @@ esp_err_t sts_io_touchpad_pin_enable(touch_pad_t e_touch_num) {
             break;
         }
         // 初回計測完了まで待つ
+#if defined(CONFIG_IDF_TARGET_ESP32)
         sts_val = touch_pad_config(e_touch_num, 0);
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+        sts_val = touch_pad_config(e_touch_num);
+#else
+#error Target CONFIG_IDF_TARGET is not supported
+#endif
         if (sts_val != ESP_OK) {
             break;
         }
         // 閾値の初期設定
+#if defined(CONFIG_IDF_TARGET_ESP32)
         sts_val = touch_pad_config(e_touch_num, IO_TOUCHPAD_DEFAULT_THRESHOLD);
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+        sts_val = touch_pad_config(e_touch_num);
+#else
+#error Target CONFIG_IDF_TARGET is not supported
+#endif
         if (sts_val != ESP_OK) {
             break;
         }
         // 初期化済みピン設定
         s_ctrl_sts.u32_chk_target |= (0x01 << e_touch_num);
+#if defined(CONFIG_IDF_TARGET_ESP32)
         s_ctrl_sts.u16_threshold[e_touch_num] = IO_TOUCHPAD_DEFAULT_THRESHOLD;
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+        s_ctrl_sts.u32_threshold[e_touch_num] = IO_TOUCHPAD_DEFAULT_THRESHOLD;
+#endif
     } while(false);
 
     //==========================================================================
@@ -248,7 +291,11 @@ esp_err_t sts_io_touchpad_pin_disable(touch_pad_t e_touch_num) {
     // タッチピンの無効化
     //==========================================================================
     s_ctrl_sts.u32_chk_target ^= (0x01 << e_touch_num);
+#if defined(CONFIG_IDF_TARGET_ESP32)
     s_ctrl_sts.u16_threshold[e_touch_num] = IO_TOUCHPAD_DEFAULT_THRESHOLD;
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+    s_ctrl_sts.u32_threshold[e_touch_num] = IO_TOUCHPAD_DEFAULT_THRESHOLD;
+#endif
 
     //==========================================================================
     // クリティカルセクション終了
@@ -259,6 +306,11 @@ esp_err_t sts_io_touchpad_pin_disable(touch_pad_t e_touch_num) {
     return ESP_OK;
 }
 
+//------------------------------------------------------------------------------
+// タッチピンの平均値取得処理
+//------------------------------------------------------------------------------
+#if defined(CONFIG_IDF_TARGET_ESP32)
+/** ESP32 */
 /*******************************************************************************
  *
  * NAME: u16_io_touchpad_pin_average
@@ -291,6 +343,44 @@ uint16_t u16_io_touchpad_pin_average(touch_pad_t e_touch_num) {
     return (uint16_t)(u32_avg /= IO_TOUCHPAD_NUMBER_OF_SAMPLES);
 }
 
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+/** ESP32-S3 */
+/*******************************************************************************
+ *
+ * NAME: u32_io_touchpad_pin_average
+ *
+ * DESCRIPTION:タッチピンの平均値取得処理
+ *
+ * PARAMETERS:      Name            RW  Usage
+ * touch_pad_t      e_touch_num     R   タッチパッド番号
+ *
+ * RETURNS:
+ *   uint32_t:平均値
+ *
+ ******************************************************************************/
+uint32_t u32_io_touchpad_pin_average(touch_pad_t e_touch_num) {
+    // タッチパッド番号チェック
+    if (e_touch_num >= TOUCH_PAD_MAX) {
+        return 0;
+    }
+    // データのサンプリング
+    uint64_t u64_avg = 0;
+    uint32_t u32_val;
+    int i_idx;
+    for (i_idx = 0; i_idx < IO_TOUCHPAD_NUMBER_OF_SAMPLES; i_idx++) {
+        if (touch_pad_filter_read_smooth(e_touch_num, &u32_val) != ESP_OK) {
+            return 0;
+        }
+        u64_avg += u32_val;
+    }
+    // アベレージ算出
+    return (uint32_t)(u64_avg /= IO_TOUCHPAD_NUMBER_OF_SAMPLES);
+}
+#endif
+
+
+#if defined(CONFIG_IDF_TARGET_ESP32)
+/** ESP32 */
 /*******************************************************************************
  *
  * NAME: sts_io_touchpad_pin_threshold
@@ -338,7 +428,56 @@ esp_err_t sts_io_touchpad_pin_threshold(touch_pad_t e_touch_num, uint16_t u16_th
     // ステータス返信
     return sts_val;
 }
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+/** ESP32-S3 */
+/*******************************************************************************
+ *
+ * NAME: sts_io_touchpad_pin_threshold
+ *
+ * DESCRIPTION:タッチピンの閾値設定処理
+ *
+ * PARAMETERS:      Name            RW  Usage
+ * touch_pad_t      e_pad           R   タッチパッド番号
+ * uint32_t         u32_threshold   R   閾値
+ *
+ * RETURNS:
+ *   esp_err_t:結果ステータス
+ *
+ ******************************************************************************/
+esp_err_t sts_io_touchpad_pin_threshold(touch_pad_t e_touch_num, uint32_t u32_threshold) {
+    //==========================================================================
+    // クリティカルセクション開始
+    //==========================================================================
+    if (xSemaphoreTakeRecursive(pf_get_mutex(), portMAX_DELAY) != pdTRUE) {
+        return ESP_ERR_INVALID_STATE;
+    }
 
+    // ステータス
+    esp_err_t sts_val = ESP_OK;
+    do {
+        // タッチパッド番号チェック
+        if (e_touch_num >= TOUCH_PAD_MAX) {
+            sts_val = ESP_ERR_INVALID_ARG;
+            break;
+        }
+        if ((s_ctrl_sts.u32_chk_target & (0x01 << e_touch_num)) == 0x0) {
+            sts_val = ESP_ERR_INVALID_ARG;
+            break;
+        }
+        // タッチパッドの閾値設定
+        sts_val = touch_pad_set_thresh(e_touch_num, u32_threshold);
+        s_ctrl_sts.u32_threshold[e_touch_num] = u32_threshold;
+    } while(false);
+
+    //==========================================================================
+    // クリティカルセクション終了
+    //==========================================================================
+    xSemaphoreGiveRecursive(s_mutex);
+
+    // ステータス返信
+    return sts_val;
+}
+#endif
 
 /*******************************************************************************
  *
@@ -492,7 +631,6 @@ uint32_t u32_io_touchpad_pinmap(TickType_t t_tick) {
     return u32_sts_map;
 }
 
-
 /*******************************************************************************
  *
  * NAME: v_io_touchpad_clear_pinmap
@@ -593,13 +731,21 @@ static void v_touchpad_daemon_task(void* pv_parameters) {
     // チェックステータス
     uint32_t u32_chk_target;
     // チェックステータス
+#if defined(CONFIG_IDF_TARGET_ESP32)
     uint16_t u16_threshold[TOUCH_PAD_MAX];
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+    uint32_t u32_threshold[TOUCH_PAD_MAX];
+#endif
     // 今回ピンステータスマップ
     uint32_t u32_sts_map;
     // 前回ピンステータスマップ
     uint32_t u32_last_sts_map = 0;
     // タッチパッド値
+#if defined(CONFIG_IDF_TARGET_ESP32)
     uint16_t u16TouchVal;
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+    uint32_t u32TouchVal;
+#endif
     // 現在ティック
     TickType_t t_tick_now = xTaskGetTickCount();
     // 前回ティック
@@ -624,7 +770,11 @@ static void v_touchpad_daemon_task(void* pv_parameters) {
         // チェック対象
         u32_chk_target = s_ctrl_sts.u32_chk_target;
         // 閾値
+#if defined(CONFIG_IDF_TARGET_ESP32)
         memcpy(u16_threshold, s_ctrl_sts.u16_threshold, sizeof(s_ctrl_sts.u16_threshold));
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+        memcpy(u32_threshold, s_ctrl_sts.u32_threshold, sizeof(s_ctrl_sts.u32_threshold));
+#endif
 
         // クリティカルセクション終了
         xSemaphoreGiveRecursive(s_mutex);
@@ -643,14 +793,26 @@ static void v_touchpad_daemon_task(void* pv_parameters) {
                     break;
                 }
                 // タッチパッドの計測値を取得
+#if defined(CONFIG_IDF_TARGET_ESP32)
+/** ESP32 */
                 if (touch_pad_read(i_pad_idx, &u16TouchVal) != ESP_OK) {
                     break;
                 }
                 // 閾値チェック
-//                ESP_LOGE("TOUCH", "Touchpad map=%d", u16TouchVal);
+                // ESP_LOGE("TOUCH", "Touchpad map=%d", u16TouchVal);
                 if (u16TouchVal >= u16_threshold[i_pad_idx]) {
                     break;
                 }
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+/** ESP32-S3 */
+                if (touch_pad_filter_read_smooth(i_pad_idx, &u32TouchVal) != ESP_OK) {
+                    break;
+                }
+                // ESP_LOGE("TOUCH", "Touchpad map=%d", u32TouchVal);
+                if (u32TouchVal >= u32_threshold[i_pad_idx]) {
+                    break;
+                }
+#endif
                 // ステータス更新
                 u32_sts_map |= (0x0001 << i_pad_idx);
             } while(false);
@@ -680,6 +842,9 @@ static void v_touchpad_daemon_task(void* pv_parameters) {
         }
     }
 }
+
+/** END:defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32S3) */
+#endif
 
 /******************************************************************************/
 /***      END OF FILE                                                       ***/

@@ -31,6 +31,7 @@
 #include <nvs.h>
 #include <nvs_flash.h>
 #include <driver/uart.h>
+#include "ntfw_ble_fmwk.h"
 #include "ntfw_com_date_time.h"
 #include "ntfw_ble_msg.h"
 
@@ -110,7 +111,7 @@ typedef struct {
  */
 typedef struct {
     uint32_t u32_size;
-    ts_com_msg_auth_ticket_t s_ticket_list[MSG_TICKET_LIST_SIZE];
+    ts_ble_msg_auth_ticket_t s_ticket_list[MSG_TICKET_LIST_SIZE];
 } ts_ticket_list_t;
 
 
@@ -140,7 +141,7 @@ static ts_ticket_list_t s_ticket_list = {
 static esp_gatt_if_t t_app_gatt_if = ESP_GATT_IF_NONE;
 
 // GATTアプリケーション設定
-static ts_com_ble_gattc_if_config_t s_gattc_app_config[BLE_GATT_IF_CNT];
+static ts_ble_fwk_gattc_if_config_t s_gattc_app_config[BLE_GATT_IF_CNT];
 
 /**
  * スキャンパラメータ
@@ -171,13 +172,13 @@ static void v_app_init();
 /** GAPプロファイルのイベントコールバック */
 static void v_gap_event_cb(esp_gap_ble_cb_event_t e_event, esp_ble_gap_cb_param_t* pu_param);
 /** メッセージイベント処理 */
-static void v_msg_evt_cb(te_com_ble_msg_event e_msg_evt);
+static void v_msg_evt_cb(te_ble_msg_event e_msg_evt);
 /** チケットイベント処理 */
-static esp_err_t sts_msg_ticket_cb(te_com_ble_msg_ticket_evt_t e_evt, ts_com_msg_auth_ticket_t* ps_ticket);
+static esp_err_t sts_msg_ticket_cb(te_ble_msg_ticket_evt_t e_evt, ts_ble_msg_auth_ticket_t* ps_ticket);
 /** チケット生成処理 */
-static ts_com_msg_auth_ticket_t* ps_msg_ticket_create(uint64_t u64_device_id);
+static ts_ble_msg_auth_ticket_t* ps_msg_ticket_create(uint64_t u64_device_id);
 /** チケット検索処理 */
-static ts_com_msg_auth_ticket_t* ps_msg_ticket_read(uint64_t u64_device_id);
+static ts_ble_msg_auth_ticket_t* ps_msg_ticket_read(uint64_t u64_device_id);
 /** チケット削除処理 */
 static void v_msg_ticket_delete(uint64_t u64_device_id);
 /** メッセージ受信タスク */
@@ -208,13 +209,13 @@ void app_main() {
     // ステータスチェックフラグ
     bool b_sts_chk = false;
     // スキャン結果リスト
-    ts_com_ble_gap_device_list_t* ps_list = NULL;
+    ts_ble_fwk_gap_device_list_t* ps_list = NULL;
     // スキャン結果
-    ts_com_ble_gap_device_info_t* ps_device = NULL;
+    ts_ble_fwk_gap_device_info_t* ps_device = NULL;
     // 接続ステータス
-    te_com_ble_msg_connection_sts_t e_con_sts;
+    te_ble_msg_connection_sts_t e_con_sts;
     // トランザクションステータス
-    te_com_ble_msg_transaction_sts_t e_trn_sts = COM_BLE_MSG_TRN_NONE;
+    te_ble_msg_transaction_sts_t e_trn_sts = BLE_MSG_TRN_NONE;
 
     while(true) {
         //======================================================================
@@ -225,14 +226,14 @@ void app_main() {
         //======================================================================
         // メッセージサーバーへの接続
         //======================================================================
-        e_con_sts = e_com_msg_connection_sts();
-        if (e_con_sts == COM_BLE_MSG_CON_DISCONNECTED) {
+        e_con_sts = e_ble_msg_connection_sts();
+        if (e_con_sts == BLE_MSG_CON_DISCONNECTED) {
             //------------------------------------------------------------------
             // スキャン開始
             //------------------------------------------------------------------
-            if (!b_com_ble_gap_is_scanning()) {
+            if (!b_ble_fwk_gap_is_scanning()) {
                 // スキャン開始処理
-                sts_val = sts_com_ble_gap_start_scan(u32_duration);
+                sts_val = sts_ble_fwk_gap_start_scan(u32_duration);
                 if (sts_val != ESP_OK) {
                     continue;
                 }
@@ -241,7 +242,7 @@ void app_main() {
             //------------------------------------------------------------------
             // スキャン結果判定
             //------------------------------------------------------------------
-            uint16_t u16_cnt = u16_com_ble_gap_scan_device_count();
+            uint16_t u16_cnt = u16_ble_fwk_gap_scan_device_count();
             if (u16_cnt == 0) {
                 continue;
             }
@@ -250,9 +251,9 @@ void app_main() {
             // 対象デバイス名を検索
             //------------------------------------------------------------------
             // BLEデバイスのスキャン結果を削除
-            v_com_ble_gap_delete_device_list(ps_list);
+            v_ble_fwk_gap_delete_device_list(ps_list);
             // BLEデバイスのスキャン結果を取得
-            ps_list = ps_com_ble_gap_create_device_list();
+            ps_list = ps_ble_fwk_gap_create_device_list();
             if (ps_list == NULL) {
                 // リトライ
                 continue;
@@ -261,8 +262,8 @@ void app_main() {
             uint16_t u16_idx;
             for (u16_idx = 0; u16_idx < ps_list->u16_count; u16_idx++) {
                 ps_device = &ps_list->ps_device[u16_idx];
-                tc_com_ble_bda_string_t tc_bda;
-                v_com_ble_address_to_str(tc_bda, ps_device->t_bda);
+                tc_ble_util_bda_string_t tc_bda;
+                v_ble_util_address_to_str(tc_bda, ps_device->t_bda);
                 if (strcmp(ps_device->pc_name, BLE_GAP_SERVER_NAME) == 0) {
 #ifdef GATTC_MSG_CLIENT
                     ESP_LOGE(LOG_MSG_TAG, "%s AD=%s Device name=%s", __func__, tc_bda, ps_device->pc_name);
@@ -283,13 +284,13 @@ void app_main() {
             //------------------------------------------------------------------
             // BLEのGAPプロファイルにおけるPINコードの設定処理
             // ペアリングの際のPINコードは数字６桁の固定値、型はuint32_t
-            sts_val = sts_com_ble_gap_set_static_pass_key(BLE_GAP_CLI_PASSKEY);
+            sts_val = sts_ble_fwk_gap_set_static_pass_key(BLE_GAP_CLI_PASSKEY);
             if (sts_val != ESP_OK) {
                 // リトライ
                 continue;
             }
             // メッセージサーバーへの接続開始
-            sts_val = sts_com_msg_open_server(ps_device);
+            sts_val = sts_ble_msg_open_server(ps_device);
             if (sts_val != ESP_OK) {
                 // リトライ
                 continue;
@@ -304,16 +305,16 @@ void app_main() {
             do {
                 // 遅延処理
                 i64_dtm_delay_msec(1000);
-                e_con_sts = e_com_msg_connection_sts();
-                if ((e_con_sts & COM_BLE_MSG_CON_WAIT_NUM_CHK) == COM_BLE_MSG_CON_WAIT_NUM_CHK) {
+                e_con_sts = e_ble_msg_connection_sts();
+                if ((e_con_sts & BLE_MSG_CON_WAIT_NUM_CHK) == BLE_MSG_CON_WAIT_NUM_CHK) {
                     // GAP番号確認リクエストに応答する
-                    sts_val = sts_com_ble_gap_confirm_reply(ps_device->t_bda, true);
+                    sts_val = sts_ble_fwk_gap_confirm_reply(ps_device->t_bda, true);
                 }
-           } while(e_con_sts != COM_BLE_MSG_CON_DISCONNECTED &&
-                    e_con_sts != COM_BLE_MSG_CON_CONNECTED &&
-                    e_con_sts != COM_BLE_MSG_CON_ERROR);
+           } while(e_con_sts != BLE_MSG_CON_DISCONNECTED &&
+                    e_con_sts != BLE_MSG_CON_CONNECTED &&
+                    e_con_sts != BLE_MSG_CON_ERROR);
             // コネクション判定
-            if (e_con_sts != COM_BLE_MSG_CON_CONNECTED) {
+            if (e_con_sts != BLE_MSG_CON_CONNECTED) {
                 // 未接続なのでリトライ
                 continue;
             }
@@ -322,9 +323,9 @@ void app_main() {
             // 接続先デバイス情報編集
             //------------------------------------------------------------------
             // 接続先BLEアドレス
-            v_com_ble_addr_cpy(s_cntr_sts.s_rmt_bda, ps_device->t_bda);
+            v_ble_util_addr_cpy(s_cntr_sts.s_rmt_bda, ps_device->t_bda);
             // 接続先デバイスID
-            sts_val = sts_com_msg_edit_remote_dev_id(&s_cntr_sts.u64_rmt_device_id);
+            sts_val = sts_ble_msg_edit_remote_dev_id(&s_cntr_sts.u64_rmt_device_id);
             if (sts_val != ESP_OK) {
 #ifdef GATTC_MSG_CLIENT
                 ESP_LOGE(LOG_MSG_TAG, "%s Message server DeviceID not found! sts=%d", __func__, sts_val);
@@ -335,7 +336,7 @@ void app_main() {
             //------------------------------------------------------------------
             // メッセージ機能のペアリング開始
             //------------------------------------------------------------------
-            sts_val = sts_com_msg_tx_pairing_request();
+            sts_val = sts_ble_msg_tx_pairing_request();
             if (sts_val != ESP_OK) {
                 // リトライ
 #ifdef GATTC_MSG_CLIENT
@@ -349,19 +350,19 @@ void app_main() {
             b_sts_chk = true;
         }
         // メッセージ機能のペアリング判定
-        if (b_com_msg_is_paired(s_cntr_sts.u64_rmt_device_id) && b_sts_chk) {
+        if (b_ble_msg_is_paired(s_cntr_sts.u64_rmt_device_id) && b_sts_chk) {
             // 接続状況を表示
 #ifdef GATTC_MSG_CLIENT
             ESP_LOGE(LOG_MSG_TAG, "%s L#%d Message server Paired!", __func__, __LINE__);
 #endif
             // トランザクションステータス
-            e_trn_sts = sts_com_msg_transaction_sts();
-            if (e_trn_sts != COM_BLE_MSG_TRN_NONE) {
+            e_trn_sts = sts_ble_msg_transaction_sts();
+            if (e_trn_sts != BLE_MSG_TRN_NONE) {
                 // リトライ
                 continue;
             }
             // ステータスチェック開始
-            sts_val = sts_com_msg_tx_sts_chk_request();
+            sts_val = sts_ble_msg_tx_sts_chk_request();
             if (sts_val != ESP_OK) {
                 // リトライ
                 continue;
@@ -447,7 +448,7 @@ static void v_app_init() {
     // BLEの初期化処理
     //==========================================================================
     // BLE初期化処理
-    sts_ret = sts_com_ble_init();
+    sts_ret = sts_ble_fwk_init();
     if (sts_ret != ESP_OK) {
         // エラーメッセージログ：エラーコードの文字列表現を表示
 #ifdef GATTC_MSG_CLIENT
@@ -465,7 +466,7 @@ static void v_app_init() {
         ESP_ERROR_CHECK(sts_ret);
     }
     // ボンディングデバイス表示
-    sts_ret = sts_com_ble_display_bonded_devices();
+    sts_ret = sts_ble_util_display_bonded_devices();
     if (sts_ret != ESP_OK) {
         // エラーメッセージログ：エラーコードの文字列表現を表示
 #ifdef GATTC_MSG_CLIENT
@@ -474,7 +475,7 @@ static void v_app_init() {
         ESP_ERROR_CHECK(sts_ret);
     }
     // ボンディングデバイス削除
-    sts_ret = sts_com_ble_disbonding_all();
+    sts_ret = sts_ble_fwk_disbonding_all();
     if (sts_ret != ESP_OK) {
         // エラーメッセージログ：エラーコードの文字列表現を表示
 #ifdef GATTC_MSG_CLIENT
@@ -487,7 +488,7 @@ static void v_app_init() {
     // セキュリティ マネージャー プロトコル（SMP）設定
     //==========================================================================
     // SMP設定の編集
-    ts_com_ble_gap_config_t s_ble_gap_cfg;
+    ts_ble_fwk_gap_config_t s_ble_gap_cfg;
     s_ble_gap_cfg.pc_device_name  = BLE_GAP_DEVICE_NAME;
     s_ble_gap_cfg.t_auth_req      = ESP_LE_AUTH_REQ_SC_MITM_BOND;
     s_ble_gap_cfg.t_iocap         = ESP_IO_CAP_KBDISP;
@@ -499,20 +500,20 @@ static void v_app_init() {
     s_ble_gap_cfg.u8_auth_option  = ESP_BLE_ONLY_ACCEPT_SPECIFIED_AUTH_ENABLE;
     s_ble_gap_cfg.v_callback      = v_gap_event_cb;
     // SMP設定
-    sts_ret = sts_com_ble_gap_smp_init(s_ble_gap_cfg);
+    sts_ret = sts_ble_fwk_gap_smp_init(s_ble_gap_cfg);
     if (sts_ret != ESP_OK) {
         // エラーメッセージログ：スキャンパラメータ設定
 #ifdef GATTC_MSG_CLIENT
-        ESP_LOGE(LOG_MSG_TAG, "%s L#%d sts_com_ble_gap_smp_init error!!", __func__, __LINE__);
+        ESP_LOGE(LOG_MSG_TAG, "%s L#%d sts_ble_fwk_gap_smp_init error!!", __func__, __LINE__);
 #endif
         ESP_ERROR_CHECK(sts_ret);
     }
     // スキャンパラメータの設定処理
-    sts_ret = sts_com_ble_gap_set_scan_params(&ble_scan_params);
+    sts_ret = sts_ble_fwk_gap_set_scan_params(&ble_scan_params);
     if (sts_ret != ESP_OK) {
         // エラーメッセージログ：スキャンパラメータ設定
 #ifdef GATTC_MSG_CLIENT
-        ESP_LOGE(LOG_MSG_TAG, "%s L#%d sts_com_ble_gap_set_scan_params error!!", __func__, __LINE__);
+        ESP_LOGE(LOG_MSG_TAG, "%s L#%d sts_ble_fwk_gap_set_scan_params error!!", __func__, __LINE__);
 #endif
         ESP_ERROR_CHECK(sts_ret);
     }
@@ -521,13 +522,13 @@ static void v_app_init() {
     // SPPクライアント設定
     //==========================================================================
     // GATTクライアント設定
-    s_gattc_app_config[BLE_GATT_SVC_IDX] = s_com_ble_sppc_config();
+    s_gattc_app_config[BLE_GATT_SVC_IDX] = s_ble_fwk_sppc_config();
     // アプリケーションID
     s_gattc_app_config[BLE_GATT_SVC_IDX].u16_app_id = BLE_GATT_APP_ID;
     // 接続時のセキュリティタイプ
     s_gattc_app_config[BLE_GATT_SVC_IDX].e_con_sec = ESP_BLE_SEC_ENCRYPT_MITM;
     // GATTクライアント設定
-    sts_ret = sts_com_ble_gattc_register(s_gattc_app_config, BLE_GATT_IF_CNT);
+    sts_ret = sts_ble_fwk_gattc_register(s_gattc_app_config, BLE_GATT_IF_CNT);
     if (sts_ret != ESP_OK) {
 #ifdef GATTC_MSG_CLIENT
         ESP_LOGE(LOG_MSG_TAG, "%s gattc register error, error code = %x", __func__, sts_ret);
@@ -539,7 +540,7 @@ static void v_app_init() {
     // BLEメッセージ初期処理
     //==========================================================================
     // メッセージクライアントの初期処理
-    sts_ret = sts_com_msg_init_cli(BLE_GATT_APP_ID, BLE_MSG_DEVICE_ID, BLE_MSG_MAX_SIZE, v_msg_evt_cb, sts_msg_ticket_cb);
+    sts_ret = sts_ble_msg_init_cli(BLE_GATT_APP_ID, BLE_MSG_DEVICE_ID, BLE_MSG_MAX_SIZE, v_msg_evt_cb, sts_msg_ticket_cb);
     if (sts_ret != ESP_OK) {
         // エラーメッセージログ：エラーコードの文字列表現を表示
 #ifdef GATTC_MSG_CLIENT
@@ -548,25 +549,25 @@ static void v_app_init() {
         ESP_ERROR_CHECK(sts_ret);
     }
     // ペアリング機能の有効化
-    v_com_msg_config_pairing(true);
+    v_ble_msg_config_pairing(true);
     // ステータスチェック機能の有効化
-    v_com_msg_config_sts_chk(true);
+    v_ble_msg_config_sts_chk(true);
     // 受信メッセージのエンキュー有効化
-    v_com_msg_rx_enabled(COM_BLE_MSG_TYP_DATA);         // データ
-    v_com_msg_rx_enabled(COM_BLE_MSG_TYP_CIPHERTEXT);   // 暗号データ
+    v_ble_msg_rx_enabled(BLE_MSG_TYP_DATA);         // データ
+    v_ble_msg_rx_enabled(BLE_MSG_TYP_CIPHERTEXT);   // 暗号データ
 
     //==========================================================================
     // 設定後の初期処理
     //==========================================================================
     // GATTインターフェースを取得
-    t_app_gatt_if = t_com_ble_gattc_if(BLE_GATT_APP_ID);
+    t_app_gatt_if = t_ble_fwk_gattc_if(BLE_GATT_APP_ID);
     while (t_app_gatt_if == ESP_GATT_IF_NONE) {
         // ウェイトしてリトライ
         vTaskDelay(INIT_WAIT_TICK);
-        t_app_gatt_if = t_com_ble_gattc_if(BLE_GATT_APP_ID);
+        t_app_gatt_if = t_ble_fwk_gattc_if(BLE_GATT_APP_ID);
     }
     // BLEのローカルキャッシュのクリア
-    sts_ret = sts_com_ble_gattc_cache_clean(t_app_gatt_if);
+    sts_ret = sts_ble_fwk_gattc_cache_clean(t_app_gatt_if);
     if (sts_ret != ESP_OK && sts_ret != ESP_ERR_NOT_FOUND) {
         ESP_LOGE(LOG_MSG_TAG, "%s gattc cache clean error code = %x", __func__, sts_ret);
         ESP_ERROR_CHECK(sts_ret);
@@ -595,7 +596,7 @@ static void v_app_init() {
  *
  * PARAMETERS:              Name        RW  Usage
  * esp_gap_ble_cb_event_t   e_event     R   GAPイベントタイプ
- * esp_ble_gatts_cb_param_t u_param     R   GATTコールバックパラメータ
+ * esp_ble_gap_cb_param_t*  pu_param    R   GATTコールバックパラメータ
  *
  * RETURNS:
  *
@@ -621,7 +622,7 @@ static void v_gap_event_cb(esp_gap_ble_cb_event_t e_event, esp_ble_gap_cb_param_
         break;
     case ESP_GAP_BLE_PASSKEY_REQ_EVT:
         // ピアデバイスに表示されている値の返信要求 ※サーバー側とスキャン側の両方にある
-        sts_com_ble_gap_passkey_reply(pu_param->ble_security.ble_req.bd_addr, true, BLE_GAP_SVR_PASSKEY);
+        sts_ble_fwk_gap_passkey_reply(pu_param->ble_security.ble_req.bd_addr, true, BLE_GAP_SVR_PASSKEY);
         break;
     case ESP_GAP_BLE_NC_REQ_EVT:
         // 番号確認要求 ※サーバー側とクライアント側の両方にある
@@ -629,7 +630,7 @@ static void v_gap_event_cb(esp_gap_ble_cb_event_t e_event, esp_ble_gap_cb_param_
         // IOにDisplayYesNO機能があり、ピアデバイスIOにもDisplayYesNo機能がある場合、アプリはこのevtを受け取ります。
         // パスキーをユーザーに表示し、ピアデバイスにて表示される番号と一致するか確認した結果を返信する
         // ※本来はピアデバイスに表示されている値と比較して、一致する事を確認した上で返信
-        v_com_ble_addr_cpy(s_cntr_sts.s_rmt_bda, pu_param->ble_security.key_notif.bd_addr);
+        v_ble_util_addr_cpy(s_cntr_sts.s_rmt_bda, pu_param->ble_security.key_notif.bd_addr);
         s_cntr_sts.u32_passkey = pu_param->ble_security.key_notif.passkey;
         break;
     default:
@@ -648,15 +649,15 @@ static void v_gap_event_cb(esp_gap_ble_cb_event_t e_event, esp_ble_gap_cb_param_
  *
  * DESCRIPTION:メッセージイベントコールバック関数
  *
- * PARAMETERS:              Name        RW  Usage
- * te_com_ble_msg_cb_evt_t  e_msg_evt   R   イベント種別
+ * PARAMETERS:          Name        RW  Usage
+ * te_ble_msg_event     e_msg_evt   R   イベント種別
  *
  * RETURNS:
  *
  * NOTES:
  * None.
  ******************************************************************************/
-static void v_msg_evt_cb(te_com_ble_msg_event e_msg_evt) {
+static void v_msg_evt_cb(te_ble_msg_event e_msg_evt) {
     //==========================================================================
     // クリティカルセクション
     //==========================================================================
@@ -671,31 +672,31 @@ static void v_msg_evt_cb(te_com_ble_msg_event e_msg_evt) {
     do {
         // イベント毎の処理
         switch (e_msg_evt) {
-        case COM_BLE_MSG_EVT_RX_RESPONSE:
+        case BLE_MSG_EVT_RX_RESPONSE:
             // 応答を受信
 #ifdef GATTC_MSG_CLIENT
             ESP_LOGE(LOG_MSG_TAG, "MsgEvt=COM_BLE_MSG_EVT_RCV_RESPONSE");
 #endif
             break;
-        case COM_BLE_MSG_EVT_RX_RESET:
+        case BLE_MSG_EVT_RX_RESET:
             // リセットメッセージ受信
 #ifdef GATTC_MSG_CLIENT
             ESP_LOGE(LOG_MSG_TAG, "MsgEvt=COM_BLE_MSG_EVT_RCV_RESET");
 #endif
             break;
-        case COM_BLE_MSG_EVT_RX_PING:
+        case BLE_MSG_EVT_RX_PING:
             // PINGメッセージ受信
 #ifdef GATTC_MSG_CLIENT
             ESP_LOGE(LOG_MSG_TAG, "MsgEvt=COM_BLE_MSG_EVT_RCV_PING");
 #endif
             break;
-        case COM_BLE_MSG_EVT_RX_DATA:
+        case BLE_MSG_EVT_RX_DATA:
             // データメッセージ受信
 #ifdef GATTC_MSG_CLIENT
             ESP_LOGE(LOG_MSG_TAG, "MsgEvt=COM_BLE_MSG_EVT_RCV_DATA");
 #endif
             break;
-        case COM_BLE_MSG_EVT_RX_CIPHERTEXT:
+        case BLE_MSG_EVT_RX_CIPHERTEXT:
             // 暗号メッセージ受信
 #ifdef GATTC_MSG_CLIENT
             ESP_LOGE(LOG_MSG_TAG, "MsgEvt=COM_BLE_MSG_EVT_RCV_CIPHERTEXT");
@@ -711,63 +712,63 @@ static void v_msg_evt_cb(te_com_ble_msg_event e_msg_evt) {
             ESP_LOGE(LOG_MSG_TAG, "MsgEvt=COM_BLE_MSG_EVT_GATT_DISCONNECT");
             break;
 #endif
-        case COM_BLE_MSG_EVT_OPEN_SUCCESS:
+        case BLE_MSG_EVT_OPEN_SUCCESS:
             // 接続直後のメッセージ受信
 #ifdef GATTC_MSG_CLIENT
             ESP_LOGE(LOG_MSG_TAG, "MsgEvt=COM_BLE_MSG_EVT_OPEN_SUCCESS");
 #endif
             break;
-        case COM_BLE_MSG_EVT_PAIRING_START:
+        case BLE_MSG_EVT_PAIRING_START:
             // ペアリング開始
 #ifdef GATTC_MSG_CLIENT
             ESP_LOGE(LOG_MSG_TAG, "MsgEvt=COM_BLE_MSG_EVT_PAIRING_START");
 #endif
             // ペアリング認証（ダイジェスト比較結果の通知）
             // とりあえず無条件にペアリングOKとする
-            sts_val = sts_com_msg_tx_pairing_certification(true, 0xFFFFFFFF);
+            sts_val = sts_ble_msg_tx_pairing_certification(true, 0xFFFFFFFF);
             if (sts_val != ESP_OK) {
                 break;
             }
             break;
-        case COM_BLE_MSG_EVT_PAIRING_SUCCESS:
+        case BLE_MSG_EVT_PAIRING_SUCCESS:
             // ペアリング成功
 #ifdef GATTC_MSG_CLIENT
             ESP_LOGE(LOG_MSG_TAG, "MsgEvt=COM_BLE_MSG_EVT_PAIRING_SUCCESS");
 #endif
             break;
-        case COM_BLE_MSG_EVT_PAIRING_ERR:
+        case BLE_MSG_EVT_PAIRING_ERR:
             // ペアリングエラー
 #ifdef GATTC_MSG_CLIENT
             ESP_LOGE(LOG_MSG_TAG, "MsgEvt=COM_BLE_MSG_EVT_PAIRING_ERR");
 #endif
             // メッセージ機能のペアリングの開始
-            sts_val = sts_com_msg_tx_pairing_request();
+            sts_val = sts_ble_msg_tx_pairing_request();
             if (sts_val != ESP_OK) {
                 // リトライ
                 continue;
             }
             break;
-        case COM_BLE_MSG_EVT_STATUS_CHK:
+        case BLE_MSG_EVT_STATUS_CHK:
             // ステータスチェック開始
 #ifdef GATTC_MSG_CLIENT
             ESP_LOGE(LOG_MSG_TAG, "MsgEvt=COM_BLE_MSG_EVT_STATUS_CHK");
 #endif
             break;
-        case COM_BLE_MSG_EVT_STATUS_OK:
+        case BLE_MSG_EVT_STATUS_OK:
             // ステータス正常
 #ifdef GATTC_MSG_CLIENT
             ESP_LOGE(LOG_MSG_TAG, "MsgEvt=COM_BLE_MSG_EVT_STATUS_OK");
 #endif
             break;
-        case COM_BLE_MSG_EVT_STATUS_ERR:
+        case BLE_MSG_EVT_STATUS_ERR:
             // ステータス異常
 #ifdef GATTC_MSG_CLIENT
             ESP_LOGE(LOG_MSG_TAG, "MsgEvt=COM_BLE_MSG_EVT_STATUS_ERR");
 #endif
             // チケット削除
-//            sts_com_msg_delete_ticket(ps_msg->u64_device_id);
+//            sts_ble_msg_delete_ticket(ps_msg->u64_device_id);
             break;
-        case COM_BLE_MSG_EVT_HANDLING_ERR:
+        case BLE_MSG_EVT_HANDLING_ERR:
             // メッセージハンドリングエラー
 #ifdef GATTC_MSG_CLIENT
             ESP_LOGE(LOG_MSG_TAG, "MsgEvt=COM_BLE_MSG_EVT_HANDLING_ERR");
@@ -795,8 +796,8 @@ static void v_msg_evt_cb(te_com_ble_msg_event e_msg_evt) {
  * DESCRIPTION:チケットアクセスコールバック関数
  *
  * PARAMETERS:                  Name        RW  Usage
- * te_com_ble_msg_ticket_evt_t  e_evt       R   イベント種別
- * ts_com_msg_auth_ticket_t*    ps_ticket   R   チケット情報
+ * te_ble_msg_ticket_evt_t      e_evt       R   イベント種別
+ * ts_ble_msg_auth_ticket_t*    ps_ticket   R   チケット情報
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -804,7 +805,7 @@ static void v_msg_evt_cb(te_com_ble_msg_event e_msg_evt) {
  * NOTES:
  * None.
  ******************************************************************************/
-static esp_err_t sts_msg_ticket_cb(te_com_ble_msg_ticket_evt_t e_evt, ts_com_msg_auth_ticket_t* ps_ticket) {
+static esp_err_t sts_msg_ticket_cb(te_ble_msg_ticket_evt_t e_evt, ts_ble_msg_auth_ticket_t* ps_ticket) {
     //==========================================================================
     // クリティカルセクション
     //==========================================================================
@@ -817,11 +818,11 @@ static esp_err_t sts_msg_ticket_cb(te_com_ble_msg_ticket_evt_t e_evt, ts_com_msg
     //==========================================================================
     esp_err_t sts_val = ESP_OK;
     // チケットの取得
-    ts_com_msg_auth_ticket_t* ps_wk_ticket = NULL;
+    ts_ble_msg_auth_ticket_t* ps_wk_ticket = NULL;
     do {
         // イベント毎の処理
         switch (e_evt) {
-        case COM_BLE_MSG_TICKET_EVT_CREATE:
+        case BLE_MSG_TICKET_EVT_CREATE:
             // チケット生成
             ps_wk_ticket = ps_msg_ticket_create(ps_ticket->u64_rmt_device_id);
             // チケットの有無判定
@@ -832,7 +833,7 @@ static esp_err_t sts_msg_ticket_cb(te_com_ble_msg_ticket_evt_t e_evt, ts_com_msg
             // 結果を編集
             *ps_wk_ticket = *ps_ticket;
             break;
-        case COM_BLE_MSG_TICKET_EVT_READ:
+        case BLE_MSG_TICKET_EVT_READ:
             // チケット読み込み
             ps_wk_ticket = ps_msg_ticket_read(ps_ticket->u64_rmt_device_id);
             // チケットの有無判定
@@ -843,7 +844,7 @@ static esp_err_t sts_msg_ticket_cb(te_com_ble_msg_ticket_evt_t e_evt, ts_com_msg
             // 結果を編集
             *ps_ticket = *ps_wk_ticket;
             break;
-        case COM_BLE_MSG_TICKET_EVT_UPDATE:
+        case BLE_MSG_TICKET_EVT_UPDATE:
             // チケット更新
             ps_wk_ticket = ps_msg_ticket_read(ps_ticket->u64_rmt_device_id);
             // チケットの有無判定
@@ -854,7 +855,7 @@ static esp_err_t sts_msg_ticket_cb(te_com_ble_msg_ticket_evt_t e_evt, ts_com_msg
             // 結果を編集
             *ps_wk_ticket = *ps_ticket;
             break;
-        case COM_BLE_MSG_TICKET_EVT_DELETE:
+        case BLE_MSG_TICKET_EVT_DELETE:
             // チケット削除
             v_msg_ticket_delete(ps_ticket->u64_rmt_device_id);
             break;
@@ -884,27 +885,27 @@ static esp_err_t sts_msg_ticket_cb(te_com_ble_msg_ticket_evt_t e_evt, ts_com_msg
  * NOTES:
  * None.
  ******************************************************************************/
-static ts_com_msg_auth_ticket_t* ps_msg_ticket_create(uint64_t u64_device_id) {
+static ts_ble_msg_auth_ticket_t* ps_msg_ticket_create(uint64_t u64_device_id) {
     // チケットの追加設定
     if (s_ticket_list.u32_size >= MSG_TICKET_LIST_SIZE) {
         return NULL;
     }
     // チケット読み込み
-    ts_com_msg_auth_ticket_t* ps_ticket = ps_msg_ticket_read(BLE_MSG_DEVICE_ID);
+    ts_ble_msg_auth_ticket_t* ps_ticket = ps_msg_ticket_read(BLE_MSG_DEVICE_ID);
     if (ps_ticket == NULL) {
         // 新しいチケットを割り当て
-        ts_com_msg_auth_ticket_t* ps_list = s_ticket_list.s_ticket_list;
+        ts_ble_msg_auth_ticket_t* ps_list = s_ticket_list.s_ticket_list;
         ps_ticket = &ps_list[s_ticket_list.u32_size];
     }
     // チケットの編集
     ps_ticket->u64_own_device_id = BLE_MSG_DEVICE_ID;      // 自デバイスID
     ps_ticket->u64_rmt_device_id = u64_device_id;       // 相手デバイスID
     // 暗号鍵
-    memset(ps_ticket->u8_enc_key, 0x00, COM_MSG_SIZE_CIPHER_KEY);
+    memset(ps_ticket->u8_enc_key, 0x00, BLE_MSG_SIZE_CIPHER_KEY);
     // 自ステータス
-    memset(ps_ticket->u8_own_sts, 0x00, COM_MSG_SIZE_TICKET_STS);
+    memset(ps_ticket->u8_own_sts, 0x00, BLE_MSG_SIZE_TICKET_STS);
     // 相手ステータスハッシュ
-    memset(ps_ticket->u8_rmt_sts_hash, 0x00, COM_MSG_SIZE_TICKET_STS);
+    memset(ps_ticket->u8_rmt_sts_hash, 0x00, BLE_MSG_SIZE_TICKET_STS);
     ps_ticket->u32_max_seq_no = 0;                      // 最大シーケンス番号
     ps_ticket->u32_tx_seq_no  = 0;                      // 送信シーケンス番号
     ps_ticket->u32_rx_seq_no  = 0;                      // 受信シーケンス番号
@@ -928,9 +929,9 @@ static ts_com_msg_auth_ticket_t* ps_msg_ticket_create(uint64_t u64_device_id) {
  * NOTES:
  * None.
  ******************************************************************************/
-static ts_com_msg_auth_ticket_t* ps_msg_ticket_read(uint64_t u64_device_id) {
+static ts_ble_msg_auth_ticket_t* ps_msg_ticket_read(uint64_t u64_device_id) {
     // チケットの探索
-    ts_com_msg_auth_ticket_t* ps_list = s_ticket_list.s_ticket_list;
+    ts_ble_msg_auth_ticket_t* ps_list = s_ticket_list.s_ticket_list;
     uint32_t u32_idx;
     for (u32_idx = 0; u32_idx < s_ticket_list.u32_size; u32_idx++) {
         if (ps_list[u32_idx].u64_rmt_device_id == u64_device_id) {
@@ -957,16 +958,16 @@ static ts_com_msg_auth_ticket_t* ps_msg_ticket_read(uint64_t u64_device_id) {
  ******************************************************************************/
 static void v_msg_ticket_delete(uint64_t u64_device_id) {
     // チケットの探索
-    ts_com_msg_auth_ticket_t* ps_ticket = ps_msg_ticket_read(u64_device_id);
+    ts_ble_msg_auth_ticket_t* ps_ticket = ps_msg_ticket_read(u64_device_id);
     // チケットの編集
     ps_ticket->u64_own_device_id = BLE_MSG_DEVICE_ID;      // 自デバイスID
     ps_ticket->u64_rmt_device_id = BLE_MSG_DEVICE_ID;      // 相手デバイスID
     // 暗号鍵
-    memset(ps_ticket->u8_enc_key, 0x00, COM_MSG_SIZE_CIPHER_KEY);
+    memset(ps_ticket->u8_enc_key, 0x00, BLE_MSG_SIZE_CIPHER_KEY);
     // 自ステータス
-    memset(ps_ticket->u8_own_sts, 0x00, COM_MSG_SIZE_TICKET_STS);
+    memset(ps_ticket->u8_own_sts, 0x00, BLE_MSG_SIZE_TICKET_STS);
     // 相手ステータスハッシュ
-    memset(ps_ticket->u8_rmt_sts_hash, 0x00, COM_MSG_SIZE_TICKET_STS);
+    memset(ps_ticket->u8_rmt_sts_hash, 0x00, BLE_MSG_SIZE_TICKET_STS);
     ps_ticket->u32_max_seq_no = 0;                      // 最大シーケンス番号
     ps_ticket->u32_tx_seq_no  = 0;                      // 送信シーケンス番号
     ps_ticket->u32_rx_seq_no  = 0;                      // 受信シーケンス番号
@@ -988,7 +989,7 @@ static void v_msg_ticket_delete(uint64_t u64_device_id) {
  ******************************************************************************/
 static void v_msg_task_rx(void *pvParameters) {
     // メッセージ
-    ts_com_msg_t* ps_msg;
+    ts_ble_msg_t* ps_msg;
     // 送信データ
     ts_u8_array_t* ps_data = NULL;
     while (true) {
@@ -996,7 +997,7 @@ static void v_msg_task_rx(void *pvParameters) {
         // 受信イベント処理
         //======================================================================
         // メッセージ受信
-        ps_msg = ps_com_msg_rx_msg(portMAX_DELAY);
+        ps_msg = ps_ble_msg_rx_msg(portMAX_DELAY);
         if (ps_msg == NULL) {
 #ifdef GATTC_MSG_CLIENT
         // デバッグ出力
@@ -1009,7 +1010,7 @@ static void v_msg_task_rx(void *pvParameters) {
         ps_data = ps_msg->ps_data;
         uart_write_bytes(UART_NUM_0, ps_data->pu8_values, ps_data->t_size);
         // 動的に確保されている本文データを解放
-        sts_com_msg_delete_msg(ps_msg);
+        sts_ble_msg_delete_msg(ps_msg);
     }
     vTaskDelete(NULL);
 }
@@ -1081,16 +1082,16 @@ static void v_msg_task_tx(void* pvParameters) {
         //======================================================================
         do {
             // 接続確認
-            if (e_com_msg_connection_sts() != COM_BLE_MSG_CON_CONNECTED) {
+            if (e_ble_msg_connection_sts() != BLE_MSG_CON_CONNECTED) {
                 // 読み捨ててリトライ
 #ifdef GATTC_MSG_CLIENT
         // デバッグ出力
-        ESP_LOGE(LOG_MSG_TAG, "disconnected!!! sts=%d", e_com_msg_connection_sts());
+        ESP_LOGE(LOG_MSG_TAG, "disconnected!!! sts=%d", e_ble_msg_connection_sts());
 #endif
                 break;
             }
             // 接続先デバイスIDの編集
-            if (sts_com_msg_edit_remote_dev_id(&u64_device_id) != ESP_OK) {
+            if (sts_ble_msg_edit_remote_dev_id(&u64_device_id) != ESP_OK) {
                 // 読み捨ててリトライ
 #ifdef GATTC_MSG_CLIENT
         // デバッグ出力
@@ -1099,7 +1100,7 @@ static void v_msg_task_tx(void* pvParameters) {
                 break;
             }
             // 平文メッセージの送信処理
-//            if (sts_com_msg_tx_plain_msg(u64_device_id, ps_data) != ESP_OK) {
+//            if (sts_ble_msg_tx_plain_msg(u64_device_id, ps_data) != ESP_OK) {
 //                // 読み捨ててリトライ
 //#ifdef GATTC_MSG_CLIENT
 //        // デバッグ出力
@@ -1108,7 +1109,7 @@ static void v_msg_task_tx(void* pvParameters) {
 //                break;
 //            }
             // 暗号文メッセージの送信処理
-            if (sts_com_msg_tx_cipher_msg(u64_device_id, ps_data) != ESP_OK) {
+            if (sts_ble_msg_tx_cipher_msg(u64_device_id, ps_data) != ESP_OK) {
                 // 読み捨ててリトライ
 #ifdef GATTC_MSG_CLIENT
         // デバッグ出力

@@ -39,7 +39,7 @@
 /***      Macro Definitions                                                 ***/
 /******************************************************************************/
 /** ログ接頭辞 */
-#define LOG_TAG "COM_BLE_MSG"
+#define LOG_TAG "BLE_MSG"
 
 /** uin16_t max value */
 #define U16_MAX             (0xffff)
@@ -102,33 +102,33 @@
  * 動作モード
  */
 typedef enum {
-    COM_BLE_MSG_MODE_BLE_INIT = 0x00,   // 初期状態
-    COM_BLE_MSG_MODE_BLE_SERVER,        // BLEサーバーモード
-    COM_BLE_MSG_MODE_BLE_CLIENT,        // BLEクライアントモード
-} te_com_ble_msg_mode_t;
+    BLE_MSG_MODE_BLE_INIT = 0x00,   // 初期状態
+    BLE_MSG_MODE_BLE_SERVER,        // BLEサーバーモード
+    BLE_MSG_MODE_BLE_CLIENT,        // BLEクライアントモード
+} te_ble_msg_mode_t;
 
 /**
  * メッセージ受信ステータス
  */
 typedef enum {
-    COM_BLE_MSG_RCV_NORMAL = 0x00,      // 正常受信
-    COM_BLE_MSG_RCV_NOT_FOUND,          // 受信データ無し
-    COM_BLE_MSG_RCV_NO_MEM_ERR,         // メモリ確保エラー
-    COM_BLE_MSG_RCV_LENGTH_ERR,         // メッセージ長エラー
-    COM_BLE_MSG_RCV_DEV_ID_ERR,         // メッセージデバイスIDエラー
-    COM_BLE_MSG_RCV_TYPE_ERR,           // メッセージタイプエラー
-    COM_BLE_MSG_RCV_SEQ_ERR,            // メッセージシーケンス番号エラー
-    COM_BLE_MSG_RCV_STOP_TKN_ERR,       // ストップトークンエラー
-    COM_BLE_MSG_RCV_AUTH_ERR,           // メッセージ認証エラー
-    COM_BLE_MSG_RCV_DECRYPT_ERR,        // 復号エラー
-    COM_BLE_MSG_RCV_TRAN_ERR,           // トランザクションエラー
-    COM_BLE_MSG_RCV_PAIRING_ERR,        // ペアリングエラー
-    COM_BLE_MSG_RCV_STS_CHK_ERR,        // ステータスチェックエラー
-    COM_BLE_MSG_RCV_RECEIVER_ERR,       // 受信処理エラー
-    COM_BLE_MSG_RCV_HANDLING_ERR,       // 受信ハンドリングエラー
-    COM_BLE_MSG_RCV_TIMEOUT_ERR,        // 受信タイムアウト
-    COM_BLE_MSG_RCV_ADDRESS_ERR,        // 受信アドレスエラー
-} te_com_ble_msg_rcv_sts_t;
+    BLE_MSG_RCV_NORMAL = 0x00,      // 正常受信
+    BLE_MSG_RCV_NOT_FOUND,          // 受信データ無し
+    BLE_MSG_RCV_NO_MEM_ERR,         // メモリ確保エラー
+    BLE_MSG_RCV_LENGTH_ERR,         // メッセージ長エラー
+    BLE_MSG_RCV_DEV_ID_ERR,         // メッセージデバイスIDエラー
+    BLE_MSG_RCV_TYPE_ERR,           // メッセージタイプエラー
+    BLE_MSG_RCV_SEQ_ERR,            // メッセージシーケンス番号エラー
+    BLE_MSG_RCV_STOP_TKN_ERR,       // ストップトークンエラー
+    BLE_MSG_RCV_AUTH_ERR,           // メッセージ認証エラー
+    BLE_MSG_RCV_DECRYPT_ERR,        // 復号エラー
+    BLE_MSG_RCV_TRAN_ERR,           // トランザクションエラー
+    BLE_MSG_RCV_PAIRING_ERR,        // ペアリングエラー
+    BLE_MSG_RCV_STS_CHK_ERR,        // ステータスチェックエラー
+    BLE_MSG_RCV_RECEIVER_ERR,       // 受信処理エラー
+    BLE_MSG_RCV_HANDLING_ERR,       // 受信ハンドリングエラー
+    BLE_MSG_RCV_TIMEOUT_ERR,        // 受信タイムアウト
+    BLE_MSG_RCV_ADDRESS_ERR,        // 受信アドレスエラー
+} te_ble_msg_rcv_sts_t;
 
 /**
  * 機能制御設定
@@ -178,7 +178,7 @@ typedef struct {
  * メッセージ本文：ダイジェスト一致
  */
 typedef struct {
-    uint8_t u8_sts_hash[COM_MSG_SIZE_TICKET_STS];   // ステータスハッシュ
+    uint8_t u8_sts_hash[BLE_MSG_SIZE_TICKET_STS];   // ステータスハッシュ
     uint32_t u32_max_seq_no;                        // 最大シーケンス番号
 } ts_msg_digest_match_t;
 
@@ -198,14 +198,14 @@ typedef struct {
     uint32_t u32_tick_ms;                           // 受信ティック（ミリ秒）
     uint64_t u64_device_id;                         // リモートデバイスID
     uint32_t u32_seq_no;                            // シーケンス番号
-    te_com_ble_msg_type_t e_type;                   // メッセージタイプ
+    te_ble_msg_type_t e_type;                   // メッセージタイプ
 } ts_msg_history_t;
 
 /**
  * トランザクション情報
  */
 typedef struct {
-    te_com_ble_msg_transaction_sts_t e_sts;         // トランザクションステータス
+    te_ble_msg_transaction_sts_t e_sts;         // トランザクションステータス
     uint64_t u64_device_id;                         // リモートデバイスID
     esp_bd_addr_t t_bda;                            // リモートデバイスBLEアドレス
     uint32_t u32_timeout_ms;                        // トランザクションタイムアウト（ミリ秒）
@@ -216,10 +216,10 @@ typedef struct {
  */
 typedef struct {
     te_msg_pairing_sts_t e_sts;                         // ペアリングステータス
-    uint8_t u8_com_key[COM_MSG_SIZE_CIPHER_KEY];        // 共通鍵
+    uint8_t u8_com_key[BLE_MSG_SIZE_CIPHER_KEY];        // 共通鍵
     ts_crypto_x25519_context_t* ps_x25519_ctx;          // X25519コンテキスト
-    uint8_t u8_dev_status[COM_MSG_SIZE_TICKET_STS];     // 自デバイスステータス
-    uint8_t u8_rmt_sts_hash[COM_MSG_SIZE_TICKET_STS];   // 相手デバイスステータスハッシュ
+    uint8_t u8_dev_status[BLE_MSG_SIZE_TICKET_STS];     // 自デバイスステータス
+    uint8_t u8_rmt_sts_hash[BLE_MSG_SIZE_TICKET_STS];   // 相手デバイスステータスハッシュ
     uint32_t u32_max_seq_no;                            // 最大シーケンス番号
 } ts_pairing_info_t;
 
@@ -227,8 +227,8 @@ typedef struct {
  * ステータスチェック情報
  */
 typedef struct {
-    uint8_t u8_tx_rand[COM_MSG_SIZE_TICKET_STS];        // 送信ステータスチェック乱数
-    uint8_t u8_rx_rand[COM_MSG_SIZE_TICKET_STS];        // 受信ステータスチェック乱数
+    uint8_t u8_tx_rand[BLE_MSG_SIZE_TICKET_STS];        // 送信ステータスチェック乱数
+    uint8_t u8_rx_rand[BLE_MSG_SIZE_TICKET_STS];        // 受信ステータスチェック乱数
 } ts_sts_check_info_t;
 
 /**
@@ -239,12 +239,12 @@ typedef esp_gatt_if_t (*tf_get_gatt_if_t)();
 /**
  * 接続ステータス関数
  */
-typedef te_com_ble_msg_connection_sts_t (*tf_connection_sts_t)();
+typedef te_ble_msg_connection_sts_t (*tf_connection_sts_t)();
 
 /**
  * データ受信関数
  */
-typedef ts_com_ble_gatt_rx_data_t* (*tf_ble_rx_data_t)(TickType_t t_tick);
+typedef ts_ble_fwk_gatt_rx_data_t* (*tf_ble_rx_data_t)(TickType_t t_tick);
 
 /**
  * メッセージ送信処理
@@ -266,7 +266,7 @@ typedef void (*tf_ble_rx_through_t)(size_t t_len);
  * 通信制御設定
  */
 typedef struct {
-    te_com_ble_msg_mode_t e_mode;           // 動作モード
+    te_ble_msg_mode_t e_mode;           // 動作モード
     uint16_t u16_app_id;                    // アプリケーションID
     uint64_t u64_device_id;                 // 自デバイスID
     te_msg_function_ctrl_t s_func_ctl;      // 機能制御
@@ -277,8 +277,8 @@ typedef struct {
     tf_ble_tx_msg_t pf_tx_msg;              // メッセージ送信関数
     tf_ble_rx_clear_t pf_rx_clear;          // 受信キュークリア関数
     tf_ble_rx_through_t pf_rx_through;      // 受信キュー読み飛ばし関数
-    tf_com_ble_msg_ticket_cb_t pf_tkt_cb;   // チケットアクセスイベントコールバック関数
-    tf_com_ble_msg_evt_cb_t pf_evt_cb;      // 受信イベントコールバック関数
+    tf_ble_msg_ticket_cb_t pf_tkt_cb;   // チケットアクセスイベントコールバック関数
+    tf_ble_msg_evt_cb_t pf_evt_cb;      // 受信イベントコールバック関数
 } ts_msg_ctrl_cfg_t;
 
 /**
@@ -288,7 +288,7 @@ typedef struct {
     esp_gatt_if_t t_gatt_if;                // GATTインターフェース
     uint64_t u64_rmt_device_id;             // リモートデバイスID
     esp_bd_addr_t t_rmt_bda;                // リモートデバイスBLEアドレス
-    ts_com_msg_auth_ticket_t s_rmt_ticket;  // リモートデバイスチケット
+    ts_ble_msg_auth_ticket_t s_rmt_ticket;  // リモートデバイスチケット
     uint64_t u64_tx_count;                  // 送信カウンタ
     uint64_t u64_rx_count;                  // 受信カウンタ
     ts_msg_history_t s_bef_tx_msg;          // 直前の送信メッセージ履歴
@@ -297,7 +297,7 @@ typedef struct {
     ts_transaction_info_t s_tran;           // トランザクション情報
     ts_pairing_info_t s_pairing;            // ペアリング情報
     ts_sts_check_info_t s_sts_chk;          // ステータスチェック情報
-    ts_com_ble_gattc_con_info_t* ps_con;    // BLEコネクション
+    ts_ble_fwk_gattc_con_info_t* ps_con;    // BLEコネクション
 } ts_msg_ctrl_sts_t;
 
 /**
@@ -324,7 +324,7 @@ static void v_msg_rx_daemon_task(void* pv_parameters);
 /** message event daemon task */
 static void v_msg_evt_daemon_task(void* pv_parameters);
 /** message event enqueue processing */
-static void v_msg_evt_enqueue(te_com_ble_msg_event e_msg_evt);
+static void v_msg_evt_enqueue(te_ble_msg_event e_msg_evt);
 /** message controller init */
 static void v_msg_ctrl_sts_init();
 /** message controller connection Reset */
@@ -336,16 +336,16 @@ static void v_msg_ctrl_sts_transaction_timeout();
 /** message history reset processing */
 static void v_msg_history_reset(ts_msg_history_t* ps_msg_history);
 /** BLE Client Get Connection */
-static ts_com_ble_gattc_con_info_t* ps_get_connection();
+static ts_ble_fwk_gattc_con_info_t* ps_get_connection();
 /** BLE Rx Message */
-static te_com_ble_msg_rcv_sts_t e_rx_message(ts_com_msg_t* ps_rx_msg, TickType_t t_tick);
+static te_ble_msg_rcv_sts_t e_rx_message(ts_ble_msg_t* ps_rx_msg, TickType_t t_tick);
 /** BLE Rx Message check */
-static te_com_ble_msg_rcv_sts_t e_rx_msg_check(ts_com_msg_t* ps_rx_msg);
+static te_ble_msg_rcv_sts_t e_rx_msg_check(ts_ble_msg_t* ps_rx_msg);
 /** BLE Rx Message event */
-static te_com_ble_msg_rcv_sts_t e_rx_msg_event(ts_com_msg_t* ps_rx_msg);
+static te_ble_msg_rcv_sts_t e_rx_msg_event(ts_ble_msg_t* ps_rx_msg);
 /** BLE Tx response */
-static esp_err_t sts_tx_response(te_com_ble_msg_type_t e_rx_type,
-                                  te_com_ble_msg_rcv_sts_t e_rx_sts,
+static esp_err_t sts_tx_response(te_ble_msg_type_t e_rx_type,
+                                  te_ble_msg_rcv_sts_t e_rx_sts,
                                   uint32_t u32_seq_no);
 /** BLE Tx reset message */
 static esp_err_t sts_tx_reset_msg();
@@ -364,25 +364,25 @@ static esp_err_t sts_begin_pairing();
 /** begin status check transaction */
 static esp_err_t sts_begin_sts_chk();
 /** status code check */
-static esp_err_t sts_status_check(uint64_t u64_device_id, uint8_t* pu8_chk_code, ts_com_msg_auth_ticket_t* ps_ticket);
+static esp_err_t sts_status_check(uint64_t u64_device_id, uint8_t* pu8_chk_code, ts_ble_msg_auth_ticket_t* ps_ticket);
 /** encryption message */
 static esp_err_t sts_msg_encryption(ts_u8_array_t* ps_msg, uint16_t u16_data_len, uint8_t* pu8_key);
 /** decryption message */
-static ts_u8_array_t* ps_msg_decryption(ts_com_msg_t* ps_rx_msg, uint8_t* pu8_key);
+static ts_u8_array_t* ps_msg_decryption(ts_ble_msg_t* ps_rx_msg, uint8_t* pu8_key);
 /** BLE edit Rx message header */
-static te_com_ble_msg_rcv_sts_t e_edit_rx_header(ts_com_msg_t* ps_rx_msg, ts_com_ble_gatt_rx_data_t* ps_rx_data);
+static te_ble_msg_rcv_sts_t e_edit_rx_header(ts_ble_msg_t* ps_rx_msg, ts_ble_fwk_gatt_rx_data_t* ps_rx_data);
 /** edit auth tag */
 static esp_err_t sts_edit_auth_tag(uint8_t* pu8_tag, ts_u8_array_t* ps_msg);
 /** edit check code */
-static esp_err_t sts_edit_check_code(ts_com_msg_auth_ticket_t* ps_ticket, uint8_t* pu8_rand, uint8_t* pu8_digest);
+static esp_err_t sts_edit_check_code(ts_ble_msg_auth_ticket_t* ps_ticket, uint8_t* pu8_rand, uint8_t* pu8_digest);
 /** create message data */
-static ts_u8_array_t* ps_create_msg_data(te_com_ble_msg_type_t e_type, ts_u8_array_t* ps_data);
+static ts_u8_array_t* ps_create_msg_data(te_ble_msg_type_t e_type, ts_u8_array_t* ps_data);
 /** initialize ticket */
-static void v_init_ticket(ts_com_msg_auth_ticket_t* ps_ticket);
+static void v_init_ticket(ts_ble_msg_auth_ticket_t* ps_ticket);
 /** create ticket */
 static esp_err_t sts_create_ticket(ts_transaction_info_t* ps_tran, ts_pairing_info_t* ps_pairing);
 /** read ticket */
-static ts_com_msg_auth_ticket_t* ps_read_ticket(uint64_t u64_device_id, ts_com_msg_auth_ticket_t* ps_cache_ticket);
+static ts_ble_msg_auth_ticket_t* ps_read_ticket(uint64_t u64_device_id, ts_ble_msg_auth_ticket_t* ps_cache_ticket);
 
 //==============================================================================
 // BLE functions(Client side and Server side)
@@ -402,13 +402,13 @@ static void v_spp_evt_cb_cli(esp_gattc_cb_event_t e_event,
                               esp_gatt_if_t t_gatt_if,
                               esp_ble_gattc_cb_param_t* pu_param);
 /** BLE Connection status (Server Side) */
-static te_com_ble_msg_connection_sts_t e_connect_sts_svr();
+static te_ble_msg_connection_sts_t e_connect_sts_svr();
 /** BLE Connection status (Client Side) */
-static te_com_ble_msg_connection_sts_t e_connect_sts_cli();
+static te_ble_msg_connection_sts_t e_connect_sts_cli();
 /** BLE Rx Data(Server Side) */
-static ts_com_ble_gatt_rx_data_t* ps_ble_rx_data_svr(TickType_t t_tick);
+static ts_ble_fwk_gatt_rx_data_t* ps_ble_rx_data_svr(TickType_t t_tick);
 /** BLE Rx Data(Client Side) */
-static ts_com_ble_gatt_rx_data_t* ps_ble_rx_data_cli(TickType_t t_tick);
+static ts_ble_fwk_gatt_rx_data_t* ps_ble_rx_data_cli(TickType_t t_tick);
 /** BLE Server Rx Data queue clea(Server Side)r */
 static void v_ble_rx_clear_svr();
 /** BLE Client Rx Data queue clear(Client Side) */
@@ -428,11 +428,11 @@ static esp_err_t sts_ble_tx_msg_cli(ts_u8_array_t* ps_msg);
 /**
  * ダミー関数：接続ステータス取得
  */
-static te_com_ble_msg_connection_sts_t e_msg_dmy_connect_sts();
+static te_ble_msg_connection_sts_t e_msg_dmy_connect_sts();
 /**
  * ダミー関数：データ受信関数
  */
-static ts_com_ble_gatt_rx_data_t* ps_msg_dmy_rx_data(TickType_t t_tick);
+static ts_ble_fwk_gatt_rx_data_t* ps_msg_dmy_rx_data(TickType_t t_tick);
 /**
  * ダミー関数：メッセージ送信関数
  */
@@ -448,22 +448,48 @@ static void v_msg_dmy_rx_through(size_t t_len);
 /**
  * ダミー関数：チケットアクセスコールバック関数
  */
-static esp_err_t sts_msg_dmy_ticket_cb(te_com_ble_msg_ticket_evt_t e_evt, ts_com_msg_auth_ticket_t* ps_ticket);
+static esp_err_t sts_msg_dmy_ticket_cb(te_ble_msg_ticket_evt_t e_evt, ts_ble_msg_auth_ticket_t* ps_ticket);
 /**
  * ダミー関数：メッセージイベントコールバック関数
  */
-static void v_msg_dmy_evt_cb(te_com_ble_msg_event e_msg_evt);
+static void v_msg_dmy_evt_cb(te_ble_msg_event e_msg_evt);
 
 
 /******************************************************************************/
 /***      Local Variables                                                   ***/
 /******************************************************************************/
+/**
+ * メッセージイベント名
+ */
+static const char* pc_ble_msg_evt_str[] = {
+    [BLE_MSG_EVT_RX_RESPONSE] = "BLE_MSG_EVT_RX_RESPONSE",
+    [BLE_MSG_EVT_RX_RESET] = "BLE_MSG_EVT_RX_RESET",
+    [BLE_MSG_EVT_RX_PING] = "BLE_MSG_EVT_RX_PING",
+    [BLE_MSG_EVT_RX_DATA] = "BLE_MSG_EVT_RX_DATA",
+    [BLE_MSG_EVT_RX_CIPHERTEXT] = "BLE_MSG_EVT_RX_CIPHERTEXT",
+    [BLE_MSG_EVT_GATT_CONNECT] = "BLE_MSG_EVT_GATT_CONNECT",
+    [BLE_MSG_EVT_GATT_DISCONNECT] = "BLE_MSG_EVT_GATT_DISCONNECT",
+    [BLE_MSG_EVT_LINK_SUCCESS] = "BLE_MSG_EVT_LINK_SUCCESS",
+    [BLE_MSG_EVT_OPEN_SUCCESS] = "BLE_MSG_EVT_OPEN_SUCCESS",
+    [BLE_MSG_EVT_OPEN_TIMEOUT] = "BLE_MSG_EVT_OPEN_TIMEOUT",
+    [BLE_MSG_EVT_PAIRING_START] = "BLE_MSG_EVT_PAIRING_START",
+    [BLE_MSG_EVT_PAIRING_SUCCESS] = "BLE_MSG_EVT_PAIRING_SUCCESS",
+    [BLE_MSG_EVT_PAIRING_ERR] = "BLE_MSG_EVT_PAIRING_ERR",
+    [BLE_MSG_EVT_PAIRING_TIMEOUT] = "BLE_MSG_EVT_PAIRING_TIMEOUT",
+    [BLE_MSG_EVT_STATUS_CHK] = "BLE_MSG_EVT_STATUS_CHK",
+    [BLE_MSG_EVT_STATUS_OK] = "BLE_MSG_EVT_STATUS_OK",
+    [BLE_MSG_EVT_STATUS_ERR] = "BLE_MSG_EVT_STATUS_ERR",
+    [BLE_MSG_EVT_STATUS_TIMEOUT] = "BLE_MSG_EVT_STATUS_TIMEOUT",
+    [BLE_MSG_EVT_HANDLING_ERR] = "BLE_MSG_EVT_HANDLING_ERR",
+    [BLE_MSG_EVT_MAX] = "BLE_MSG_EVT_MAX",
+};
+
 //==============================================================================
 // constant definition
 //==============================================================================
 /** メッセージ定義 */
 static const ts_msg_definition_t MSG_DEF[] = {
-    // 受信通知：COM_BLE_MSG_TYP_RESPONSE
+    // 受信通知：BLE_MSG_TYP_RESPONSE
     {
         .b_fixed_length    = true,                  // 固定長メッセージ
         .u16_length        = 64,                    // レコード長
@@ -477,7 +503,7 @@ static const ts_msg_definition_t MSG_DEF[] = {
         .u16_map_before_tx = 0x0000,                // 直前の送信メッセージは何でも良い
         .b_response        = false,                 // レスポンス有無
     },
-    // リセット：COM_BLE_MSG_TYP_RESET
+    // リセット：BLE_MSG_TYP_RESET
     {
         .b_fixed_length    = true,                  // 固定長メッセージ
         .u16_length        = 62,                    // レコード長
@@ -491,7 +517,7 @@ static const ts_msg_definition_t MSG_DEF[] = {
         .u16_map_before_tx = 0x0000,                // 直前の送信メッセージは何でも良い
         .b_response        = true,                  // レスポンス有無
     },
-    // PING：COM_BLE_MSG_TYP_PING
+    // PING：BLE_MSG_TYP_PING
     {
         .b_fixed_length    = true,                  // 固定長メッセージ
         .u16_length        = 62,                    // レコード長
@@ -505,7 +531,7 @@ static const ts_msg_definition_t MSG_DEF[] = {
         .u16_map_before_tx = 0x0000,                // 直前の送信メッセージは何でも良い
         .b_response        = true,                  // レスポンス有無
     },
-    // ペアリング要求：COM_BLE_MSG_TYP_PAIRING_REQ
+    // ペアリング要求：BLE_MSG_TYP_PAIRING_REQ
     {
         .b_fixed_length    = true,                  // 固定長メッセージ
         .u16_length        = 94,                    // レコード長
@@ -519,7 +545,7 @@ static const ts_msg_definition_t MSG_DEF[] = {
         .u16_map_before_tx = 0x0000,                // 直前の送信メッセージは何でも良い
         .b_response        = true,                  // レスポンス有無
     },
-    // ペアリング応答：COM_BLE_MSG_TYP_PAIRING_RSP
+    // ペアリング応答：BLE_MSG_TYP_PAIRING_RSP
     {
         .b_fixed_length    = true,                  // 固定長メッセージ
         .u16_length        = 94,                    // レコード長
@@ -531,10 +557,10 @@ static const ts_msg_definition_t MSG_DEF[] = {
         .e_chk_trn_type    = MSG_CHK_TRN_EXEC,      // トランザクション実行中のみ有効
         .u16_map_before_rx = 0x0000,                // 直前の受信メッセージは何でも良い
         // 直前にペアリング要求を送信していないとエラー
-        .u16_map_before_tx = (0xFFFF ^ (0x0001 << COM_BLE_MSG_TYP_PAIRING_REQ)),
+        .u16_map_before_tx = (0xFFFF ^ (0x0001 << BLE_MSG_TYP_PAIRING_REQ)),
         .b_response        = true,                  // レスポンス有無
     },
-    // ダイジェスト一致：COM_BLE_MSG_TYP_DIGEST_MATCH
+    // ダイジェスト一致：BLE_MSG_TYP_DIGEST_MATCH
     {
         .b_fixed_length    = true,                  // 固定長メッセージ
         .u16_length        = 126,                   // レコード長
@@ -545,11 +571,11 @@ static const ts_msg_definition_t MSG_DEF[] = {
         .b_encryption      = true,                  // 本文の暗号化有無
         .e_chk_trn_type    = MSG_CHK_TRN_EXEC,      // トランザクション実行中のみ有効
         // 直前にペアリング要求かペアリング応答を受信していないとエラー
-        .u16_map_before_rx = (0xFFFF ^ ((0x0001 << COM_BLE_MSG_TYP_PAIRING_REQ) | (0x0001 << COM_BLE_MSG_TYP_PAIRING_RSP))),
+        .u16_map_before_rx = (0xFFFF ^ ((0x0001 << BLE_MSG_TYP_PAIRING_REQ) | (0x0001 << BLE_MSG_TYP_PAIRING_RSP))),
         .u16_map_before_tx = 0x0000,                // 直前の送信メッセージは何でも良い
         .b_response        = true,                  // レスポンス有無
     },
-    // ダイジェスト不一致：COM_BLE_MSG_TYP_DIGEST_ERR
+    // ダイジェスト不一致：BLE_MSG_TYP_DIGEST_ERR
     {
         .b_fixed_length    = true,                  // 固定長メッセージ
         .u16_length        = 62,                    // レコード長
@@ -560,11 +586,11 @@ static const ts_msg_definition_t MSG_DEF[] = {
         .b_encryption      = false,                 // 本文の暗号化有無
         .e_chk_trn_type    = MSG_CHK_TRN_EXEC,      // トランザクション実行中のみ有効
         // 直前にペアリング要求かペアリング応答を受信していないとエラー
-        .u16_map_before_rx = (0xFFFF ^ ((0x0001 << COM_BLE_MSG_TYP_PAIRING_REQ) | (0x0001 << COM_BLE_MSG_TYP_PAIRING_RSP))),
+        .u16_map_before_rx = (0xFFFF ^ ((0x0001 << BLE_MSG_TYP_PAIRING_REQ) | (0x0001 << BLE_MSG_TYP_PAIRING_RSP))),
         .u16_map_before_tx = 0x0000,                // 直前の送信メッセージは何でも良い
         .b_response        = true,                  // レスポンス有無
     },
-    // ステータス要求：COM_BLE_MSG_TYP_STATUS_REQ
+    // ステータス要求：BLE_MSG_TYP_STATUS_REQ
     {
         .b_fixed_length    = true,                  // 固定長メッセージ
         .u16_length        = 94,                    // レコード長
@@ -578,7 +604,7 @@ static const ts_msg_definition_t MSG_DEF[] = {
         .u16_map_before_tx = 0x0000,                // 直前の送信メッセージは何でも良い
         .b_response        = true,                  // レスポンス有無
     },
-    // ステータス応答１：COM_BLE_MSG_TYP_STATUS_RES1
+    // ステータス応答１：BLE_MSG_TYP_STATUS_RES1
     {
         .b_fixed_length    = true,                  // 固定長メッセージ
         .u16_length        = 126,                   // レコード長
@@ -590,10 +616,10 @@ static const ts_msg_definition_t MSG_DEF[] = {
         .e_chk_trn_type    = MSG_CHK_TRN_EXEC,      // トランザクション実行中のみ有効
         .u16_map_before_rx = 0x0000,                // 直前の受信メッセージは何でも良い
         // 直前にステータス要求を送信していないとエラー
-        .u16_map_before_tx = (0xFFFF ^ (0x0001 << COM_BLE_MSG_TYP_STATUS_REQ)),
+        .u16_map_before_tx = (0xFFFF ^ (0x0001 << BLE_MSG_TYP_STATUS_REQ)),
         .b_response        = true,                  // レスポンス有無
     },
-    // ステータス応答２：COM_BLE_MSG_TYP_STATUS_RES2
+    // ステータス応答２：BLE_MSG_TYP_STATUS_RES2
     {
         .b_fixed_length    = true,                  // 固定長メッセージ
         .u16_length        = 94,                    // レコード長
@@ -604,12 +630,12 @@ static const ts_msg_definition_t MSG_DEF[] = {
         .b_encryption      = false,                 // 本文の暗号化有無
         .e_chk_trn_type    = MSG_CHK_TRN_EXEC,      // トランザクション実行中のみ有効
         // 直前にステータス要求を受信していないとエラー
-        .u16_map_before_rx = (0xFFFF ^ (0x0001 << COM_BLE_MSG_TYP_STATUS_REQ)),
+        .u16_map_before_rx = (0xFFFF ^ (0x0001 << BLE_MSG_TYP_STATUS_REQ)),
         // 直前にステータス応答１を送信していないとエラー
-        .u16_map_before_tx = (0xFFFF ^ (0x0001 << COM_BLE_MSG_TYP_STATUS_RSP1)),
+        .u16_map_before_tx = (0xFFFF ^ (0x0001 << BLE_MSG_TYP_STATUS_RSP1)),
         .b_response        = true,                  // レスポンス有無
     },
-    // データ：COM_BLE_MSG_TYP_DATA
+    // データ：BLE_MSG_TYP_DATA
     {
         .b_fixed_length    = false,                 // 固定長メッセージ
         .u16_length        = 62,                    // レコード長（ヘッダー長＋フッター長）
@@ -623,7 +649,7 @@ static const ts_msg_definition_t MSG_DEF[] = {
         .u16_map_before_tx = 0x0000,                // 直前の送信メッセージは何でも良い
         .b_response        = true,                  // レスポンス有無
     },
-    // 暗号データ：COM_BLE_MSG_TYP_CRYPTOGRAPHY
+    // 暗号データ：BLE_MSG_TYP_CRYPTOGRAPHY
     {
         .b_fixed_length    = false,                 // 固定長メッセージ
         .u16_length        = 106,                   // レコード長（ヘッダー長＋最小本文データ長＋フッター長）
@@ -647,7 +673,7 @@ static SemaphoreHandle_t s_mutex_sts = NULL;
 
 /** 制御設定 */
 static ts_msg_ctrl_cfg_t s_msg_ctrl_cfg = {
-    .e_mode         = COM_BLE_MSG_MODE_BLE_INIT,    // 動作モード
+    .e_mode         = BLE_MSG_MODE_BLE_INIT,    // 動作モード
     .u16_app_id     = 0,                            // アプリケーションID
     .u64_device_id  = 0,                            // 自デバイスID
     .s_func_ctl     = 0x00,                         // 機能制御
@@ -684,17 +710,17 @@ static ts_msg_ctrl_sts_t s_msg_ctrl_sts = {
         .t_bda         = {0x40},
         .u32_tick_ms   = 0,
         .u32_seq_no    = 0,
-        .e_type = COM_BLE_MSG_TYP_CNT
+        .e_type = BLE_MSG_TYP_MAX
     },
     .s_bef_rx_msg = {                       // 直前の受信メッセージ履歴
         .u64_device_id = 0,
         .t_bda         = {0x40},
         .u32_tick_ms   = 0,
         .u32_seq_no    = 0,
-        .e_type = COM_BLE_MSG_TYP_CNT
+        .e_type = BLE_MSG_TYP_MAX
     },
     .s_tran = {
-        .e_sts          = COM_BLE_MSG_TRN_NONE,     // トランザクションステータス
+        .e_sts          = BLE_MSG_TRN_NONE,     // トランザクションステータス
         .u64_device_id  = 0,                // トランザクション実行中の相手デバイスID
         .t_bda          = {0x40},           // トランザクション実行中の相手デバイスBLEアドレス
         .u32_timeout_ms = U32_MAX,          // トランザクションタイムアウト（ミリ秒）
@@ -727,9 +753,12 @@ static ts_msg_deamon_sts_t s_msg_deamon_sts = {
 /***      Exported Functions                                                ***/
 /******************************************************************************/
 
+//==============================================================================
+// 設定関数
+//==============================================================================
 /*******************************************************************************
  *
- * NAME: sts_com_msg_init_svr
+ * NAME: sts_ble_msg_init_svr
  *
  * DESCRIPTION:メッセージサーバーの初期処理
  *
@@ -737,8 +766,8 @@ static ts_msg_deamon_sts_t s_msg_deamon_sts = {
  * uint16_t                     u16_app_id      R   アプリケーションID
  * uint64_t                     u64_device_id   R   デバイスID
  * uint16_t                     u16_max_length  R   メッセージの最大サイズ
- * tf_com_ble_msg_evt_cb_t      pf_evt_cb       R   イベントコールバック関数
- * tf_com_ble_msg_ticket_cb_t   pf_tkt_cb       R   チケットアクセスコールバック関数
+ * tf_ble_msg_evt_cb_t      pf_evt_cb       R   イベントコールバック関数
+ * tf_ble_msg_ticket_cb_t   pf_tkt_cb       R   チケットアクセスコールバック関数
  *
  * RETURNS:
  *   esp_err_t 結果ステータス
@@ -746,11 +775,11 @@ static ts_msg_deamon_sts_t s_msg_deamon_sts = {
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_com_msg_init_svr(uint16_t u16_app_id,
+esp_err_t sts_ble_msg_init_svr(uint16_t u16_app_id,
                                uint64_t u64_device_id,
                                uint16_t u16_max_length,
-                               tf_com_ble_msg_evt_cb_t pf_evt_cb,
-                               tf_com_ble_msg_ticket_cb_t pf_tkt_cb) {
+                               tf_ble_msg_evt_cb_t pf_evt_cb,
+                               tf_ble_msg_ticket_cb_t pf_tkt_cb) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
@@ -780,7 +809,7 @@ esp_err_t sts_com_msg_init_svr(uint16_t u16_app_id,
         //----------------------------------------------------------------------
         // 起動判定
         //----------------------------------------------------------------------
-        if (s_msg_ctrl_cfg.e_mode != COM_BLE_MSG_MODE_BLE_INIT) {
+        if (s_msg_ctrl_cfg.e_mode != BLE_MSG_MODE_BLE_INIT) {
             sts_val = ESP_ERR_INVALID_STATE;
             break;
         }
@@ -789,7 +818,7 @@ esp_err_t sts_com_msg_init_svr(uint16_t u16_app_id,
         // 制御設定の初期化
         //----------------------------------------------------------------------
         // サーバー設定
-        s_msg_ctrl_cfg.e_mode = COM_BLE_MSG_MODE_BLE_SERVER;    // モード
+        s_msg_ctrl_cfg.e_mode = BLE_MSG_MODE_BLE_SERVER;    // モード
         s_msg_ctrl_cfg.u16_app_id      = u16_app_id;            // アプリケーションID
         s_msg_ctrl_cfg.u64_device_id   = u64_device_id;         // デバイスID
         s_msg_ctrl_cfg.u32_max_length  = u16_max_length;         // メッセージ最大サイズの設定
@@ -808,14 +837,14 @@ esp_err_t sts_com_msg_init_svr(uint16_t u16_app_id,
         //----------------------------------------------------------------------
         v_msg_ctrl_sts_init();
         // チケット
-        ts_com_msg_auth_ticket_t* ps_rmt_ticket = &s_msg_ctrl_sts.s_rmt_ticket;
+        ts_ble_msg_auth_ticket_t* ps_rmt_ticket = &s_msg_ctrl_sts.s_rmt_ticket;
         ps_rmt_ticket->u64_own_device_id = s_msg_ctrl_cfg.u64_device_id;
         ps_rmt_ticket->u64_rmt_device_id = s_msg_ctrl_cfg.u64_device_id;
 
         //----------------------------------------------------------------------
         // SPPサーバーのユーザーコールバック登録
         //----------------------------------------------------------------------
-        v_com_ble_spps_set_usr_cb(v_spp_evt_cb_svr);
+        v_ble_fwk_spps_set_usr_cb(v_spp_evt_cb_svr);
 
         //----------------------------------------------------------------------
         // メッセージ処理デーモンタスクの開始
@@ -837,7 +866,7 @@ esp_err_t sts_com_msg_init_svr(uint16_t u16_app_id,
 
 /*******************************************************************************
  *
- * NAME: sts_com_msg_init_cli
+ * NAME: sts_ble_msg_init_cli
  *
  * DESCRIPTION:メッセージクライアントの初期処理
  *
@@ -845,8 +874,8 @@ esp_err_t sts_com_msg_init_svr(uint16_t u16_app_id,
  * uint16_t                     u16_app_id      R   アプリケーションID
  * uint64_t                     u64_device_id   R   デバイスID
  * uint16_t                     u16_max_length  R   メッセージの最大サイズ
- * tf_com_ble_msg_evt_cb_t      pf_evt_cb       R   メッセージイベント関数
- * tf_com_ble_msg_ticket_cb_t   pf_tkt_cb       R   チケットアクセスコールバック関数
+ * tf_ble_msg_evt_cb_t      pf_evt_cb       R   メッセージイベント関数
+ * tf_ble_msg_ticket_cb_t   pf_tkt_cb       R   チケットアクセスコールバック関数
  *
  * RETURNS:
  *   esp_err_t 結果ステータス
@@ -854,11 +883,11 @@ esp_err_t sts_com_msg_init_svr(uint16_t u16_app_id,
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_com_msg_init_cli(uint16_t u16_app_id,
+esp_err_t sts_ble_msg_init_cli(uint16_t u16_app_id,
                                uint64_t u64_device_id,
                                uint16_t u16_max_length,
-                               tf_com_ble_msg_evt_cb_t pf_evt_cb,
-                               tf_com_ble_msg_ticket_cb_t pf_tkt_cb) {
+                               tf_ble_msg_evt_cb_t pf_evt_cb,
+                               tf_ble_msg_ticket_cb_t pf_tkt_cb) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
@@ -888,7 +917,7 @@ esp_err_t sts_com_msg_init_cli(uint16_t u16_app_id,
         //----------------------------------------------------------------------
         // 起動判定
         //----------------------------------------------------------------------
-        if (s_msg_ctrl_cfg.e_mode != COM_BLE_MSG_MODE_BLE_INIT) {
+        if (s_msg_ctrl_cfg.e_mode != BLE_MSG_MODE_BLE_INIT) {
             sts_val = ESP_ERR_INVALID_STATE;
             break;
         }
@@ -896,7 +925,7 @@ esp_err_t sts_com_msg_init_cli(uint16_t u16_app_id,
         //----------------------------------------------------------------------
         // MTUサイズの設定
         //----------------------------------------------------------------------
-        if (esp_ble_gatt_set_local_mtu(COM_MSG_SIZE_MTU) != ESP_OK) {
+        if (esp_ble_gatt_set_local_mtu(BLE_MSG_SIZE_MTU) != ESP_OK) {
             sts_val = ESP_ERR_INVALID_STATE;
             break;
         }
@@ -905,7 +934,7 @@ esp_err_t sts_com_msg_init_cli(uint16_t u16_app_id,
         // 制御設定の初期化
         //----------------------------------------------------------------------
         // サーバー設定
-        s_msg_ctrl_cfg.e_mode = COM_BLE_MSG_MODE_BLE_CLIENT;    // モード
+        s_msg_ctrl_cfg.e_mode = BLE_MSG_MODE_BLE_CLIENT;    // モード
         s_msg_ctrl_cfg.u16_app_id     = u16_app_id;             // アプリケーションID
         s_msg_ctrl_cfg.u64_device_id  = u64_device_id;          // デバイスID
         s_msg_ctrl_cfg.u32_max_length = u16_max_length;         // メッセージ最大サイズの設定
@@ -927,7 +956,7 @@ esp_err_t sts_com_msg_init_cli(uint16_t u16_app_id,
         //----------------------------------------------------------------------
         // SPPクライアントのユーザーコールバック登録
         //----------------------------------------------------------------------
-        v_com_ble_sppc_set_usr_cb(v_spp_evt_cb_cli);
+        v_ble_fwk_sppc_set_usr_cb(v_spp_evt_cb_cli);
 
         //----------------------------------------------------------------------
         // メッセージ処理デーモンタスクの開始
@@ -949,19 +978,19 @@ esp_err_t sts_com_msg_init_cli(uint16_t u16_app_id,
 
 /*******************************************************************************
  *
- * NAME: v_com_msg_rx_enabled
+ * NAME: v_ble_msg_rx_enabled
  *
  * DESCRIPTION:受信メッセージのエンキュー有効化処理
  *
  * PARAMETERS:              Name    RW  Usage
- * te_com_ble_msg_type_t    e_type  R   有効化するメッセージタイプ
+ * te_ble_msg_type_t    e_type  R   有効化するメッセージタイプ
  *
  * RETURNS:
  *
  * NOTES:
  * None.
  ******************************************************************************/
-void v_com_msg_rx_enabled(te_com_ble_msg_type_t e_type) {
+void v_ble_msg_rx_enabled(te_ble_msg_type_t e_type) {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
@@ -982,19 +1011,19 @@ void v_com_msg_rx_enabled(te_com_ble_msg_type_t e_type) {
 
 /*******************************************************************************
  *
- * NAME: v_com_msg_rx_disabled
+ * NAME: v_ble_msg_rx_disabled
  *
  * DESCRIPTION:受信メッセージのエンキュー無効化処理
  *
  * PARAMETERS:              Name    RW  Usage
- * te_com_ble_msg_type_t    e_type  R   有効化するメッセージタイプ
+ * te_ble_msg_type_t    e_type  R   有効化するメッセージタイプ
  *
  * RETURNS:
  *
  * NOTES:
  * None.
  ******************************************************************************/
-void v_com_msg_rx_disabled(te_com_ble_msg_type_t e_type) {
+void v_ble_msg_rx_disabled(te_ble_msg_type_t e_type) {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
@@ -1015,7 +1044,7 @@ void v_com_msg_rx_disabled(te_com_ble_msg_type_t e_type) {
 
 /*******************************************************************************
  *
- * NAME: v_com_msg_config_pairing
+ * NAME: v_ble_msg_config_pairing
  *
  * DESCRIPTION:ペアリング機能の設定
  *
@@ -1027,7 +1056,7 @@ void v_com_msg_rx_disabled(te_com_ble_msg_type_t e_type) {
  * NOTES:
  * None.
  ******************************************************************************/
-void v_com_msg_config_pairing(bool b_enabled) {
+void v_ble_msg_config_pairing(bool b_enabled) {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
@@ -1054,7 +1083,7 @@ void v_com_msg_config_pairing(bool b_enabled) {
 
 /*******************************************************************************
  *
- * NAME: v_com_msg_config_sts_chk
+ * NAME: v_ble_msg_config_sts_chk
  *
  * DESCRIPTION:ステータスチェック機能の設定
  *
@@ -1066,7 +1095,7 @@ void v_com_msg_config_pairing(bool b_enabled) {
  * NOTES:
  * None.
  ******************************************************************************/
-void v_com_msg_config_sts_chk(bool b_enabled) {
+void v_ble_msg_config_sts_chk(bool b_enabled) {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
@@ -1092,107 +1121,18 @@ void v_com_msg_config_sts_chk(bool b_enabled) {
     xSemaphoreGiveRecursive(s_mutex_sts);
 }
 
-/*******************************************************************************
- *
- * NAME: b_com_msg_is_paired
- *
- * DESCRIPTION:ペアリング済み判定
- *
- * PARAMETERS:  Name            RW  Usage
- * uint64_t     u64_device_id   R   デバイスID
- *
- * RETURNS:
- *   true:ペアリング済み
- *
- * NOTES:
- * None.
- ******************************************************************************/
-bool b_com_msg_is_paired(uint64_t u64_device_id) {
-    //==========================================================================
-    // クリティカルセクション開始
-    //==========================================================================
-    if (xSemaphoreTakeRecursive(s_mutex_sts, portMAX_DELAY) != pdTRUE) {
-        return ESP_ERR_TIMEOUT;
-    }
-
-    //==========================================================================
-    // チケット取得
-    //==========================================================================
-    // チケットの有効判定
-    bool b_result = b_is_paired(u64_device_id);
-
-    //==========================================================================
-    // クリティカルセクション終了
-    //==========================================================================
-    xSemaphoreGiveRecursive(s_mutex_sts);
-
-    // 結果返信
-    return b_result;
-}
+//==============================================================================
+// 制御関数
+//==============================================================================
 
 /*******************************************************************************
  *
- * NAME: e_com_msg_connection_sts
- *
- * DESCRIPTION:接続ステータス取得
- *
- * PARAMETERS:  Name            RW  Usage
- *
- * RETURNS:
- *   te_com_ble_msg_connection_sts_t:接続ステータス
- *
- * NOTES:
- * None.
- ******************************************************************************/
-te_com_ble_msg_connection_sts_t e_com_msg_connection_sts() {
-    // 接続ステータス返却
-    return s_msg_ctrl_cfg.pf_connect_sts();
-}
-
-/*******************************************************************************
- *
- * NAME: sts_com_msg_transaction_sts
- *
- * DESCRIPTION:トランザクションステータスの取得処理
- *
- * PARAMETERS:  Name            RW  Usage
- *
- * RETURNS:
- *   te_com_ble_msg_transaction_sts_t:トランザクションステータス
- *
- * NOTES:
- * None.
- ******************************************************************************/
-te_com_ble_msg_transaction_sts_t sts_com_msg_transaction_sts() {
-    //==========================================================================
-    // クリティカルセクション開始
-    //==========================================================================
-    if (xSemaphoreTakeRecursive(s_mutex_sts, portMAX_DELAY) != pdTRUE) {
-        return ESP_ERR_TIMEOUT;
-    }
-
-    //==========================================================================
-    // トランザクションステータスの取得
-    //==========================================================================
-    te_com_ble_msg_transaction_sts_t e_sts = s_msg_ctrl_sts.s_tran.e_sts;
-
-    //==========================================================================
-    // クリティカルセクション終了
-    //==========================================================================
-    xSemaphoreGiveRecursive(s_mutex_sts);
-
-    // 結果返信
-    return e_sts;
-}
-
-/*******************************************************************************
- *
- * NAME: sts_com_msg_open_server
+ * NAME: sts_ble_msg_open_server
  *
  * DESCRIPTION:メッセージサーバーへの接続
  *
- * PARAMETERS:                  Name        RW  Usage
- * ts_com_ble_gap_scan_result*  ps_device   R   スキャン結果
+ * PARAMETERS:                      Name        RW  Usage
+ * ts_ble_fwk_gap_device_info_t*    ps_device   R   スキャン結果
  *
  * RETURNS:
  *   esp_err_t 結果ステータス
@@ -1200,7 +1140,7 @@ te_com_ble_msg_transaction_sts_t sts_com_msg_transaction_sts() {
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_com_msg_open_server(ts_com_ble_gap_device_info_t* ps_device) {
+esp_err_t sts_ble_msg_open_server(ts_ble_fwk_gap_device_info_t* ps_device) {
     //==========================================================================
     // 入力チェック
     //==========================================================================
@@ -1209,7 +1149,7 @@ esp_err_t sts_com_msg_open_server(ts_com_ble_gap_device_info_t* ps_device) {
         return ESP_ERR_INVALID_ARG;
     }
     // クライアント判定
-    if (s_msg_ctrl_cfg.e_mode != COM_BLE_MSG_MODE_BLE_CLIENT) {
+    if (s_msg_ctrl_cfg.e_mode != BLE_MSG_MODE_BLE_CLIENT) {
         // クライアントのみ実行可能
         return ESP_ERR_INVALID_STATE;
     }
@@ -1240,7 +1180,7 @@ esp_err_t sts_com_msg_open_server(ts_com_ble_gap_device_info_t* ps_device) {
         //----------------------------------------------------------------------
         // GATTサーバーへの接続
         esp_gatt_if_t t_gatt_if = s_msg_ctrl_cfg.pf_gatt_if();
-        sts_val = sts_com_ble_gattc_open(t_gatt_if, ps_device->t_bda, ps_device->e_addr_type, true);
+        sts_val = sts_ble_fwk_gattc_open(t_gatt_if, ps_device->t_bda, ps_device->e_addr_type, true);
     } while(false);
 
     //==========================================================================
@@ -1254,7 +1194,82 @@ esp_err_t sts_com_msg_open_server(ts_com_ble_gap_device_info_t* ps_device) {
 
 /*******************************************************************************
  *
- * NAME: sts_com_msg_close
+ * NAME: sts_ble_msg_enh_open_server
+ *
+ * DESCRIPTION:メッセージサーバーへの接続開始 BLE50
+ *
+ * PARAMETERS:                          Name            RW  Usage
+ * esp_ble_gatt_creat_conn_params_t*    ps_con_params   R   接続パラメータ
+ *
+ * RETURNS:
+ *   esp_err_t 結果ステータス
+ *
+ * NOTES:
+ * None.
+ ******************************************************************************/
+esp_err_t sts_ble_msg_enh_open_server(esp_ble_gatt_creat_conn_params_t* ps_con_params) {
+#if (CONFIG_BT_BLE_50_FEATURES_SUPPORTED)
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    // パラメータチェック
+    if (ps_con_params == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    //==========================================================================
+    // クリティカルセクション開始
+    //==========================================================================
+    if (xSemaphoreTakeRecursive(s_mutex_sts, portMAX_DELAY) != pdTRUE) {
+        return ESP_ERR_TIMEOUT;
+    }
+
+    //==========================================================================
+    // サーバーへの接続処理
+    //==========================================================================
+    esp_err_t sts_val = ESP_OK;
+    do {
+        //----------------------------------------------------------------------
+        // クライアント判定
+        //----------------------------------------------------------------------
+        if (s_msg_ctrl_cfg.e_mode != BLE_MSG_MODE_BLE_CLIENT) {
+            // クライアントのみ実行可能
+            sts_val = ESP_ERR_INVALID_STATE;
+            break;
+        }
+
+        //----------------------------------------------------------------------
+        // オープントランザクションの開始判定
+        //----------------------------------------------------------------------
+        uint32_t u32_timeout_ms = 0;
+        sts_val = sts_begin_open(ps_con_params->remote_bda, &u32_timeout_ms);
+        // トランザクションの開始判定
+        if (sts_val != ESP_OK) {
+            break;
+        }
+        //----------------------------------------------------------------------
+        // GATT接続シーケンス
+        //----------------------------------------------------------------------
+        // GATTサーバーへの接続
+        esp_gatt_if_t t_gatt_if = s_msg_ctrl_cfg.pf_gatt_if();
+        sts_val = sts_ble_fwk_gattc_enh_open(t_gatt_if, ps_con_params);
+    } while(false);
+
+    //==========================================================================
+    // クリティカルセクション終了
+    //==========================================================================
+    xSemaphoreGiveRecursive(s_mutex_sts);
+
+    // 結果ステータス返信
+    return sts_val;
+#else
+    // BLE50 not supported
+    return ESP_ERR_NOT_SUPPORTED;
+#endif
+}
+
+/*******************************************************************************
+ *
+ * NAME: sts_ble_msg_close
  *
  * DESCRIPTION:コネクションを切断
  *
@@ -1266,7 +1281,7 @@ esp_err_t sts_com_msg_open_server(ts_com_ble_gap_device_info_t* ps_device) {
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_com_msg_close() {
+esp_err_t sts_ble_msg_close() {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
@@ -1279,9 +1294,9 @@ esp_err_t sts_com_msg_close() {
     //==========================================================================
     esp_err_t sts_val = ESP_OK;
     // コネクションを切断
-    ts_com_ble_gattc_con_info_t* ps_con = s_msg_ctrl_sts.ps_con;
+    ts_ble_fwk_gattc_con_info_t* ps_con = s_msg_ctrl_sts.ps_con;
     if (ps_con != NULL) {
-        sts_val = sts_com_ble_disconnect(ps_con->t_bda);
+        sts_val = sts_ble_fwk_disconnect(ps_con->t_bda);
     }
     // 制御ステータス初期化
     v_msg_ctrl_sts_init();
@@ -1297,155 +1312,7 @@ esp_err_t sts_com_msg_close() {
 
 /*******************************************************************************
  *
- * NAME: sts_com_msg_edit_remote_dev_id
- *
- * DESCRIPTION:接続先デバイスIDの取得
- *
- * PARAMETERS:  Name            RW  Usage
- * uint64_t*    pu64_device_id  R   デバイスIDポインタ
- *
- * RETURNS:
- *   esp_err_t 結果ステータス
- *
- * NOTES:
- * None.
- ******************************************************************************/
-esp_err_t sts_com_msg_edit_remote_dev_id(uint64_t* pu64_device_id) {
-    //==========================================================================
-    // クリティカルセクション開始
-    //==========================================================================
-    if (xSemaphoreTakeRecursive(s_mutex_sts, portMAX_DELAY) != pdTRUE) {
-        return ESP_ERR_TIMEOUT;
-    }
-
-    //==========================================================================
-    // デバイスIDの取得
-    //==========================================================================
-    esp_err_t sts_val = ESP_OK;
-    do {
-        // 接続確認
-        if (s_msg_ctrl_cfg.pf_connect_sts() != COM_BLE_MSG_CON_CONNECTED) {
-            // 結果ステータス
-            sts_val = ESP_ERR_NOT_FOUND;
-            break;
-        }
-        // 受信履歴のチェック
-        if (s_msg_ctrl_sts.u64_rmt_device_id == s_msg_ctrl_cfg.u64_device_id) {
-            // 結果ステータス
-            sts_val = ESP_ERR_NOT_FOUND;
-            break;
-        }
-        // デバイスID編集
-        *pu64_device_id = s_msg_ctrl_sts.u64_rmt_device_id;
-    } while(false);
-
-    //==========================================================================
-    // クリティカルセクション終了
-    //==========================================================================
-    xSemaphoreGiveRecursive(s_mutex_sts);
-
-    // 結果ステータス返信
-    return sts_val;
-}
-
-/*******************************************************************************
- *
- * NAME: sts_com_msg_edit_public_key_pair
- *
- * DESCRIPTION:ペアリング中の公開鍵のペアの編集処理
- *
- * PARAMETERS:  Name            RW  Usage
- * uint8_t*     pu8_client_key  W   公開鍵（クライアント）
- * uint8_t*     pu8_server_key  W   公開鍵（サーバー）
- *
- * RETURNS:
- *   esp_err_t 結果ステータス
- *
- * NOTES:
- * None.
- ******************************************************************************/
-esp_err_t sts_com_msg_edit_public_key_pair(uint8_t* pu8_client_key, uint8_t* pu8_server_key) {
-    //==========================================================================
-    // 入力チェック
-    //==========================================================================
-    if (pu8_client_key == NULL || pu8_server_key == NULL) {
-        return ESP_ERR_INVALID_ARG;
-    }
-
-    //==========================================================================
-    // クリティカルセクション開始
-    //==========================================================================
-    if (xSemaphoreTakeRecursive(s_mutex_sts, portMAX_DELAY) != pdTRUE) {
-        return ESP_ERR_TIMEOUT;
-    }
-
-    //==========================================================================
-    // 主処理
-    //==========================================================================
-    esp_err_t sts_val = ESP_OK;
-    do {
-        //----------------------------------------------------------------------
-        // トランザクション開始判定
-        //----------------------------------------------------------------------
-        ts_transaction_info_t* ps_tran = &s_msg_ctrl_sts.s_tran;
-        if (ps_tran->e_sts != COM_BLE_MSG_TRN_PAIRING) {
-            // ペアリングトランザクションが開始していない
-            sts_val = ESP_ERR_INVALID_STATE;
-            break;
-        }
-
-        //----------------------------------------------------------------------
-        // タイムアウト判定
-        //----------------------------------------------------------------------
-        if (ps_tran->u32_timeout_ms < xTaskGetTickCountMSec()) {
-            // タイムアウト
-            sts_val = ESP_ERR_TIMEOUT;
-            break;
-        }
-
-        //----------------------------------------------------------------------
-        // 接続判定
-        //----------------------------------------------------------------------
-        if (s_msg_ctrl_cfg.pf_connect_sts() != COM_BLE_MSG_CON_CONNECTED) {
-            // 未接続
-            sts_val = ESP_ERR_INVALID_STATE;
-            break;
-        }
-
-        //----------------------------------------------------------------------
-        // 公開鍵の受信済み判定
-        //----------------------------------------------------------------------
-        if (!b_is_public_key_received()) {
-            // 公開鍵未受信
-            sts_val = ESP_ERR_INVALID_STATE;
-            break;
-        }
-
-        //----------------------------------------------------------------------
-        // 公開鍵のペアを編集
-        //----------------------------------------------------------------------
-        ts_pairing_info_t* ps_pairing = &s_msg_ctrl_sts.s_pairing;
-        // X25519コンテキスト
-        ts_crypto_x25519_context_t* ps_x25519_ctx = ps_pairing->ps_x25519_ctx;
-        // クライアント側の公開鍵を編集
-        memcpy(pu8_client_key, ps_x25519_ctx->u8_cli_public_key, CRYPTO_X25519_CLIENT_PUBLIC_KEY_SIZE);
-        // サーバー側の公開鍵を編集
-        memcpy(pu8_server_key, ps_x25519_ctx->u8_svr_public_key, CRYPTO_X25519_SERVER_PUBLIC_KEY_SIZE);
-
-    } while(false);
-
-    //==========================================================================
-    // クリティカルセクション終了
-    //==========================================================================
-    xSemaphoreGiveRecursive(s_mutex_sts);
-
-    // 結果返信
-    return sts_val;
-}
-
-/*******************************************************************************
- *
- * NAME: ps_com_msg_rx_msg
+ * NAME: ps_ble_msg_rx_msg
  *
  * DESCRIPTION:メッセージの読み込み処理
  *
@@ -1458,9 +1325,9 @@ esp_err_t sts_com_msg_edit_public_key_pair(uint8_t* pu8_client_key, uint8_t* pu8
  * NOTES:
  * None.
  ******************************************************************************/
-ts_com_msg_t* ps_com_msg_rx_msg(TickType_t t_tick) {
+ts_ble_msg_t* ps_ble_msg_rx_msg(TickType_t t_tick) {
     // メッセージの読み込み
-    ts_com_msg_t* ps_msg = NULL;
+    ts_ble_msg_t* ps_msg = NULL;
     if (xQueueReceive(s_msg_deamon_sts.s_rx_queue_handle, &ps_msg, t_tick) != pdPASS) {
         ps_msg = NULL;
     }
@@ -1470,7 +1337,7 @@ ts_com_msg_t* ps_com_msg_rx_msg(TickType_t t_tick) {
 
 /*******************************************************************************
  *
- * NAME: sts_com_msg_rx_wait
+ * NAME: sts_ble_msg_rx_wait
  *
  * DESCRIPTION:メッセージの受信ウェイト
  *
@@ -1483,7 +1350,7 @@ ts_com_msg_t* ps_com_msg_rx_msg(TickType_t t_tick) {
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_com_msg_rx_wait(TickType_t t_tick) {
+esp_err_t sts_ble_msg_rx_wait(TickType_t t_tick) {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
@@ -1538,7 +1405,7 @@ esp_err_t sts_com_msg_rx_wait(TickType_t t_tick) {
             return ESP_OK;
         }
         // ウェイト
-        vTaskDelay(COM_MSG_RETRY_WAIT);
+        vTaskDelay(BLE_MSG_RETRY_WAIT);
     } while(t_timeout >= xTaskGetTickCount());
 
     // 結果返信
@@ -1547,7 +1414,7 @@ esp_err_t sts_com_msg_rx_wait(TickType_t t_tick) {
 
 /*******************************************************************************
  *
- * NAME: sts_com_msg_tx_reset_msg
+ * NAME: sts_ble_msg_tx_reset_msg
  *
  * DESCRIPTION:RESETメッセージの送信処理
  *
@@ -1559,7 +1426,7 @@ esp_err_t sts_com_msg_rx_wait(TickType_t t_tick) {
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_com_msg_tx_reset_msg() {
+esp_err_t sts_ble_msg_tx_reset_msg() {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
@@ -1582,7 +1449,7 @@ esp_err_t sts_com_msg_tx_reset_msg() {
 
 /*******************************************************************************
  *
- * NAME: sts_com_msg_tx_ping_msg
+ * NAME: sts_ble_msg_tx_ping_msg
  *
  * DESCRIPTION:PINGメッセージの送信処理
  *
@@ -1594,7 +1461,7 @@ esp_err_t sts_com_msg_tx_reset_msg() {
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_com_msg_tx_ping_msg() {
+esp_err_t sts_ble_msg_tx_ping_msg() {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
@@ -1617,7 +1484,7 @@ esp_err_t sts_com_msg_tx_ping_msg() {
 
 /*******************************************************************************
  *
- * NAME: sts_com_msg_tx_pairing_request
+ * NAME: sts_ble_msg_tx_pairing_request
  *
  * DESCRIPTION:ペアリング要求
  *
@@ -1629,7 +1496,7 @@ esp_err_t sts_com_msg_tx_ping_msg() {
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_com_msg_tx_pairing_request() {
+esp_err_t sts_ble_msg_tx_pairing_request() {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
@@ -1657,7 +1524,7 @@ esp_err_t sts_com_msg_tx_pairing_request() {
         // ペアリング要求の送信処理
         //----------------------------------------------------------------------
         // メッセージの生成
-        ts_u8_array_t* ps_msg_data = ps_create_msg_data(COM_BLE_MSG_TYP_PAIRING_REQ, NULL);
+        ts_u8_array_t* ps_msg_data = ps_create_msg_data(BLE_MSG_TYP_PAIRING_REQ, NULL);
         if (ps_msg_data == NULL) {
             // メッセージ生成エラー
             sts_val = ESP_ERR_NO_MEM;
@@ -1687,7 +1554,7 @@ esp_err_t sts_com_msg_tx_pairing_request() {
 
 /*******************************************************************************
  *
- * NAME: sts_com_msg_tx_pairing_certification
+ * NAME: sts_ble_msg_tx_pairing_certification
  *
  * DESCRIPTION:ペアリング認証（ダイジェスト比較結果の通知）
  *
@@ -1701,7 +1568,7 @@ esp_err_t sts_com_msg_tx_pairing_request() {
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_com_msg_tx_pairing_certification(bool b_result, uint32_t u32_max_seq_no) {
+esp_err_t sts_ble_msg_tx_pairing_certification(bool b_result, uint32_t u32_max_seq_no) {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
@@ -1714,7 +1581,7 @@ esp_err_t sts_com_msg_tx_pairing_certification(bool b_result, uint32_t u32_max_s
     //==========================================================================
     esp_err_t sts_val = ESP_OK;
     bool b_end_tran = false;
-    te_com_ble_msg_event e_evt = COM_BLE_MSG_EVT_PAIRING_SUCCESS;
+    te_ble_msg_event e_evt = BLE_MSG_EVT_PAIRING_SUCCESS;
     do {
         //======================================================================
         // 状態チェック
@@ -1732,7 +1599,7 @@ esp_err_t sts_com_msg_tx_pairing_certification(bool b_result, uint32_t u32_max_s
         // トランザクション開始判定
         //----------------------------------------------------------------------
         ts_transaction_info_t* ps_tran = &s_msg_ctrl_sts.s_tran;
-        if (ps_tran->e_sts != COM_BLE_MSG_TRN_PAIRING) {
+        if (ps_tran->e_sts != BLE_MSG_TRN_PAIRING) {
             // ペアリングトランザクションが開始していない
             sts_val = ESP_ERR_INVALID_STATE;
             break;
@@ -1762,7 +1629,7 @@ esp_err_t sts_com_msg_tx_pairing_certification(bool b_result, uint32_t u32_max_s
         //----------------------------------------------------------------------
         // 接続判定
         //----------------------------------------------------------------------
-        if (s_msg_ctrl_cfg.pf_connect_sts() != COM_BLE_MSG_CON_CONNECTED) {
+        if (s_msg_ctrl_cfg.pf_connect_sts() != BLE_MSG_CON_CONNECTED) {
             // 未接続
             sts_val = ESP_ERR_INVALID_STATE;
             break;
@@ -1783,18 +1650,18 @@ esp_err_t sts_com_msg_tx_pairing_certification(bool b_result, uint32_t u32_max_s
         //----------------------------------------------------------------------
         // ステータス判定
         //----------------------------------------------------------------------
-        te_com_ble_msg_type_t e_result;
+        te_ble_msg_type_t e_result;
         if (b_result) {
             // ダイジェスト一致
-            e_result = COM_BLE_MSG_TYP_DIGEST_MATCH;
+            e_result = BLE_MSG_TYP_DIGEST_MATCH;
             ps_pairing->e_sts |= MSG_PAIRING_CHK_LOCAL;
             // 最大シーケンス番号の更新(後に認証した方が優先される)
             ps_pairing->u32_max_seq_no = u32_max_seq_no;
         } else {
             // ダイジェスト不一致
-            e_result = COM_BLE_MSG_TYP_DIGEST_ERR;
+            e_result = BLE_MSG_TYP_DIGEST_ERR;
             b_end_tran = true;
-            e_evt = COM_BLE_MSG_EVT_PAIRING_ERR;
+            e_evt = BLE_MSG_EVT_PAIRING_ERR;
         }
 
         //----------------------------------------------------------------------
@@ -1806,7 +1673,7 @@ esp_err_t sts_com_msg_tx_pairing_certification(bool b_result, uint32_t u32_max_s
             // チケットの生成
             sts_val = sts_create_ticket(ps_tran, ps_pairing);
             if (sts_val != ESP_OK) {
-                e_evt = COM_BLE_MSG_EVT_PAIRING_ERR;
+                e_evt = BLE_MSG_EVT_PAIRING_ERR;
                 break;
             }
         }
@@ -1819,7 +1686,7 @@ esp_err_t sts_com_msg_tx_pairing_certification(bool b_result, uint32_t u32_max_s
         if (ps_msg_data == NULL) {
             sts_val = ESP_ERR_NO_MEM;
             b_end_tran = true;
-            e_evt = COM_BLE_MSG_EVT_PAIRING_ERR;
+            e_evt = BLE_MSG_EVT_PAIRING_ERR;
             break;
         }
         // ペアリング結果送信
@@ -1829,7 +1696,7 @@ esp_err_t sts_com_msg_tx_pairing_certification(bool b_result, uint32_t u32_max_s
         // 結果ステータス判定
         if (sts_val != ESP_OK) {
             b_end_tran = true;
-            e_evt = COM_BLE_MSG_EVT_PAIRING_ERR;
+            e_evt = BLE_MSG_EVT_PAIRING_ERR;
             break;
         }
     } while(false);
@@ -1856,7 +1723,7 @@ esp_err_t sts_com_msg_tx_pairing_certification(bool b_result, uint32_t u32_max_s
 
 /*******************************************************************************
  *
- * NAME: sts_com_msg_tx_sts_chk_request
+ * NAME: sts_ble_msg_tx_sts_chk_request
  *
  * DESCRIPTION:ステータスチェック要求処理
  *
@@ -1868,7 +1735,7 @@ esp_err_t sts_com_msg_tx_pairing_certification(bool b_result, uint32_t u32_max_s
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_com_msg_tx_sts_chk_request() {
+esp_err_t sts_ble_msg_tx_sts_chk_request() {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
@@ -1894,7 +1761,7 @@ esp_err_t sts_com_msg_tx_sts_chk_request() {
         // ステータスチェック要求の送信処理
         //----------------------------------------------------------------------
         // メッセージの生成
-        ts_u8_array_t* ps_msg_data = ps_create_msg_data(COM_BLE_MSG_TYP_STATUS_REQ, NULL);
+        ts_u8_array_t* ps_msg_data = ps_create_msg_data(BLE_MSG_TYP_STATUS_REQ, NULL);
         if (ps_msg_data == NULL) {
             // トランザクション終了
             sts_val = ESP_ERR_NO_MEM;
@@ -1924,7 +1791,7 @@ esp_err_t sts_com_msg_tx_sts_chk_request() {
 
 /*******************************************************************************
  *
- * NAME: sts_com_msg_tx_plain_msg
+ * NAME: sts_ble_msg_tx_plain_msg
  *
  * DESCRIPTION:平文メッセージの送信処理
  *
@@ -1938,7 +1805,7 @@ esp_err_t sts_com_msg_tx_sts_chk_request() {
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_com_msg_tx_plain_msg(uint64_t u64_device_id,
+esp_err_t sts_ble_msg_tx_plain_msg(uint64_t u64_device_id,
                                    ts_u8_array_t* ps_data) {
     //==========================================================================
     // クリティカルセクション開始
@@ -1958,7 +1825,7 @@ esp_err_t sts_com_msg_tx_plain_msg(uint64_t u64_device_id,
         //----------------------------------------------------------------------
         // 接続判定
         //----------------------------------------------------------------------
-        if (s_msg_ctrl_cfg.pf_connect_sts() != COM_BLE_MSG_CON_CONNECTED) {
+        if (s_msg_ctrl_cfg.pf_connect_sts() != BLE_MSG_CON_CONNECTED) {
             // 未接続
             sts_val = ESP_ERR_INVALID_STATE;
             break;
@@ -1967,7 +1834,7 @@ esp_err_t sts_com_msg_tx_plain_msg(uint64_t u64_device_id,
         //----------------------------------------------------------------------
         // メッセージ生成
         //----------------------------------------------------------------------
-        ps_msg = ps_create_msg_data(COM_BLE_MSG_TYP_DATA, ps_data);
+        ps_msg = ps_create_msg_data(BLE_MSG_TYP_DATA, ps_data);
         if (ps_msg == NULL) {
             // メッセージ生成エラー
             sts_val = ESP_ERR_NO_MEM;
@@ -1993,7 +1860,7 @@ esp_err_t sts_com_msg_tx_plain_msg(uint64_t u64_device_id,
 
 /*******************************************************************************
  *
- * NAME: sts_com_msg_tx_cipher_msg
+ * NAME: sts_ble_msg_tx_cipher_msg
  *
  * DESCRIPTION:暗号文メッセージの送信処理
  *
@@ -2007,7 +1874,7 @@ esp_err_t sts_com_msg_tx_plain_msg(uint64_t u64_device_id,
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_com_msg_tx_cipher_msg(uint64_t u64_device_id,
+esp_err_t sts_ble_msg_tx_cipher_msg(uint64_t u64_device_id,
                                     ts_u8_array_t* ps_data) {
     //==========================================================================
     // クリティカルセクション開始
@@ -2034,7 +1901,7 @@ esp_err_t sts_com_msg_tx_cipher_msg(uint64_t u64_device_id,
         //----------------------------------------------------------------------
         // 接続判定
         //----------------------------------------------------------------------
-        if (s_msg_ctrl_cfg.pf_connect_sts() != COM_BLE_MSG_CON_CONNECTED) {
+        if (s_msg_ctrl_cfg.pf_connect_sts() != BLE_MSG_CON_CONNECTED) {
             // 未接続
             sts_val = ESP_ERR_INVALID_STATE;
             break;
@@ -2043,7 +1910,7 @@ esp_err_t sts_com_msg_tx_cipher_msg(uint64_t u64_device_id,
         //----------------------------------------------------------------------
         // メッセージ生成
         //----------------------------------------------------------------------
-        ts_u8_array_t* ps_msg = ps_create_msg_data(COM_BLE_MSG_TYP_CIPHERTEXT, ps_data);
+        ts_u8_array_t* ps_msg = ps_create_msg_data(BLE_MSG_TYP_CIPHERTEXT, ps_data);
         if (ps_msg == NULL) {
             sts_val = ESP_ERR_NO_MEM;
             break;
@@ -2071,12 +1938,12 @@ esp_err_t sts_com_msg_tx_cipher_msg(uint64_t u64_device_id,
 
 /*******************************************************************************
  *
- * NAME: sts_com_msg_delete_msg
+ * NAME: sts_ble_msg_delete_msg
  *
  * DESCRIPTION:メッセージの削除処理
  *
  * PARAMETERS:      Name        RW  Usage
- * ts_com_msg_t*    ps_msg      RW  メッセージ
+ * ts_ble_msg_t*    ps_msg      RW  メッセージ
  *
  * RETURNS:
  *   esp_err_t 結果ステータス
@@ -2084,7 +1951,7 @@ esp_err_t sts_com_msg_tx_cipher_msg(uint64_t u64_device_id,
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_com_msg_delete_msg(ts_com_msg_t* ps_msg) {
+esp_err_t sts_ble_msg_delete_msg(ts_ble_msg_t* ps_msg) {
     // 入力チェック
     if (ps_msg == NULL) {
         return ESP_ERR_INVALID_ARG;
@@ -2100,7 +1967,7 @@ esp_err_t sts_com_msg_delete_msg(ts_com_msg_t* ps_msg) {
 
 /*******************************************************************************
  *
- * NAME: sts_com_msg_delete_ticket
+ * NAME: sts_ble_msg_delete_ticket
  *
  * DESCRIPTION:チケットの削除処理
  *
@@ -2113,7 +1980,7 @@ esp_err_t sts_com_msg_delete_msg(ts_com_msg_t* ps_msg) {
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_com_msg_delete_ticket(uint64_t u64_device_id) {
+esp_err_t sts_ble_msg_delete_ticket(uint64_t u64_device_id) {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
@@ -2127,15 +1994,15 @@ esp_err_t sts_com_msg_delete_ticket(uint64_t u64_device_id) {
     esp_err_t sts_val = ESP_OK;
     do {
         // キャッシュチケット
-        ts_com_msg_auth_ticket_t s_cache_ticket;
-        ts_com_msg_auth_ticket_t* ps_ticket = ps_read_ticket(u64_device_id, &s_cache_ticket);
+        ts_ble_msg_auth_ticket_t s_cache_ticket;
+        ts_ble_msg_auth_ticket_t* ps_ticket = ps_read_ticket(u64_device_id, &s_cache_ticket);
         if (ps_ticket == NULL) {
             // 対象チケットなし
             sts_val = ESP_ERR_NOT_FOUND;
             break;
         }
         // チケットを削除
-        sts_val = s_msg_ctrl_cfg.pf_tkt_cb(COM_BLE_MSG_TICKET_EVT_DELETE, ps_ticket);
+        sts_val = s_msg_ctrl_cfg.pf_tkt_cb(BLE_MSG_TICKET_EVT_DELETE, ps_ticket);
         // チケットクリア ※リモートチケットキャッシュのクリアを想定
         v_init_ticket(ps_ticket);
     } while(false);
@@ -2151,7 +2018,7 @@ esp_err_t sts_com_msg_delete_ticket(uint64_t u64_device_id) {
 
 /*******************************************************************************
  *
- * NAME: sts_com_msg_clear_status
+ * NAME: sts_ble_msg_clear_status
  *
  * DESCRIPTION:チケットステータスのクリア処理
  *
@@ -2164,7 +2031,7 @@ esp_err_t sts_com_msg_delete_ticket(uint64_t u64_device_id) {
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_com_msg_clear_status(uint64_t u64_device_id) {
+esp_err_t sts_ble_msg_clear_status(uint64_t u64_device_id) {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
@@ -2179,16 +2046,16 @@ esp_err_t sts_com_msg_clear_status(uint64_t u64_device_id) {
     esp_err_t sts_val = ESP_ERR_NOT_FOUND;
     do {
         // キャッシュチケット
-        ts_com_msg_auth_ticket_t s_cache_ticket;
-        ts_com_msg_auth_ticket_t* ps_ticket = ps_read_ticket(u64_device_id, &s_cache_ticket);
+        ts_ble_msg_auth_ticket_t s_cache_ticket;
+        ts_ble_msg_auth_ticket_t* ps_ticket = ps_read_ticket(u64_device_id, &s_cache_ticket);
         if (ps_ticket == NULL) {
             // 対象チケットなし
             break;
         }
         // 自デバイスの受信ステータスを乱数で更新
-        b_vutil_set_u8_rand_array(ps_ticket->u8_own_sts, COM_MSG_SIZE_TICKET_STS);
+        b_vutil_set_u8_rand_array(ps_ticket->u8_own_sts, BLE_MSG_SIZE_TICKET_STS);
         // チケットを更新
-        sts_val = s_msg_ctrl_cfg.pf_tkt_cb(COM_BLE_MSG_TICKET_EVT_UPDATE, ps_ticket);
+        sts_val = s_msg_ctrl_cfg.pf_tkt_cb(BLE_MSG_TICKET_EVT_UPDATE, ps_ticket);
     } while(false);
 
     //==========================================================================
@@ -2200,6 +2067,272 @@ esp_err_t sts_com_msg_clear_status(uint64_t u64_device_id) {
     return sts_val;
 }
 
+//==============================================================================
+// 情報関数
+//==============================================================================
+/*******************************************************************************
+ *
+ * NAME: pc_ble_msg_event_to_str
+ *
+ * DESCRIPTION: メッセージイベント文字列の取得
+ *
+ * PARAMETERS:          Name        RW  Usage
+ * te_ble_msg_event     e_event     R   メッセージイベント
+ *
+ * RETURNS:
+ *   const char*:イベント文字列
+ *
+ * NOTES:
+ * None.
+ ******************************************************************************/
+const char* pc_ble_msg_event_to_str(te_ble_msg_event e_event) {
+    // 入力チェック
+    if (e_event < 0 || e_event > BLE_MSG_EVT_MAX) {
+        return "ESP_GAP_EVT_ERR";
+    }
+    return pc_ble_msg_evt_str[e_event];
+}
+
+/*******************************************************************************
+ *
+ * NAME: b_ble_msg_is_paired
+ *
+ * DESCRIPTION:ペアリング済み判定
+ *
+ * PARAMETERS:  Name            RW  Usage
+ * uint64_t     u64_device_id   R   デバイスID
+ *
+ * RETURNS:
+ *   true:ペアリング済み
+ *
+ * NOTES:
+ * None.
+ ******************************************************************************/
+bool b_ble_msg_is_paired(uint64_t u64_device_id) {
+    //==========================================================================
+    // クリティカルセクション開始
+    //==========================================================================
+    if (xSemaphoreTakeRecursive(s_mutex_sts, portMAX_DELAY) != pdTRUE) {
+        return ESP_ERR_TIMEOUT;
+    }
+
+    //==========================================================================
+    // チケット取得
+    //==========================================================================
+    // チケットの有効判定
+    bool b_result = b_is_paired(u64_device_id);
+
+    //==========================================================================
+    // クリティカルセクション終了
+    //==========================================================================
+    xSemaphoreGiveRecursive(s_mutex_sts);
+
+    // 結果返信
+    return b_result;
+}
+
+/*******************************************************************************
+ *
+ * NAME: e_ble_msg_connection_sts
+ *
+ * DESCRIPTION:接続ステータス取得
+ *
+ * PARAMETERS:  Name            RW  Usage
+ *
+ * RETURNS:
+ *   te_ble_msg_connection_sts_t:接続ステータス
+ *
+ * NOTES:
+ * None.
+ ******************************************************************************/
+te_ble_msg_connection_sts_t e_ble_msg_connection_sts() {
+    // 接続ステータス返却
+    return s_msg_ctrl_cfg.pf_connect_sts();
+}
+
+/*******************************************************************************
+ *
+ * NAME: sts_ble_msg_transaction_sts
+ *
+ * DESCRIPTION:トランザクションステータスの取得処理
+ *
+ * PARAMETERS:  Name            RW  Usage
+ *
+ * RETURNS:
+ *   te_ble_msg_transaction_sts_t:トランザクションステータス
+ *
+ * NOTES:
+ * None.
+ ******************************************************************************/
+te_ble_msg_transaction_sts_t sts_ble_msg_transaction_sts() {
+    //==========================================================================
+    // クリティカルセクション開始
+    //==========================================================================
+    if (xSemaphoreTakeRecursive(s_mutex_sts, portMAX_DELAY) != pdTRUE) {
+        return ESP_ERR_TIMEOUT;
+    }
+
+    //==========================================================================
+    // トランザクションステータスの取得
+    //==========================================================================
+    te_ble_msg_transaction_sts_t e_sts = s_msg_ctrl_sts.s_tran.e_sts;
+
+    //==========================================================================
+    // クリティカルセクション終了
+    //==========================================================================
+    xSemaphoreGiveRecursive(s_mutex_sts);
+
+    // 結果返信
+    return e_sts;
+}
+
+/*******************************************************************************
+ *
+ * NAME: sts_ble_msg_edit_remote_dev_id
+ *
+ * DESCRIPTION:接続先デバイスIDの取得
+ *
+ * PARAMETERS:  Name            RW  Usage
+ * uint64_t*    pu64_device_id  R   デバイスIDポインタ
+ *
+ * RETURNS:
+ *   esp_err_t 結果ステータス
+ *
+ * NOTES:
+ * None.
+ ******************************************************************************/
+esp_err_t sts_ble_msg_edit_remote_dev_id(uint64_t* pu64_device_id) {
+    //==========================================================================
+    // クリティカルセクション開始
+    //==========================================================================
+    if (xSemaphoreTakeRecursive(s_mutex_sts, portMAX_DELAY) != pdTRUE) {
+        return ESP_ERR_TIMEOUT;
+    }
+
+    //==========================================================================
+    // デバイスIDの取得
+    //==========================================================================
+    esp_err_t sts_val = ESP_OK;
+    do {
+        // 接続確認
+        if (s_msg_ctrl_cfg.pf_connect_sts() != BLE_MSG_CON_CONNECTED) {
+            // 結果ステータス
+            sts_val = ESP_ERR_NOT_FOUND;
+            break;
+        }
+        // 受信履歴のチェック
+        if (s_msg_ctrl_sts.u64_rmt_device_id == s_msg_ctrl_cfg.u64_device_id) {
+            // 結果ステータス
+            sts_val = ESP_ERR_NOT_FOUND;
+            break;
+        }
+        // デバイスID編集
+        *pu64_device_id = s_msg_ctrl_sts.u64_rmt_device_id;
+    } while(false);
+
+    //==========================================================================
+    // クリティカルセクション終了
+    //==========================================================================
+    xSemaphoreGiveRecursive(s_mutex_sts);
+
+    // 結果ステータス返信
+    return sts_val;
+}
+
+/*******************************************************************************
+ *
+ * NAME: sts_ble_msg_edit_public_key_pair
+ *
+ * DESCRIPTION:ペアリング中の公開鍵のペアの編集処理
+ *
+ * PARAMETERS:  Name            RW  Usage
+ * uint8_t*     pu8_client_key  W   公開鍵（クライアント）
+ * uint8_t*     pu8_server_key  W   公開鍵（サーバー）
+ *
+ * RETURNS:
+ *   esp_err_t 結果ステータス
+ *
+ * NOTES:
+ * None.
+ ******************************************************************************/
+esp_err_t sts_ble_msg_edit_public_key_pair(uint8_t* pu8_client_key, uint8_t* pu8_server_key) {
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    if (pu8_client_key == NULL || pu8_server_key == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    //==========================================================================
+    // クリティカルセクション開始
+    //==========================================================================
+    if (xSemaphoreTakeRecursive(s_mutex_sts, portMAX_DELAY) != pdTRUE) {
+        return ESP_ERR_TIMEOUT;
+    }
+
+    //==========================================================================
+    // 主処理
+    //==========================================================================
+    esp_err_t sts_val = ESP_OK;
+    do {
+        //----------------------------------------------------------------------
+        // トランザクション開始判定
+        //----------------------------------------------------------------------
+        ts_transaction_info_t* ps_tran = &s_msg_ctrl_sts.s_tran;
+        if (ps_tran->e_sts != BLE_MSG_TRN_PAIRING) {
+            // ペアリングトランザクションが開始していない
+            sts_val = ESP_ERR_INVALID_STATE;
+            break;
+        }
+
+        //----------------------------------------------------------------------
+        // タイムアウト判定
+        //----------------------------------------------------------------------
+        if (ps_tran->u32_timeout_ms < xTaskGetTickCountMSec()) {
+            // タイムアウト
+            sts_val = ESP_ERR_TIMEOUT;
+            break;
+        }
+
+        //----------------------------------------------------------------------
+        // 接続判定
+        //----------------------------------------------------------------------
+        if (s_msg_ctrl_cfg.pf_connect_sts() != BLE_MSG_CON_CONNECTED) {
+            // 未接続
+            sts_val = ESP_ERR_INVALID_STATE;
+            break;
+        }
+
+        //----------------------------------------------------------------------
+        // 公開鍵の受信済み判定
+        //----------------------------------------------------------------------
+        if (!b_is_public_key_received()) {
+            // 公開鍵未受信
+            sts_val = ESP_ERR_INVALID_STATE;
+            break;
+        }
+
+        //----------------------------------------------------------------------
+        // 公開鍵のペアを編集
+        //----------------------------------------------------------------------
+        ts_pairing_info_t* ps_pairing = &s_msg_ctrl_sts.s_pairing;
+        // X25519コンテキスト
+        ts_crypto_x25519_context_t* ps_x25519_ctx = ps_pairing->ps_x25519_ctx;
+        // クライアント側の公開鍵を編集
+        memcpy(pu8_client_key, ps_x25519_ctx->u8_cli_public_key, CRYPTO_X25519_CLIENT_PUBLIC_KEY_SIZE);
+        // サーバー側の公開鍵を編集
+        memcpy(pu8_server_key, ps_x25519_ctx->u8_svr_public_key, CRYPTO_X25519_SERVER_PUBLIC_KEY_SIZE);
+
+    } while(false);
+
+    //==========================================================================
+    // クリティカルセクション終了
+    //==========================================================================
+    xSemaphoreGiveRecursive(s_mutex_sts);
+
+    // 結果返信
+    return sts_val;
+}
 
 /******************************************************************************/
 /***      Local Functions                                                   ***/
@@ -2224,7 +2357,7 @@ static esp_err_t sts_msg_begin_daemon_task() {
     //==========================================================================
     // 受信メッセージのキュー生成
     if (s_msg_deamon_sts.s_rx_queue_handle == NULL) {
-        s_msg_deamon_sts.s_rx_queue_handle = xQueueCreate(COM_MSG_RX_QUEUE_SIZE, sizeof(ts_com_msg_t*));
+        s_msg_deamon_sts.s_rx_queue_handle = xQueueCreate(BLE_MSG_RX_QUEUE_SIZE, sizeof(ts_ble_msg_t*));
     }
     if (s_msg_deamon_sts.s_rx_queue_handle == NULL) {
         // 受信メッセージのキュー生成エラー
@@ -2233,9 +2366,9 @@ static esp_err_t sts_msg_begin_daemon_task() {
     // メッセージ受信デーモンの開始
     portBASE_TYPE b_rx_type = xTaskCreatePinnedToCore(v_msg_rx_daemon_task,
                                                       "msg_rx_deamon_task",
-                                                      COM_MSG_RX_DEAMON_STACK_DEPTH,
+                                                      BLE_MSG_RX_DEAMON_STACK_DEPTH,
                                                       (void*)s_msg_deamon_sts.s_rx_queue_handle,
-                                                      COM_MSG_RX_DEAMON_PRIORITIES,
+                                                      BLE_MSG_RX_DEAMON_PRIORITIES,
                                                       &s_msg_deamon_sts.s_rx_deamon_handle,
                                                       tskNO_AFFINITY);
     if (b_rx_type != pdPASS) {
@@ -2248,7 +2381,7 @@ static esp_err_t sts_msg_begin_daemon_task() {
     //==========================================================================
     // デーモンにイベント通知するキュー生成
     if (s_msg_deamon_sts.s_evt_queue_handle == NULL) {
-        s_msg_deamon_sts.s_evt_queue_handle = xQueueCreate(COM_MSG_EVT_QUEUE_SIZE, sizeof(te_com_ble_msg_event));
+        s_msg_deamon_sts.s_evt_queue_handle = xQueueCreate(BLE_MSG_EVT_QUEUE_SIZE, sizeof(te_ble_msg_event));
     }
     if (s_msg_deamon_sts.s_evt_queue_handle == NULL) {
         // イベント通知キューの生成エラー
@@ -2257,9 +2390,9 @@ static esp_err_t sts_msg_begin_daemon_task() {
     // イベント通知デーモンタスクの開始
     portBASE_TYPE b_evt_type = xTaskCreatePinnedToCore(v_msg_evt_daemon_task,
                                                        "msg_evt_deamon_task",
-                                                       COM_MSG_EVT_DEAMON_STACK_DEPTH,
+                                                       BLE_MSG_EVT_DEAMON_STACK_DEPTH,
                                                        (void*)s_msg_deamon_sts.s_evt_queue_handle,
-                                                       COM_MSG_EVT_DEAMON_PRIORITIES,
+                                                       BLE_MSG_EVT_DEAMON_PRIORITIES,
                                                        &s_msg_deamon_sts.s_evt_deamon_handle,
                                                        tskNO_AFFINITY);
     if (b_evt_type != pdPASS) {
@@ -2289,15 +2422,15 @@ static void v_msg_rx_daemon_task(void* pv_parameters) {
     // 現在時刻
     int64_t i64_now_msec = xTaskGetTickCountMSec();
     // 次の遅延時間
-    int64_t i64_next_delay_msec = i64_now_msec + COM_MSG_DEAMON_DELAY_INTERVAL_MSEC;
+    int64_t i64_next_delay_msec = i64_now_msec + BLE_MSG_DEAMON_DELAY_INTERVAL_MSEC;
     // パラメータから受信キューハンドルを取得
     QueueHandle_t s_rx_handle = (QueueHandle_t)pv_parameters;
     // 受信結果ステータス
-    te_com_ble_msg_rcv_sts_t e_rcv_sts = COM_BLE_MSG_RCV_NOT_FOUND;
+    te_ble_msg_rcv_sts_t e_rcv_sts = BLE_MSG_RCV_NOT_FOUND;
     // 受信メッセージ
-    ts_com_msg_t s_rx_msg = {0};
+    ts_ble_msg_t s_rx_msg = {0};
     // 受信メッセージ（キュー投入用）
-    ts_com_msg_t* ps_rx_msg = NULL;
+    ts_ble_msg_t* ps_rx_msg = NULL;
     // 受信フィルター
     uint32_t u32_rx_flt = 0;
     // タイムアウト時刻
@@ -2312,7 +2445,7 @@ static void v_msg_rx_daemon_task(void* pv_parameters) {
             // 遅延処理
             vTaskDelay(1);
             // 遅延時間更新
-            i64_next_delay_msec = i64_now_msec + COM_MSG_DEAMON_DELAY_INTERVAL_MSEC;
+            i64_next_delay_msec = i64_now_msec + BLE_MSG_DEAMON_DELAY_INTERVAL_MSEC;
         }
 
         //======================================================================
@@ -2337,16 +2470,16 @@ static void v_msg_rx_daemon_task(void* pv_parameters) {
         // メッセージ受信処理
         //======================================================================
         // メッセージ受信
-        e_rcv_sts = e_rx_message(&s_rx_msg, COM_MSG_RX_CHK_TIMEOUT);
+        e_rcv_sts = e_rx_message(&s_rx_msg, BLE_MSG_RX_CHK_TIMEOUT);
         // 受信メッセージの有無を判定
-        if (e_rcv_sts == COM_BLE_MSG_RCV_NOT_FOUND) {
+        if (e_rcv_sts == BLE_MSG_RCV_NOT_FOUND) {
             continue;
         }
 
         //======================================================================
         // 受信メッセージ処理
         //======================================================================
-        if (e_rcv_sts == COM_BLE_MSG_RCV_NORMAL) {
+        if (e_rcv_sts == BLE_MSG_RCV_NORMAL) {
             // クリティカルセクション開始
             if (xSemaphoreTakeRecursive(s_mutex_sts, portMAX_DELAY) != pdTRUE) {
                 continue;
@@ -2356,7 +2489,7 @@ static void v_msg_rx_daemon_task(void* pv_parameters) {
             // 受信メッセージチェック
             //------------------------------------------------------------------
             e_rcv_sts = e_rx_msg_check(&s_rx_msg);
-            if (e_rcv_sts == COM_BLE_MSG_RCV_NORMAL) {
+            if (e_rcv_sts == BLE_MSG_RCV_NORMAL) {
                 // メッセージ受信イベント処理を実行
                 e_rcv_sts = e_rx_msg_event(&s_rx_msg);
             }
@@ -2374,7 +2507,7 @@ static void v_msg_rx_daemon_task(void* pv_parameters) {
         // 受信処理の結果判定
         //======================================================================
         // 受信エラー判定
-        if (e_rcv_sts != COM_BLE_MSG_RCV_NORMAL) {
+        if (e_rcv_sts != BLE_MSG_RCV_NORMAL) {
             // 受信エラーの場合
             // 本文のデータが有ればクリアしてからリトライ
             sts_mdl_delete_u8_array(s_rx_msg.ps_data);
@@ -2393,7 +2526,7 @@ static void v_msg_rx_daemon_task(void* pv_parameters) {
         //======================================================================
         // 受信メッセージをクローン
         //======================================================================
-        ps_rx_msg = (ts_com_msg_t*)pv_mem_clone((void*)&s_rx_msg, sizeof(ts_com_msg_t));
+        ps_rx_msg = (ts_ble_msg_t*)pv_mem_clone((void*)&s_rx_msg, sizeof(ts_ble_msg_t));
         // オリジナルの本文データをクリアする
         s_rx_msg.ps_data = NULL;
 
@@ -2401,13 +2534,13 @@ static void v_msg_rx_daemon_task(void* pv_parameters) {
         // 受信メッセージエンキュー処理
         //======================================================================
         // 接続してサービス検索完了までウェイト
-        t_timeout = xTaskGetTickCount() + COM_MSG_QUEUE_TIMEOUT;
+        t_timeout = xTaskGetTickCount() + BLE_MSG_QUEUE_TIMEOUT;
         // 成功するまで実行
-        while (xQueueSendToBack(s_rx_handle, &ps_rx_msg, COM_MSG_RETRY_WAIT) != pdPASS) {
+        while (xQueueSendToBack(s_rx_handle, &ps_rx_msg, BLE_MSG_RETRY_WAIT) != pdPASS) {
             // タイムアウト判定
             if (t_timeout < xTaskGetTickCount()) {
                 // メッセージを解放してからリトライ
-                sts_com_msg_delete_msg(ps_rx_msg);
+                sts_ble_msg_delete_msg(ps_rx_msg);
                 ps_rx_msg = NULL;
                 break;
             }
@@ -2433,11 +2566,11 @@ static void v_msg_evt_daemon_task(void* pv_parameters) {
     // 現在時刻
     int64_t i64_now_msec = xTaskGetTickCountMSec();
     // 次の遅延時間
-    int64_t i64_next_delay_msec = i64_now_msec + COM_MSG_DEAMON_DELAY_INTERVAL_MSEC;
+    int64_t i64_next_delay_msec = i64_now_msec + BLE_MSG_DEAMON_DELAY_INTERVAL_MSEC;
     // パラメータからイベントキューハンドルを取得
     QueueHandle_t s_evt_handle = (QueueHandle_t)pv_parameters;
     // イベント種別
-    te_com_ble_msg_event e_msg_evt;
+    te_ble_msg_event e_msg_evt;
     // デーモンプロセスの無限ループ
     while (true) {
         //======================================================================
@@ -2448,24 +2581,24 @@ static void v_msg_evt_daemon_task(void* pv_parameters) {
             // 遅延処理
             vTaskDelay(1);
             // 遅延時間更新
-            i64_next_delay_msec = i64_now_msec + COM_MSG_DEAMON_DELAY_INTERVAL_MSEC;
+            i64_next_delay_msec = i64_now_msec + BLE_MSG_DEAMON_DELAY_INTERVAL_MSEC;
         }
 
         //======================================================================
         // イベントの読み込み
         //======================================================================
-        if (xQueueReceive(s_evt_handle, &e_msg_evt, COM_MSG_EVT_CHK_TIMEOUT) != pdPASS) {
+        if (xQueueReceive(s_evt_handle, &e_msg_evt, BLE_MSG_EVT_CHK_TIMEOUT) != pdPASS) {
             continue;
         }
 
         //======================================================================
         // RESET送信イベント判定
         //======================================================================
-        if (e_msg_evt == COM_BLE_MSG_EVT_LINK_SUCCESS) {
+        if (e_msg_evt == BLE_MSG_EVT_LINK_SUCCESS) {
             // RESET送信イベント
             // 接続ステータス判定
-            te_com_ble_msg_connection_sts_t e_con_sts = s_msg_ctrl_cfg.pf_connect_sts();
-            if (e_con_sts != COM_BLE_MSG_CON_CONNECTED) {
+            te_ble_msg_connection_sts_t e_con_sts = s_msg_ctrl_cfg.pf_connect_sts();
+            if (e_con_sts != BLE_MSG_CON_CONNECTED) {
                 continue;
             }
 
@@ -2479,7 +2612,7 @@ static void v_msg_evt_daemon_task(void* pv_parameters) {
             //------------------------------------------------------------------
             // リモートBLEアドレスを編集
             //------------------------------------------------------------------
-            v_com_ble_addr_cpy(s_msg_ctrl_sts.t_rmt_bda, s_msg_ctrl_sts.s_tran.t_bda);
+            v_ble_util_addr_cpy(s_msg_ctrl_sts.t_rmt_bda, s_msg_ctrl_sts.s_tran.t_bda);
 
             //------------------------------------------------------------------
             // トランザクションリセット
@@ -2495,13 +2628,17 @@ static void v_msg_evt_daemon_task(void* pv_parameters) {
             // Resetメッセージ送信
             // ※内部にクリティカルセクション有り
             //------------------------------------------------------------------
-            while (sts_com_msg_tx_reset_msg() != ESP_OK) {
-                vTaskDelay(COM_MSG_RETRY_WAIT);
+            while (sts_ble_msg_tx_reset_msg() != ESP_OK) {
+                vTaskDelay(BLE_MSG_RETRY_WAIT);
             }
-        } else if (e_msg_evt == COM_BLE_MSG_EVT_GATT_DISCONNECT) {
+        } else if (e_msg_evt == BLE_MSG_EVT_GATT_DISCONNECT) {
             // メッセージ機能のコネクションを切断 ※スレッドセーフ
-            sts_com_msg_close();
+            sts_ble_msg_close();
         }
+#ifdef BLE_MSG_DEBUG
+        // イベント表示
+        ESP_LOGI(LOG_TAG, "%s L#%d evt=%s", __func__, __LINE__, pc_ble_msg_event_to_str(e_msg_evt));
+#endif
         // イベントコールバック
         s_msg_ctrl_cfg.pf_evt_cb(e_msg_evt);
     }
@@ -2515,20 +2652,20 @@ static void v_msg_evt_daemon_task(void* pv_parameters) {
  * DESCRIPTION:message event enqueue processing
  *
  * PARAMETERS:          Name            RW  Usage
- * te_com_ble_msg_event e_msg_evt       R   メッセージイベント
+ * te_ble_msg_event e_msg_evt       R   メッセージイベント
  *
  * RETURNS:
  *
  * NOTES:
  * None.
  ******************************************************************************/
-static void v_msg_evt_enqueue(te_com_ble_msg_event e_msg_evt) {
+static void v_msg_evt_enqueue(te_ble_msg_event e_msg_evt) {
     //==========================================================================
     // イベントエンキュー
     //==========================================================================
     int i_cnt;
-    for (i_cnt = 0; i_cnt < COM_MSG_EVT_MAX_RETRY_CNT; i_cnt++) {
-        if (xQueueSendToBack(s_msg_deamon_sts.s_evt_queue_handle, &e_msg_evt, COM_MSG_RETRY_WAIT) == pdPASS) {
+    for (i_cnt = 0; i_cnt < BLE_MSG_EVT_MAX_RETRY_CNT; i_cnt++) {
+        if (xQueueSendToBack(s_msg_deamon_sts.s_evt_queue_handle, &e_msg_evt, BLE_MSG_RETRY_WAIT) == pdPASS) {
             break;
         }
     }
@@ -2598,7 +2735,7 @@ static void v_msg_ctrl_sts_connection_reset() {
         // リモートデバイスID
         s_msg_ctrl_sts.u64_rmt_device_id = s_msg_ctrl_cfg.u64_device_id;
         // リモートデバイスBLEアドレス
-        v_com_ble_addr_clear(s_msg_ctrl_sts.t_rmt_bda);
+        v_ble_util_addr_clear(s_msg_ctrl_sts.t_rmt_bda);
         // リモートデバイスチケット
         v_init_ticket(&s_msg_ctrl_sts.s_rmt_ticket);
 
@@ -2620,7 +2757,7 @@ static void v_msg_ctrl_sts_connection_reset() {
         //----------------------------------------------------------------------
         // BLEコネクションリセット
         //----------------------------------------------------------------------
-        v_com_ble_gattc_delete_con_info(s_msg_ctrl_sts.ps_con);
+        v_ble_fwk_gattc_delete_con_info(s_msg_ctrl_sts.ps_con);
         s_msg_ctrl_sts.ps_con = NULL;
     } while(false);
 
@@ -2648,16 +2785,16 @@ static void v_msg_ctrl_sts_transaction_reset() {
     // トランザクション状態判定
     //--------------------------------------------------------------------------
     ts_transaction_info_t* ps_tran = &s_msg_ctrl_sts.s_tran;
-    if (ps_tran->e_sts == COM_BLE_MSG_TRN_NONE) {
+    if (ps_tran->e_sts == BLE_MSG_TRN_NONE) {
         return;
     }
 
     //--------------------------------------------------------------------------
     // トランザクションステータス
     //--------------------------------------------------------------------------
-    ps_tran->e_sts         = COM_BLE_MSG_TRN_NONE;          // トランザクションステータス
+    ps_tran->e_sts         = BLE_MSG_TRN_NONE;          // トランザクションステータス
     ps_tran->u64_device_id = s_msg_ctrl_cfg.u64_device_id;  // トランザクション実行中の相手デバイスID
-    v_com_ble_addr_clear(ps_tran->t_bda);                   // トランザクション実行中の相手デバイスBLEアドレス
+    v_ble_util_addr_clear(ps_tran->t_bda);                   // トランザクション実行中の相手デバイスBLEアドレス
     ps_tran->u32_timeout_ms = U32_MAX;                      // トランザクションタイムアウト
 
     //--------------------------------------------------------------------------
@@ -2667,14 +2804,14 @@ static void v_msg_ctrl_sts_transaction_reset() {
     // ペアリングステータス
     ps_pairing->e_sts = MSG_PAIRING_CHK_NONE;
     // 共通鍵
-    memset(ps_pairing->u8_com_key, 0x00, COM_MSG_SIZE_CIPHER_KEY);
+    memset(ps_pairing->u8_com_key, 0x00, BLE_MSG_SIZE_CIPHER_KEY);
     // X25519コンテキスト
     v_crypto_x25519_delete_context(ps_pairing->ps_x25519_ctx);
     ps_pairing->ps_x25519_ctx = NULL;
     // 自デバイスステータス
-    memset(ps_pairing->u8_dev_status, 0x00, COM_MSG_SIZE_TICKET_STS);
+    memset(ps_pairing->u8_dev_status, 0x00, BLE_MSG_SIZE_TICKET_STS);
     // 相手デバイスステータスハッシュ
-    memset(ps_pairing->u8_rmt_sts_hash, 0x00, COM_MSG_SIZE_TICKET_STS);
+    memset(ps_pairing->u8_rmt_sts_hash, 0x00, BLE_MSG_SIZE_TICKET_STS);
     // 最大シーケンス番号
     ps_pairing->u32_max_seq_no = 0;
 
@@ -2682,8 +2819,8 @@ static void v_msg_ctrl_sts_transaction_reset() {
     // ステータスチェック
     //--------------------------------------------------------------------------
     ts_sts_check_info_t* ps_sts_chk = &s_msg_ctrl_sts.s_sts_chk;
-    memset(ps_sts_chk->u8_tx_rand, 0x00, COM_MSG_SIZE_TICKET_STS);  // 送信ステータスチェック乱数
-    memset(ps_sts_chk->u8_rx_rand, 0x00, COM_MSG_SIZE_TICKET_STS);  // 受信ステータスチェック乱数
+    memset(ps_sts_chk->u8_tx_rand, 0x00, BLE_MSG_SIZE_TICKET_STS);  // 送信ステータスチェック乱数
+    memset(ps_sts_chk->u8_rx_rand, 0x00, BLE_MSG_SIZE_TICKET_STS);  // 受信ステータスチェック乱数
 }
 
 /*******************************************************************************
@@ -2701,22 +2838,22 @@ static void v_msg_ctrl_sts_transaction_reset() {
 static void v_msg_ctrl_sts_transaction_timeout() {
     // トランザクション判定
     switch (s_msg_ctrl_sts.s_tran.e_sts) {
-    case COM_BLE_MSG_TRN_OPEN:
+    case BLE_MSG_TRN_OPEN:
         // オープントランザクション実行中
         // BLEの切断処理
-        sts_com_ble_disconnect(s_msg_ctrl_sts.s_tran.t_bda);
+        sts_ble_fwk_disconnect(s_msg_ctrl_sts.s_tran.t_bda);
         // イベントエンキュー
-        v_msg_evt_enqueue(COM_BLE_MSG_EVT_OPEN_TIMEOUT);
+        v_msg_evt_enqueue(BLE_MSG_EVT_OPEN_TIMEOUT);
         break;
-    case COM_BLE_MSG_TRN_PAIRING:
+    case BLE_MSG_TRN_PAIRING:
         // ペアリングトランザクション実行中
         // イベントエンキュー
-        v_msg_evt_enqueue(COM_BLE_MSG_EVT_PAIRING_TIMEOUT);
+        v_msg_evt_enqueue(BLE_MSG_EVT_PAIRING_TIMEOUT);
         break;
-    case COM_BLE_MSG_TRN_STS_CHK:
+    case BLE_MSG_TRN_STS_CHK:
         // ステータスチェックトランザクション実行中
         // イベントエンキュー
-        v_msg_evt_enqueue(COM_BLE_MSG_EVT_STATUS_TIMEOUT);
+        v_msg_evt_enqueue(BLE_MSG_EVT_STATUS_TIMEOUT);
         break;
     default:
         break;
@@ -2741,11 +2878,11 @@ static void v_msg_ctrl_sts_transaction_timeout() {
  ******************************************************************************/
 static void v_msg_history_reset(ts_msg_history_t* ps_msg_history) {
     // 送受信履歴
-    v_com_ble_addr_clear(ps_msg_history->t_bda);
+    v_ble_util_addr_clear(ps_msg_history->t_bda);
     ps_msg_history->u64_device_id  = s_msg_ctrl_cfg.u64_device_id;
     ps_msg_history->u32_tick_ms    = 0;
     ps_msg_history->u32_seq_no     = 0;
-    ps_msg_history->e_type         = COM_BLE_MSG_TYP_CNT;
+    ps_msg_history->e_type         = BLE_MSG_TYP_MAX;
 }
 
 /*******************************************************************************
@@ -2757,25 +2894,25 @@ static void v_msg_history_reset(ts_msg_history_t* ps_msg_history) {
  * PARAMETERS:          Name            RW  Usage
  *
  * RETURNS:
- * ts_com_ble_gattc_con_info*:サーバーへのコネクション
+ * ts_ble_fwk_gattc_con_info*:サーバーへのコネクション
  *
  * NOTES:
  * None.
  ******************************************************************************/
-static ts_com_ble_gattc_con_info_t* ps_get_connection() {
+static ts_ble_fwk_gattc_con_info_t* ps_get_connection() {
     //==========================================================================
     // リモートデバイスBLEアドレスの取得
     //==========================================================================
     esp_bd_addr_t t_rmt_bda;
-    if (s_msg_ctrl_sts.s_tran.e_sts == COM_BLE_MSG_TRN_NONE) {
+    if (s_msg_ctrl_sts.s_tran.e_sts == BLE_MSG_TRN_NONE) {
         // 接続済みアドレス
-        v_com_ble_addr_cpy(t_rmt_bda, s_msg_ctrl_sts.t_rmt_bda);
+        v_ble_util_addr_cpy(t_rmt_bda, s_msg_ctrl_sts.t_rmt_bda);
     } else {
         // 接続中アドレス
-        v_com_ble_addr_cpy(t_rmt_bda, s_msg_ctrl_sts.s_tran.t_bda);
+        v_ble_util_addr_cpy(t_rmt_bda, s_msg_ctrl_sts.s_tran.t_bda);
     }
     // 有効アドレスチェック
-    if (b_com_ble_addr_clear(t_rmt_bda)) {
+    if (b_ble_util_addr_clear(t_rmt_bda)) {
         return NULL;
     }
 
@@ -2783,10 +2920,10 @@ static ts_com_ble_gattc_con_info_t* ps_get_connection() {
     // コネクションの有効判定
     //==========================================================================
     esp_gatt_if_t t_gatt_if = s_msg_ctrl_cfg.pf_gatt_if();
-    te_gattc_con_sts_t e_con_sts = e_com_ble_gattc_con_sts(t_gatt_if, t_rmt_bda);
+    te_ble_fwk_gattc_con_sts_t e_con_sts = e_ble_fwk_gattc_con_sts(t_gatt_if, t_rmt_bda);
     if ((e_con_sts & GATTC_STS_CONNECTED) != GATTC_STS_CONNECTED) {
         // コネクションが無効の場合は既存のコネクション情報をクリア
-        v_com_ble_gattc_delete_con_info(s_msg_ctrl_sts.ps_con);
+        v_ble_fwk_gattc_delete_con_info(s_msg_ctrl_sts.ps_con);
         s_msg_ctrl_sts.ps_con = NULL;
         return NULL;
     }
@@ -2795,24 +2932,24 @@ static ts_com_ble_gattc_con_info_t* ps_get_connection() {
     // コネクション情報の取得
     //==========================================================================
     // コネクション情報の有効判定
-    ts_com_ble_gattc_con_info_t* ps_con = s_msg_ctrl_sts.ps_con;
+    ts_ble_fwk_gattc_con_info_t* ps_con = s_msg_ctrl_sts.ps_con;
     if (ps_con != NULL) {
-        if (l_com_ble_addr_cmp(t_rmt_bda, ps_con->t_bda) == 0) {
+        if (l_ble_util_addr_cmp(t_rmt_bda, ps_con->t_bda) == 0) {
             return ps_con;
         }
         // リモートデバイスのコネクションでは無いので解放する
-        v_com_ble_gattc_delete_con_info(s_msg_ctrl_sts.ps_con);
+        v_ble_fwk_gattc_delete_con_info(s_msg_ctrl_sts.ps_con);
         s_msg_ctrl_sts.ps_con = NULL;
     }
     // コネクション情報生成
-    ps_con = ps_com_ble_gattc_create_con_info(t_gatt_if, t_rmt_bda);
+    ps_con = ps_ble_fwk_gattc_create_con_info(t_gatt_if, t_rmt_bda);
     if (ps_con == NULL) {
         return NULL;
     }
     // サービスの有無を判定
     if (ps_con->u16_svc_cnt == 0) {
         // サービスの無いコネクション情報は無効なのでクリア
-        v_com_ble_gattc_delete_con_info(ps_con);
+        v_ble_fwk_gattc_delete_con_info(ps_con);
         return NULL;
     }
     // コネクション情報の更新
@@ -2828,23 +2965,23 @@ static ts_com_ble_gattc_con_info_t* ps_get_connection() {
  * DESCRIPTION:BLE Rx Message
  *
  * PARAMETERS:                  Name        RW  Usage
- * ts_com_msg_t*                ps_rx_msg   W   受信メッセージの編集対象
+ * ts_ble_msg_t*                ps_rx_msg   W   受信メッセージの編集対象
  * TickType_t                   t_tick      R   ウェイト時間
  *
  * RETURNS:
- *   te_com_ble_msg_rcv_sts_t: 受信結果ステータス
+ *   te_ble_msg_rcv_sts_t: 受信結果ステータス
  *
  * NOTES:
  * None.
  ******************************************************************************/
-static te_com_ble_msg_rcv_sts_t e_rx_message(ts_com_msg_t* ps_rx_msg,
+static te_ble_msg_rcv_sts_t e_rx_message(ts_ble_msg_t* ps_rx_msg,
                                               TickType_t t_tick) {
     // 型変換構造体
     tu_type_converter_t u_conv;
     // 受信ステータス
-    te_com_ble_msg_rcv_sts_t e_rcv_sts = COM_BLE_MSG_RCV_NORMAL;
+    te_ble_msg_rcv_sts_t e_rcv_sts = BLE_MSG_RCV_NORMAL;
     // 受信データ(UART)
-    ts_com_ble_gatt_rx_data_t* ps_ble_data = NULL;
+    ts_ble_fwk_gatt_rx_data_t* ps_ble_data = NULL;
     // 受信メッセージ全体のバッファ
     ts_u8_array_t* ps_msg_buff = NULL;
     // データ受信関数
@@ -2856,7 +2993,7 @@ static te_com_ble_msg_rcv_sts_t e_rx_message(ts_com_msg_t* ps_rx_msg,
     ps_ble_data = pf_rx_data(t_tick);
     if (ps_ble_data == NULL) {
         // 受信データなし
-        return COM_BLE_MSG_RCV_NOT_FOUND;
+        return BLE_MSG_RCV_NOT_FOUND;
     }
 
     //==========================================================================
@@ -2868,7 +3005,7 @@ static te_com_ble_msg_rcv_sts_t e_rx_message(ts_com_msg_t* ps_rx_msg,
         //----------------------------------------------------------------------
         // メッセージヘッダー部を編集
         e_rcv_sts = e_edit_rx_header(ps_rx_msg, ps_ble_data);
-        if (e_rcv_sts != COM_BLE_MSG_RCV_NORMAL) {
+        if (e_rcv_sts != BLE_MSG_RCV_NORMAL) {
             // 受信ヘッダーエラー
             // 受信データなし
             break;
@@ -2882,7 +3019,7 @@ static te_com_ble_msg_rcv_sts_t e_rx_message(ts_com_msg_t* ps_rx_msg,
         if (ps_msg_buff == NULL) {
             // メモリ確保に失敗
             // 受信応答を送信
-            e_rcv_sts = COM_BLE_MSG_RCV_RECEIVER_ERR;
+            e_rcv_sts = BLE_MSG_RCV_RECEIVER_ERR;
             break;
         }
         // 受信データ
@@ -2900,13 +3037,13 @@ static te_com_ble_msg_rcv_sts_t e_rx_message(ts_com_msg_t* ps_rx_msg,
             // データ受信
             //------------------------------------------------------------------
             // 直前の受信データを解放
-            v_com_ble_gatt_delete_rx_data(ps_ble_data);
+            v_ble_fwk_gatt_delete_rx_data(ps_ble_data);
             // データ受信
             ps_ble_data = pf_rx_data(t_tick);
             if (ps_ble_data == NULL) {
                 // 受信タイムアウト
                 // 受信応答を送信
-                e_rcv_sts = COM_BLE_MSG_RCV_TIMEOUT_ERR;
+                e_rcv_sts = BLE_MSG_RCV_TIMEOUT_ERR;
                 // キューが空なのでブレーク
                 break;
             }
@@ -2918,17 +3055,17 @@ static te_com_ble_msg_rcv_sts_t e_rx_message(ts_com_msg_t* ps_rx_msg,
             if ((u32_pos + ps_rx_data->t_size) > u32_msg_length) {
                 // 受信データサイズエラー
                 // 受信応答を送信
-                e_rcv_sts = COM_BLE_MSG_RCV_LENGTH_ERR;
+                e_rcv_sts = BLE_MSG_RCV_LENGTH_ERR;
                 break;
             }
 
             //------------------------------------------------------------------
             // 送信元デバイスチェック
             //------------------------------------------------------------------
-            if (l_com_ble_addr_cmp(ps_ble_data->t_bda, ps_rx_msg->t_rcv_bda) != 0) {
+            if (l_ble_util_addr_cmp(ps_ble_data->t_bda, ps_rx_msg->t_rcv_bda) != 0) {
                 // 受信アドレスエラー
                 // 受信応答を送信
-                e_rcv_sts = COM_BLE_MSG_RCV_ADDRESS_ERR;
+                e_rcv_sts = BLE_MSG_RCV_ADDRESS_ERR;
                 break;
             }
 
@@ -2939,7 +3076,7 @@ static te_com_ble_msg_rcv_sts_t e_rx_message(ts_com_msg_t* ps_rx_msg,
             u32_pos = u32_pos + ps_rx_data->t_size;
         }
         // エラー判定
-        if (e_rcv_sts != COM_BLE_MSG_RCV_NORMAL) {
+        if (e_rcv_sts != BLE_MSG_RCV_NORMAL) {
             break;
         }
 
@@ -2956,7 +3093,7 @@ static te_com_ble_msg_rcv_sts_t e_rx_message(ts_com_msg_t* ps_rx_msg,
         if (u_conv.u16_values[0] != (uint16_t)ps_rx_msg->u32_seq_no) {
             // ストップトークンエラー
             // 受信応答を送信
-            e_rcv_sts = COM_BLE_MSG_RCV_STOP_TKN_ERR;
+            e_rcv_sts = BLE_MSG_RCV_STOP_TKN_ERR;
             break;
         }
 
@@ -2964,16 +3101,16 @@ static te_com_ble_msg_rcv_sts_t e_rx_message(ts_com_msg_t* ps_rx_msg,
         // メッセージの署名タグチェック
         //----------------------------------------------------------------------
         // メッセージの認証ハッシュ生成
-        uint8_t u8_auth_tag[COM_MSG_SIZE_AUTH_TAG];
+        uint8_t u8_auth_tag[BLE_MSG_SIZE_AUTH_TAG];
         if (sts_edit_auth_tag(u8_auth_tag, ps_msg_buff) != ESP_OK) {
             // メッセージ認証タグの生成エラー
-            e_rcv_sts = COM_BLE_MSG_RCV_RECEIVER_ERR;
+            e_rcv_sts = BLE_MSG_RCV_RECEIVER_ERR;
             break;
         }
         // ハッシュ値の検証
-        if (memcmp(ps_rx_msg->u8_auth_tag, u8_auth_tag, COM_MSG_SIZE_AUTH_TAG) != 0) {
+        if (memcmp(ps_rx_msg->u8_auth_tag, u8_auth_tag, BLE_MSG_SIZE_AUTH_TAG) != 0) {
             // 認証タグエラー
-            e_rcv_sts = COM_BLE_MSG_RCV_AUTH_ERR;
+            e_rcv_sts = BLE_MSG_RCV_AUTH_ERR;
             break;
         }
 
@@ -2986,13 +3123,13 @@ static te_com_ble_msg_rcv_sts_t e_rx_message(ts_com_msg_t* ps_rx_msg,
             // 暗号文も一時的にそのままデータとして編集
             ps_rx_msg->ps_data = ps_mdl_clone_u8_array(&pu8_msg_buff[MSG_POS_BODY], u16_body_size);
             if (ps_rx_msg->ps_data == NULL) {
-                e_rcv_sts = COM_BLE_MSG_RCV_NO_MEM_ERR;
+                e_rcv_sts = BLE_MSG_RCV_NO_MEM_ERR;
                 break;
             }
         }
 
-#ifdef COM_BLE_MSG_DEBUG
-        if (ps_rx_msg->e_type != COM_BLE_MSG_TYP_RESPONSE) {
+#ifdef BLE_MSG_DEBUG
+        if (ps_rx_msg->e_type != BLE_MSG_TYP_RESPONSE) {
             ESP_LOGW(LOG_TAG, "%s L#%d rx type=%d", __func__, __LINE__, ps_rx_msg->e_type);
         } else {
 			unsigned long ul_tick = (unsigned long)(xTaskGetTickCount() * portTICK_PERIOD_MS);
@@ -3005,7 +3142,7 @@ static te_com_ble_msg_rcv_sts_t e_rx_message(ts_com_msg_t* ps_rx_msg,
     // 終了処理
     //==========================================================================
     // 受信エラー処理
-    if (e_rcv_sts != COM_BLE_MSG_RCV_NORMAL) {
+    if (e_rcv_sts != BLE_MSG_RCV_NORMAL) {
        // 受信エラーの場合
         // コネクションリセット
         v_msg_ctrl_sts_connection_reset();
@@ -3013,7 +3150,7 @@ static te_com_ble_msg_rcv_sts_t e_rx_message(ts_com_msg_t* ps_rx_msg,
     // 受信メッセージバッファを削除
     sts_mdl_delete_u8_array(ps_msg_buff);
     // BLE受信データを削除
-    v_com_ble_gatt_delete_rx_data(ps_ble_data);
+    v_ble_fwk_gatt_delete_rx_data(ps_ble_data);
 
     // 結果ステータスを返信
     return e_rcv_sts;
@@ -3026,23 +3163,23 @@ static te_com_ble_msg_rcv_sts_t e_rx_message(ts_com_msg_t* ps_rx_msg,
  * DESCRIPTION:Rx Message check
  *
  * PARAMETERS:          Name        RW  Usage
- * ts_com_msg_t*        ps_rx_msg   W   受信メッセージの編集対象
+ * ts_ble_msg_t*        ps_rx_msg   W   受信メッセージの編集対象
  *
  * RETURNS:
- *   te_com_ble_msg_rcv_sts_t: 受信結果ステータス
+ *   te_ble_msg_rcv_sts_t: 受信結果ステータス
  *
  * NOTES:
  * None.
  ******************************************************************************/
-static te_com_ble_msg_rcv_sts_t e_rx_msg_check(ts_com_msg_t* ps_rx_msg) {
+static te_ble_msg_rcv_sts_t e_rx_msg_check(ts_ble_msg_t* ps_rx_msg) {
     // 受信ステータス
-    te_com_ble_msg_rcv_sts_t e_rcv_sts = COM_BLE_MSG_RCV_NORMAL;
+    te_ble_msg_rcv_sts_t e_rcv_sts = BLE_MSG_RCV_NORMAL;
     // メッセージ定義の取得
     const ts_msg_definition_t* ps_rx_def = &MSG_DEF[ps_rx_msg->e_type];
     // 本文データ
     ts_u8_array_t* ps_data = ps_rx_msg->ps_data;
     // リモートチケット
-    ts_com_msg_auth_ticket_t* ps_ticket = NULL;
+    ts_ble_msg_auth_ticket_t* ps_ticket = NULL;
     // 直前の受信履歴
     ts_msg_history_t* ps_bef_rx_msg = &s_msg_ctrl_sts.s_bef_rx_msg;
     // トランザクション情報
@@ -3058,7 +3195,7 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_check(ts_com_msg_t* ps_rx_msg) {
         //----------------------------------------------------------------------
         if (ps_rx_msg->u64_device_id == s_msg_ctrl_cfg.u64_device_id) {
             // デバイスIDエラー
-            e_rcv_sts = COM_BLE_MSG_RCV_DEV_ID_ERR;
+            e_rcv_sts = BLE_MSG_RCV_DEV_ID_ERR;
             break;
         }
 
@@ -3067,7 +3204,7 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_check(ts_com_msg_t* ps_rx_msg) {
         //----------------------------------------------------------------------
         if (((ps_rx_def->u16_map_before_rx >> ps_bef_rx_msg->e_type) & 0x0001) != 0x0000) {
             // 直前の受信メッセージタイプエラー
-            e_rcv_sts = COM_BLE_MSG_RCV_TRAN_ERR;
+            e_rcv_sts = BLE_MSG_RCV_TRAN_ERR;
             break;
         }
 
@@ -3077,36 +3214,36 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_check(ts_com_msg_t* ps_rx_msg) {
         // トランザクションチェックタイプ
         if (ps_rx_def->e_chk_trn_type == MSG_CHK_TRN_EXEC) {
             // トランザクション実行中チェック
-            if (ps_tran->e_sts == COM_BLE_MSG_TRN_NONE) {
+            if (ps_tran->e_sts == BLE_MSG_TRN_NONE) {
                 // トランザクションが実行中では無いのでエラー
                 // 受信タイプエラー
-                e_rcv_sts = COM_BLE_MSG_RCV_TYPE_ERR;
+                e_rcv_sts = BLE_MSG_RCV_TYPE_ERR;
                 break;
             }
             // トランザクションのデバイスIDチェック
             if (ps_rx_msg->u64_device_id != ps_tran->u64_device_id) {
                 // メッセージのデバイスIDが違うのでエラー
-                e_rcv_sts = COM_BLE_MSG_RCV_TRAN_ERR;
+                e_rcv_sts = BLE_MSG_RCV_TRAN_ERR;
                 break;
             }
             // 物理アドレスチェック
-            if (l_com_ble_addr_cmp(ps_rx_msg->t_rcv_bda, ps_tran->t_bda) != 0) {
+            if (l_ble_util_addr_cmp(ps_rx_msg->t_rcv_bda, ps_tran->t_bda) != 0) {
                 // トランザクションの通信相手エラー
-                e_rcv_sts = COM_BLE_MSG_RCV_TRAN_ERR;
+                e_rcv_sts = BLE_MSG_RCV_TRAN_ERR;
                 break;
             }
             // トランザクションのタイムアウトをチェック
             if (ps_rx_msg->u32_rcv_tick_ms > ps_tran->u32_timeout_ms) {
                 // トランザクションタイムアウト
-                e_rcv_sts = COM_BLE_MSG_RCV_TRAN_ERR;
+                e_rcv_sts = BLE_MSG_RCV_TRAN_ERR;
                 break;
             }
         } else if (ps_rx_def->e_chk_trn_type == MSG_CHK_TRN_STOP) {
             // トランザクション停止中チェック
-            if (ps_tran->e_sts != COM_BLE_MSG_TRN_NONE) {
+            if (ps_tran->e_sts != BLE_MSG_TRN_NONE) {
                 // トランザクションが実行中なのでエラー
                 // 受信タイプエラー
-                e_rcv_sts = COM_BLE_MSG_RCV_TYPE_ERR;
+                e_rcv_sts = BLE_MSG_RCV_TYPE_ERR;
                 break;
             }
         }
@@ -3117,12 +3254,12 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_check(ts_com_msg_t* ps_rx_msg) {
         // シーケンス番号のチェック用メッセージ定義（受信通知の場合には受信メッセージタイプ）
         const ts_msg_definition_t* ps_seq_chk_def = ps_rx_def;
         // シーケンス番号のチェックのメッセージ定義判定
-        if (ps_rx_msg->e_type == COM_BLE_MSG_TYP_RESPONSE) {
+        if (ps_rx_msg->e_type == BLE_MSG_TYP_RESPONSE) {
             // レスポンスタイプを判定
             uint8_t u8_seq_chk_type = ps_data->pu8_values[0];
-            if (u8_seq_chk_type == COM_BLE_MSG_TYP_RESPONSE) {
+            if (u8_seq_chk_type == BLE_MSG_TYP_RESPONSE) {
                 // チェックタイプエラー
-                e_rcv_sts = COM_BLE_MSG_RCV_TYPE_ERR;
+                e_rcv_sts = BLE_MSG_RCV_TYPE_ERR;
                 break;
             }
             // 受信通知の場合には、送信時のメッセージタイプで判定
@@ -3133,7 +3270,7 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_check(ts_com_msg_t* ps_rx_msg) {
             // シーケンス番号が固定値の場合
             if (ps_rx_msg->u32_seq_no != ps_seq_chk_def->u32_seq_no) {
                 // シーケンスエラー
-                e_rcv_sts = COM_BLE_MSG_RCV_SEQ_ERR;
+                e_rcv_sts = BLE_MSG_RCV_SEQ_ERR;
                 break;
             }
         } else {
@@ -3142,16 +3279,16 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_check(ts_com_msg_t* ps_rx_msg) {
             ps_ticket = ps_read_ticket(ps_rx_msg->u64_device_id, &s_msg_ctrl_sts.s_rmt_ticket);
             if (ps_ticket == NULL) {
                 // チケットが無いのでペアリングエラー
-                e_rcv_sts = COM_BLE_MSG_RCV_PAIRING_ERR;
+                e_rcv_sts = BLE_MSG_RCV_PAIRING_ERR;
                 break;
             }
             // メッセージタイプ判定
-            if (ps_rx_msg->e_type == COM_BLE_MSG_TYP_RESPONSE) {
+            if (ps_rx_msg->e_type == BLE_MSG_TYP_RESPONSE) {
                 // 受信通知の場合
                 // 受信メッセージのSEQ番号チェック
                 if (ps_rx_msg->u32_seq_no > ps_ticket->u32_tx_seq_no) {
                     // 受信シーケンス番号エラー
-                    e_rcv_sts = COM_BLE_MSG_RCV_SEQ_ERR;
+                    e_rcv_sts = BLE_MSG_RCV_SEQ_ERR;
                     break;
                 }
             } else {
@@ -3159,7 +3296,7 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_check(ts_com_msg_t* ps_rx_msg) {
                 // 受信メッセージのSEQ番号チェック
                 if (ps_rx_msg->u32_seq_no <= ps_ticket->u32_rx_seq_no) {
                     // 過去に受信したシーケンス番号以下なのでエラー
-                    e_rcv_sts = COM_BLE_MSG_RCV_SEQ_ERR;
+                    e_rcv_sts = BLE_MSG_RCV_SEQ_ERR;
                     break;
                 }
                 // 受信SEQのアップデートフラグ
@@ -3173,7 +3310,7 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_check(ts_com_msg_t* ps_rx_msg) {
         // 本文の暗号判定
         if (ps_data != NULL && ps_rx_def->b_encryption) {
             // 本文を復号
-            if (ps_rx_msg->e_type == COM_BLE_MSG_TYP_DIGEST_MATCH) {
+            if (ps_rx_msg->e_type == BLE_MSG_TYP_DIGEST_MATCH) {
                 // ダイジェスト一致の場合
                 ps_data = ps_msg_decryption(ps_rx_msg, ps_pairing->u8_com_key);
             } else {
@@ -3190,7 +3327,7 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_check(ts_com_msg_t* ps_rx_msg) {
             // 編集結果判定
             if (ps_rx_msg->ps_data == NULL) {
                 // 復号エラー
-                e_rcv_sts = COM_BLE_MSG_RCV_DECRYPT_ERR;
+                e_rcv_sts = BLE_MSG_RCV_DECRYPT_ERR;
                 break;
             }
         }
@@ -3201,16 +3338,16 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_check(ts_com_msg_t* ps_rx_msg) {
         if (b_rx_seq_update) {
             // 受信シーケンス更新
             ps_ticket->u32_rx_seq_no = ps_rx_msg->u32_seq_no;
-            if (s_msg_ctrl_cfg.pf_tkt_cb(COM_BLE_MSG_TICKET_EVT_UPDATE, ps_ticket) != ESP_OK) {
+            if (s_msg_ctrl_cfg.pf_tkt_cb(BLE_MSG_TICKET_EVT_UPDATE, ps_ticket) != ESP_OK) {
                 // シーケンス番号エラーとする
-                e_rcv_sts = COM_BLE_MSG_RCV_SEQ_ERR;
+                e_rcv_sts = BLE_MSG_RCV_SEQ_ERR;
                 // 異常終了
                 break;
             }
         }
 
-#ifdef COM_BLE_MSG_DEBUG
-        if (ps_rx_msg->e_type != COM_BLE_MSG_TYP_RESPONSE) {
+#ifdef BLE_MSG_DEBUG
+        if (ps_rx_msg->e_type != BLE_MSG_TYP_RESPONSE) {
             ESP_LOGW(LOG_TAG, "%s L#%d rx type=%d", __func__, __LINE__, ps_rx_msg->e_type);
         } else {
 			unsigned long ul_tick = (unsigned long)(xTaskGetTickCount() * portTICK_PERIOD_MS);
@@ -3223,7 +3360,7 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_check(ts_com_msg_t* ps_rx_msg) {
     // 終了処理
     //==========================================================================
     // 受信エラー処理
-    if (e_rcv_sts != COM_BLE_MSG_RCV_NORMAL) {
+    if (e_rcv_sts != BLE_MSG_RCV_NORMAL) {
         // 受信エラーの場合
         // コネクションリセット
         v_msg_ctrl_sts_connection_reset();
@@ -3240,23 +3377,23 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_check(ts_com_msg_t* ps_rx_msg) {
  * DESCRIPTION:BLE Rx Message event processing
  *
  * PARAMETERS:                  Name        RW  Usage
- * ts_com_msg_t*                ps_rx_msg   R   受信メッセージ
+ * ts_ble_msg_t*                ps_rx_msg   R   受信メッセージ
  *
  * RETURNS:
- *   te_com_ble_msg_rcv_sts_t: 受信結果ステータス
+ *   te_ble_msg_rcv_sts_t: 受信結果ステータス
  *
  * NOTES:
  * None.
  ******************************************************************************/
-static te_com_ble_msg_rcv_sts_t e_rx_msg_event(ts_com_msg_t* ps_rx_msg) {
+static te_ble_msg_rcv_sts_t e_rx_msg_event(ts_ble_msg_t* ps_rx_msg) {
     // 結果ステータス
-    te_com_ble_msg_rcv_sts_t e_rcv_sts = COM_BLE_MSG_RCV_NORMAL;
+    te_ble_msg_rcv_sts_t e_rcv_sts = BLE_MSG_RCV_NORMAL;
     // コールバックイベント
-    te_com_ble_msg_event e_cb_evt = COM_BLE_MSG_EVT_COUNT;
+    te_ble_msg_event e_cb_evt = BLE_MSG_EVT_MAX;
     // 受信メッセージ本文
     ts_u8_array_t* ps_rx_data = ps_rx_msg->ps_data;
     // リモートデバイスチケット
-    ts_com_msg_auth_ticket_t* ps_ticket = &s_msg_ctrl_sts.s_rmt_ticket;
+    ts_ble_msg_auth_ticket_t* ps_ticket = &s_msg_ctrl_sts.s_rmt_ticket;
     // トランザクション情報
     ts_transaction_info_t* ps_tran = &s_msg_ctrl_sts.s_tran;
     // ペアリング情報
@@ -3269,13 +3406,13 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_event(ts_com_msg_t* ps_rx_msg) {
         // リモートデバイス情報の更新処理
         //======================================================================
         // リモートデバイスのBluetoothアドレス
-        v_com_ble_addr_cpy(s_msg_ctrl_sts.t_rmt_bda, ps_rx_msg->t_rcv_bda);
+        v_ble_util_addr_cpy(s_msg_ctrl_sts.t_rmt_bda, ps_rx_msg->t_rcv_bda);
         // 接続判定
         if (s_msg_ctrl_sts.u64_rmt_device_id != ps_rx_msg->u64_device_id) {
             // リモートデバイスID
             s_msg_ctrl_sts.u64_rmt_device_id = ps_rx_msg->u64_device_id;
             // 接続イベントエンキュー
-            v_msg_evt_enqueue(COM_BLE_MSG_EVT_OPEN_SUCCESS);
+            v_msg_evt_enqueue(BLE_MSG_EVT_OPEN_SUCCESS);
         }
 
         //======================================================================
@@ -3294,14 +3431,14 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_event(ts_com_msg_t* ps_rx_msg) {
         //----------------------------------------------------------------------
         esp_err_t sts_val = ESP_OK;
         switch (ps_rx_msg->e_type) {
-        case COM_BLE_MSG_TYP_RESPONSE:
+        case BLE_MSG_TYP_RESPONSE:
             //------------------------------------------------------------------
             // 受信通知
             //------------------------------------------------------------------
             // イベントエンキュー
-            v_msg_evt_enqueue(COM_BLE_MSG_EVT_RX_RESPONSE);
+            v_msg_evt_enqueue(BLE_MSG_EVT_RX_RESPONSE);
             break;
-        case COM_BLE_MSG_TYP_RESET:
+        case BLE_MSG_TYP_RESET:
             //------------------------------------------------------------------
             // リセット
             //------------------------------------------------------------------
@@ -3310,27 +3447,27 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_event(ts_com_msg_t* ps_rx_msg) {
             // リモートデバイスIDを再設定
             s_msg_ctrl_sts.u64_rmt_device_id = ps_rx_msg->u64_device_id;
             // リモートデバイスのBluetoothアドレスを再設定
-            v_com_ble_addr_cpy(s_msg_ctrl_sts.t_rmt_bda, ps_rx_msg->t_rcv_bda);
+            v_ble_util_addr_cpy(s_msg_ctrl_sts.t_rmt_bda, ps_rx_msg->t_rcv_bda);
             // イベントエンキュー
-            v_msg_evt_enqueue(COM_BLE_MSG_EVT_RX_RESET);
+            v_msg_evt_enqueue(BLE_MSG_EVT_RX_RESET);
             break;
-        case COM_BLE_MSG_TYP_PING:
+        case BLE_MSG_TYP_PING:
             //------------------------------------------------------------------
             // PING
             //------------------------------------------------------------------
             // イベントエンキュー
-            v_msg_evt_enqueue(COM_BLE_MSG_EVT_RX_PING);
+            v_msg_evt_enqueue(BLE_MSG_EVT_RX_PING);
             break;
-        case COM_BLE_MSG_TYP_PAIRING_REQ:
+        case BLE_MSG_TYP_PAIRING_REQ:
             //------------------------------------------------------------------
             // ペアリング要求
             //------------------------------------------------------------------
             // ペアリングトランザクションの初期処理
             if (sts_begin_pairing() != ESP_OK) {
                 // 受信ステータス
-                e_rcv_sts = COM_BLE_MSG_RCV_HANDLING_ERR;
+                e_rcv_sts = BLE_MSG_RCV_HANDLING_ERR;
                 // ユーザーイベント
-                e_cb_evt = COM_BLE_MSG_EVT_HANDLING_ERR;
+                e_cb_evt = BLE_MSG_EVT_HANDLING_ERR;
                 break;
             }
             // 相手デバイス公開鍵を保存
@@ -3345,28 +3482,28 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_event(ts_com_msg_t* ps_rx_msg) {
             // コンテキストの生成を確認
             if (ps_pairing->ps_x25519_ctx == NULL) {
                 // 受信ステータス
-                e_rcv_sts = COM_BLE_MSG_RCV_NO_MEM_ERR;
+                e_rcv_sts = BLE_MSG_RCV_NO_MEM_ERR;
                 // ユーザーイベント
-                e_cb_evt = COM_BLE_MSG_EVT_HANDLING_ERR;
+                e_cb_evt = BLE_MSG_EVT_HANDLING_ERR;
                 break;
             }
             // 共通鍵のコピー
             memcpy(ps_pairing->u8_com_key, ps_pairing->ps_x25519_ctx->u8_key, CRYPTO_X25519_KEY_SIZE);
-#ifdef COM_BLE_MSG_DEBUG
+#ifdef BLE_MSG_DEBUG
             do {
-                uint32_t u32_key_len = (COM_MSG_SIZE_CIPHER_KEY * 2) + 1;
+                uint32_t u32_key_len = (BLE_MSG_SIZE_CIPHER_KEY * 2) + 1;
                 char c_key_str[u32_key_len];
-                v_vutil_u8_to_hex_string(ps_pairing->u8_com_key, COM_MSG_SIZE_CIPHER_KEY, c_key_str);
+                v_vutil_u8_to_hex_string(ps_pairing->u8_com_key, BLE_MSG_SIZE_CIPHER_KEY, c_key_str);
                 ESP_LOGW(LOG_TAG, "%s L#%d com_key=%s", __func__, __LINE__, c_key_str);
             } while(false);
 #endif
             // ペアリング応答メッセージ生成
-            ps_tx_msg = ps_create_msg_data(COM_BLE_MSG_TYP_PAIRING_RSP, NULL);
+            ps_tx_msg = ps_create_msg_data(BLE_MSG_TYP_PAIRING_RSP, NULL);
             if (ps_tx_msg == NULL) {
                 // 受信ステータス
-                e_rcv_sts = COM_BLE_MSG_RCV_HANDLING_ERR;
+                e_rcv_sts = BLE_MSG_RCV_HANDLING_ERR;
                 // ユーザーイベント
-                e_cb_evt = COM_BLE_MSG_EVT_HANDLING_ERR;
+                e_cb_evt = BLE_MSG_EVT_HANDLING_ERR;
                 break;
             }
             // ペアリング応答送信
@@ -3375,23 +3512,23 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_event(ts_com_msg_t* ps_rx_msg) {
             sts_mdl_delete_u8_array(ps_tx_msg);
             if (sts_val != ESP_OK) {
                 // 受信ステータス
-                e_rcv_sts = COM_BLE_MSG_RCV_HANDLING_ERR;
+                e_rcv_sts = BLE_MSG_RCV_HANDLING_ERR;
                 // ユーザーイベント
-                e_cb_evt = COM_BLE_MSG_EVT_HANDLING_ERR;
+                e_cb_evt = BLE_MSG_EVT_HANDLING_ERR;
                 break;
             }
             // イベントエンキュー
-            v_msg_evt_enqueue(COM_BLE_MSG_EVT_PAIRING_START);
+            v_msg_evt_enqueue(BLE_MSG_EVT_PAIRING_START);
             break;
-        case COM_BLE_MSG_TYP_PAIRING_RSP:
+        case BLE_MSG_TYP_PAIRING_RSP:
             //------------------------------------------------------------------
             // ペアリング応答
             //------------------------------------------------------------------
             if (ps_pairing->ps_x25519_ctx == NULL) {
                 // ペアリングエラー
-                e_rcv_sts = COM_BLE_MSG_RCV_PAIRING_ERR;
+                e_rcv_sts = BLE_MSG_RCV_PAIRING_ERR;
                 // ユーザーイベント
-                e_cb_evt = COM_BLE_MSG_EVT_HANDLING_ERR;
+                e_cb_evt = BLE_MSG_EVT_HANDLING_ERR;
                 break;
             }
             // 受信した公開鍵（Curve25519を想定）を設定
@@ -3401,29 +3538,29 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_event(ts_com_msg_t* ps_rx_msg) {
             sts_val = sts_crypto_x25519_client_secret(ps_pairing->ps_x25519_ctx, u8_receive_key);
             if (sts_val != ESP_OK) {
                 // 受信ステータス
-                e_rcv_sts = COM_BLE_MSG_RCV_NO_MEM_ERR;
+                e_rcv_sts = BLE_MSG_RCV_NO_MEM_ERR;
                 // ユーザーイベント
-                e_cb_evt = COM_BLE_MSG_EVT_HANDLING_ERR;
+                e_cb_evt = BLE_MSG_EVT_HANDLING_ERR;
                 break;
             }
             // 共通鍵をコピー
             memcpy(ps_pairing->u8_com_key, ps_pairing->ps_x25519_ctx->u8_key, CRYPTO_X25519_KEY_SIZE);
             // イベントエンキュー
-            v_msg_evt_enqueue(COM_BLE_MSG_EVT_PAIRING_START);
+            v_msg_evt_enqueue(BLE_MSG_EVT_PAIRING_START);
             break;
-        case COM_BLE_MSG_TYP_DIGEST_MATCH:
+        case BLE_MSG_TYP_DIGEST_MATCH:
             //------------------------------------------------------------------
             // ダイジェスト一致
             //------------------------------------------------------------------
             ps_digest_match = (ts_msg_digest_match_t*)ps_rx_data->pu8_values;
             // 相手ステータスハッシュ
-            memcpy(ps_pairing->u8_rmt_sts_hash, ps_digest_match->u8_sts_hash, COM_MSG_SIZE_TICKET_STS);
+            memcpy(ps_pairing->u8_rmt_sts_hash, ps_digest_match->u8_sts_hash, BLE_MSG_SIZE_TICKET_STS);
             // 最大シーケンス番号
             ps_pairing->u32_max_seq_no = ps_digest_match->u32_max_seq_no;
-#ifdef COM_BLE_MSG_DEBUG
+#ifdef BLE_MSG_DEBUG
             do {
-                char sts_txt[(COM_MSG_SIZE_TICKET_STS * 2) + 1];
-                v_vutil_u8_to_hex_string(ps_pairing->u8_rmt_sts_hash, COM_MSG_SIZE_TICKET_STS, sts_txt);
+                char sts_txt[(BLE_MSG_SIZE_TICKET_STS * 2) + 1];
+                v_vutil_u8_to_hex_string(ps_pairing->u8_rmt_sts_hash, BLE_MSG_SIZE_TICKET_STS, sts_txt);
                 ESP_LOGW(LOG_TAG, "%s L#%d rx_hash=%s", __func__, __LINE__, sts_txt);
                 ESP_LOGW(LOG_TAG, "%s L#%d rx_no=%lu", __func__, __LINE__, (unsigned long)ps_pairing->u32_max_seq_no);
             } while(false);
@@ -3435,13 +3572,13 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_event(ts_com_msg_t* ps_rx_msg) {
                 if (sts_create_ticket(ps_tran, ps_pairing) != ESP_OK) {
                     // ペアリングエラー
                     // 受信ステータス
-                    e_rcv_sts = COM_BLE_MSG_RCV_HANDLING_ERR;
+                    e_rcv_sts = BLE_MSG_RCV_HANDLING_ERR;
                     // ユーザーイベント
-                    e_cb_evt = COM_BLE_MSG_EVT_HANDLING_ERR;
+                    e_cb_evt = BLE_MSG_EVT_HANDLING_ERR;
                     break;
                 }
                 // イベントエンキュー
-                v_msg_evt_enqueue(COM_BLE_MSG_EVT_PAIRING_SUCCESS);
+                v_msg_evt_enqueue(BLE_MSG_EVT_PAIRING_SUCCESS);
                 // トランザクション終了
                 v_msg_ctrl_sts_transaction_reset();
                 break;
@@ -3450,54 +3587,54 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_event(ts_com_msg_t* ps_rx_msg) {
             if (ps_pairing->e_sts == MSG_PAIRING_CHK_REMOTE) {
                 // ダイジェスト一致を複数回受信
                 // 受信ステータス
-                e_rcv_sts = COM_BLE_MSG_RCV_PAIRING_ERR;
+                e_rcv_sts = BLE_MSG_RCV_PAIRING_ERR;
                 // ユーザーイベント
-                e_cb_evt = COM_BLE_MSG_EVT_PAIRING_ERR;
+                e_cb_evt = BLE_MSG_EVT_PAIRING_ERR;
                 break;
             }
             // リモートダイジェスト一致
             ps_pairing->e_sts = MSG_PAIRING_CHK_REMOTE;
             break;
-        case COM_BLE_MSG_TYP_DIGEST_ERR:
+        case BLE_MSG_TYP_DIGEST_ERR:
             //------------------------------------------------------------------
             // ダイジェスト不一致
             //------------------------------------------------------------------
             // 受信ステータス
-            e_rcv_sts = COM_BLE_MSG_RCV_PAIRING_ERR;
+            e_rcv_sts = BLE_MSG_RCV_PAIRING_ERR;
             // ユーザーイベント
-            e_cb_evt = COM_BLE_MSG_EVT_PAIRING_ERR;
+            e_cb_evt = BLE_MSG_EVT_PAIRING_ERR;
             break;
-        case COM_BLE_MSG_TYP_STATUS_REQ:
+        case BLE_MSG_TYP_STATUS_REQ:
             //------------------------------------------------------------------
             // ステータス要求
             //------------------------------------------------------------------
             // ステータスチェックトランザクション開始
             if (sts_begin_sts_chk() != ESP_OK) {
-#ifdef COM_BLE_MSG_DEBUG
-                ESP_LOGW(LOG_TAG, "%s L#%d Evt=COM_BLE_MSG_EVT_STATUS_ERR", __func__, __LINE__);
+#ifdef BLE_MSG_DEBUG
+                ESP_LOGW(LOG_TAG, "%s L#%d Evt=BLE_MSG_EVT_STATUS_ERR", __func__, __LINE__);
 #endif
                 // 受信ステータス
-                e_rcv_sts = COM_BLE_MSG_RCV_STS_CHK_ERR;
+                e_rcv_sts = BLE_MSG_RCV_STS_CHK_ERR;
                 // ユーザーイベント
-                e_cb_evt = COM_BLE_MSG_EVT_STATUS_ERR;
+                e_cb_evt = BLE_MSG_EVT_STATUS_ERR;
                 break;
             }
             // 受信したチェック乱数を保存
-            memcpy(ps_sts_chk->u8_rx_rand, ps_rx_data->pu8_values, COM_MSG_SIZE_TICKET_STS);
-#ifdef COM_BLE_MSG_DEBUG
+            memcpy(ps_sts_chk->u8_rx_rand, ps_rx_data->pu8_values, BLE_MSG_SIZE_TICKET_STS);
+#ifdef BLE_MSG_DEBUG
             do {
-                char sts_txt[(COM_MSG_SIZE_TICKET_STS * 2) + 1];
-                v_vutil_u8_to_hex_string(ps_sts_chk->u8_rx_rand, COM_MSG_SIZE_TICKET_STS, sts_txt);
+                char sts_txt[(BLE_MSG_SIZE_TICKET_STS * 2) + 1];
+                v_vutil_u8_to_hex_string(ps_sts_chk->u8_rx_rand, BLE_MSG_SIZE_TICKET_STS, sts_txt);
                 ESP_LOGW(LOG_TAG, "%s L#%d rx_rand=%s", __func__, __LINE__, sts_txt);
             } while(false);
 #endif
             // 応答メッセージを生成
-            ps_tx_msg = ps_create_msg_data(COM_BLE_MSG_TYP_STATUS_RSP1, NULL);
+            ps_tx_msg = ps_create_msg_data(BLE_MSG_TYP_STATUS_RSP1, NULL);
             if (ps_tx_msg == NULL) {
                 // 受信ステータス
-                e_rcv_sts = COM_BLE_MSG_RCV_HANDLING_ERR;
+                e_rcv_sts = BLE_MSG_RCV_HANDLING_ERR;
                 // ユーザーイベント
-                e_cb_evt = COM_BLE_MSG_EVT_HANDLING_ERR;
+                e_cb_evt = BLE_MSG_EVT_HANDLING_ERR;
                 break;
             }
             // ステータス応答１を返信する
@@ -3506,34 +3643,34 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_event(ts_com_msg_t* ps_rx_msg) {
             sts_mdl_delete_u8_array(ps_tx_msg);
             if (sts_val != ESP_OK) {
                 // 受信ステータス
-                e_rcv_sts = COM_BLE_MSG_RCV_HANDLING_ERR;
+                e_rcv_sts = BLE_MSG_RCV_HANDLING_ERR;
                 // ユーザーイベント
-                e_cb_evt = COM_BLE_MSG_EVT_HANDLING_ERR;
+                e_cb_evt = BLE_MSG_EVT_HANDLING_ERR;
                 break;
             }
             // イベントエンキュー
-            v_msg_evt_enqueue(COM_BLE_MSG_EVT_STATUS_CHK);
+            v_msg_evt_enqueue(BLE_MSG_EVT_STATUS_CHK);
             break;
-        case COM_BLE_MSG_TYP_STATUS_RSP1:
+        case BLE_MSG_TYP_STATUS_RSP1:
             //------------------------------------------------------------------
             // ステータス応答１
             //------------------------------------------------------------------
             // 受信したチェック乱数を保存
             memcpy(ps_sts_chk->u8_rx_rand, &ps_rx_data->pu8_values[MSG_SIZE_CHECK_CODE], MSG_SIZE_CHECK_RANDOM);
-#ifdef COM_BLE_MSG_DEBUG
+#ifdef BLE_MSG_DEBUG
             do {
-                char sts_txt[(COM_MSG_SIZE_TICKET_STS * 2) + 1];
-                v_vutil_u8_to_hex_string(ps_sts_chk->u8_rx_rand, COM_MSG_SIZE_TICKET_STS, sts_txt);
+                char sts_txt[(BLE_MSG_SIZE_TICKET_STS * 2) + 1];
+                v_vutil_u8_to_hex_string(ps_sts_chk->u8_rx_rand, BLE_MSG_SIZE_TICKET_STS, sts_txt);
                 ESP_LOGW(LOG_TAG, "%s L#%d rx_rand=%s", __func__, __LINE__, sts_txt);
             } while(false);
 #endif
             // 応答メッセージを生成
-            ps_tx_msg = ps_create_msg_data(COM_BLE_MSG_TYP_STATUS_RSP2, NULL);
+            ps_tx_msg = ps_create_msg_data(BLE_MSG_TYP_STATUS_RSP2, NULL);
             if (ps_tx_msg == NULL) {
                 // 受信ステータス
-                e_rcv_sts = COM_BLE_MSG_RCV_HANDLING_ERR;
+                e_rcv_sts = BLE_MSG_RCV_HANDLING_ERR;
                 // ユーザーイベント
-                e_cb_evt = COM_BLE_MSG_EVT_HANDLING_ERR;
+                e_cb_evt = BLE_MSG_EVT_HANDLING_ERR;
                 break;
             }
             // ステータス応答２を返信する
@@ -3542,60 +3679,60 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_event(ts_com_msg_t* ps_rx_msg) {
             sts_mdl_delete_u8_array(ps_tx_msg);
             if (sts_val != ESP_OK) {
                 // 受信ステータス
-                e_rcv_sts = COM_BLE_MSG_RCV_HANDLING_ERR;
+                e_rcv_sts = BLE_MSG_RCV_HANDLING_ERR;
                 // ユーザーイベント
-                e_cb_evt = COM_BLE_MSG_EVT_HANDLING_ERR;
+                e_cb_evt = BLE_MSG_EVT_HANDLING_ERR;
                 break;
             }
             // チェックコードの検証
             if (sts_status_check(ps_rx_msg->u64_device_id, ps_rx_data->pu8_values, ps_ticket) == ESP_OK) {
                 // イベントエンキュー
-                v_msg_evt_enqueue(COM_BLE_MSG_EVT_STATUS_OK);
+                v_msg_evt_enqueue(BLE_MSG_EVT_STATUS_OK);
             } else {
                 // 受信ステータス
-                e_rcv_sts = COM_BLE_MSG_RCV_STS_CHK_ERR;
+                e_rcv_sts = BLE_MSG_RCV_STS_CHK_ERR;
                 // ユーザーイベント
-                e_cb_evt = COM_BLE_MSG_EVT_STATUS_ERR;
+                e_cb_evt = BLE_MSG_EVT_STATUS_ERR;
             }
             // トランザクション終了
             v_msg_ctrl_sts_transaction_reset();
             break;
-        case COM_BLE_MSG_TYP_STATUS_RSP2:
+        case BLE_MSG_TYP_STATUS_RSP2:
             //------------------------------------------------------------------
             // ステータス応答２
             //------------------------------------------------------------------
             // チェックコードの検証
             if (sts_status_check(ps_rx_msg->u64_device_id, ps_rx_data->pu8_values, ps_ticket) == ESP_OK) {
                 // イベントエンキュー
-                v_msg_evt_enqueue(COM_BLE_MSG_EVT_STATUS_OK);
+                v_msg_evt_enqueue(BLE_MSG_EVT_STATUS_OK);
             } else {
                 // 受信ステータス
-                e_rcv_sts = COM_BLE_MSG_RCV_STS_CHK_ERR;
+                e_rcv_sts = BLE_MSG_RCV_STS_CHK_ERR;
                 // ユーザーイベント
-                e_cb_evt = COM_BLE_MSG_EVT_STATUS_ERR;
+                e_cb_evt = BLE_MSG_EVT_STATUS_ERR;
             }
             // トランザクション終了
             v_msg_ctrl_sts_transaction_reset();
             break;
-        case COM_BLE_MSG_TYP_DATA:
+        case BLE_MSG_TYP_DATA:
             //------------------------------------------------------------------
             // データ
             //------------------------------------------------------------------
             // イベントエンキュー
-            v_msg_evt_enqueue(COM_BLE_MSG_EVT_RX_DATA);
+            v_msg_evt_enqueue(BLE_MSG_EVT_RX_DATA);
             break;
-        case COM_BLE_MSG_TYP_CIPHERTEXT:
+        case BLE_MSG_TYP_CIPHERTEXT:
             //------------------------------------------------------------------
             // 暗号データ
             //------------------------------------------------------------------
             // イベントエンキュー
-            v_msg_evt_enqueue(COM_BLE_MSG_EVT_RX_CIPHERTEXT);
+            v_msg_evt_enqueue(BLE_MSG_EVT_RX_CIPHERTEXT);
             break;
         default:
             // 受信ステータス
-            e_rcv_sts = COM_BLE_MSG_RCV_HANDLING_ERR;
+            e_rcv_sts = BLE_MSG_RCV_HANDLING_ERR;
             // ユーザーイベント
-            e_cb_evt = COM_BLE_MSG_EVT_HANDLING_ERR;
+            e_cb_evt = BLE_MSG_EVT_HANDLING_ERR;
         }
     } while(false);
 
@@ -3618,15 +3755,15 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_event(ts_com_msg_t* ps_rx_msg) {
     //--------------------------------------------------------------------------
     // 受信ステータス処理
     //--------------------------------------------------------------------------
-    if (e_rcv_sts != COM_BLE_MSG_RCV_NORMAL) {
+    if (e_rcv_sts != BLE_MSG_RCV_NORMAL) {
         // 受信エラーの場合
         // ユーザーイベント判定
-        if (e_cb_evt != COM_BLE_MSG_EVT_COUNT) {
+        if (e_cb_evt != BLE_MSG_EVT_MAX) {
             // イベントエンキュー
             v_msg_evt_enqueue(e_cb_evt);
         }
         // コネクションリセット
-        if (e_rcv_sts != COM_BLE_MSG_RCV_STS_CHK_ERR) {
+        if (e_rcv_sts != BLE_MSG_RCV_STS_CHK_ERR) {
             v_msg_ctrl_sts_connection_reset();
         }
         // 異常終了
@@ -3640,14 +3777,14 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_event(ts_com_msg_t* ps_rx_msg) {
     s_msg_ctrl_sts.u64_rx_count++;
     // 受信履歴の更新
     ts_msg_history_t* ps_bef_rx_msg = NULL;
-    if (ps_rx_msg->e_type != COM_BLE_MSG_TYP_RESPONSE) {
+    if (ps_rx_msg->e_type != BLE_MSG_TYP_RESPONSE) {
         // 受信メッセージ
         ps_bef_rx_msg = &s_msg_ctrl_sts.s_bef_rx_msg;
     } else {
         // 受信応答メッセージ
         ps_bef_rx_msg = &s_msg_ctrl_sts.s_bef_rx_rsp;
     }
-    v_com_ble_addr_cpy(ps_bef_rx_msg->t_bda, ps_rx_msg->t_rcv_bda);
+    v_ble_util_addr_cpy(ps_bef_rx_msg->t_bda, ps_rx_msg->t_rcv_bda);
     ps_bef_rx_msg->u32_tick_ms    = ps_rx_msg->u32_rcv_tick_ms;
     ps_bef_rx_msg->u64_device_id  = ps_rx_msg->u64_device_id;
     ps_bef_rx_msg->u32_seq_no     = ps_rx_msg->u32_seq_no;
@@ -3664,8 +3801,8 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_event(ts_com_msg_t* ps_rx_msg) {
  * DESCRIPTION:BLEの受信応答の送信処理
  *
  * PARAMETERS:              Name            RW  Usage
- * te_com_ble_msg_type_t    e_rx_type       R   受信メッセージタイプ
- * te_com_ble_msg_rcv_sts_t e_rx_sts        R   受信ステータス
+ * te_ble_msg_type_t    e_rx_type       R   受信メッセージタイプ
+ * te_ble_msg_rcv_sts_t e_rx_sts        R   受信ステータス
  * uint32_t                 u32_seq_no      R   メッセージSEQ番号
  *
  * RETURNS:
@@ -3674,17 +3811,17 @@ static te_com_ble_msg_rcv_sts_t e_rx_msg_event(ts_com_msg_t* ps_rx_msg) {
  * NOTES:
  * None.
  ******************************************************************************/
-static esp_err_t sts_tx_response(te_com_ble_msg_type_t e_rx_type,
-                                  te_com_ble_msg_rcv_sts_t e_rx_sts,
+static esp_err_t sts_tx_response(te_ble_msg_type_t e_rx_type,
+                                  te_ble_msg_rcv_sts_t e_rx_sts,
                                   uint32_t u32_seq_no) {
     //==========================================================================
     // 受信通知メッセージ生成
     //==========================================================================
-#ifdef COM_BLE_MSG_DEBUG
+#ifdef BLE_MSG_DEBUG
     ESP_LOGW(LOG_TAG, "%s L#%d rcv_type=%d rx_sts=%02x seq=%lu", __func__, __LINE__, e_rx_type, e_rx_sts, (unsigned long)u32_seq_no);
 #endif
     // メッセージ定義の取得
-    const ts_msg_definition_t* ps_def = &MSG_DEF[COM_BLE_MSG_TYP_RESPONSE];
+    const ts_msg_definition_t* ps_def = &MSG_DEF[BLE_MSG_TYP_RESPONSE];
     // メッセージデータ
     ts_u8_array_t* ps_msg = ps_mdl_empty_u8_array(ps_def->u16_length);
     if (ps_msg == NULL) {
@@ -3707,7 +3844,7 @@ static esp_err_t sts_tx_response(te_com_ble_msg_type_t e_rx_type,
     pu8_value[MSG_POS_DEVICE_ID + 6] = u_conv.u8_values[6];
     pu8_value[MSG_POS_DEVICE_ID + 7] = u_conv.u8_values[7];
     // 編集：メッセージタイプ
-    pu8_value[MSG_POS_TYPE] = COM_BLE_MSG_TYP_RESPONSE;
+    pu8_value[MSG_POS_TYPE] = BLE_MSG_TYP_RESPONSE;
     // 編集：メッセージ長
     u_conv.u16_values[0] = ps_def->u16_length;
     pu8_value[MSG_POS_MSG_LEN]     = u_conv.u8_values[0];
@@ -3767,7 +3904,7 @@ static esp_err_t sts_tx_reset_msg() {
     //----------------------------------------------------------------------
     // 接続判定
     //----------------------------------------------------------------------
-    if (s_msg_ctrl_cfg.pf_connect_sts() != COM_BLE_MSG_CON_CONNECTED) {
+    if (s_msg_ctrl_cfg.pf_connect_sts() != BLE_MSG_CON_CONNECTED) {
         // 未接続
         return ESP_ERR_INVALID_STATE;
     }
@@ -3775,7 +3912,7 @@ static esp_err_t sts_tx_reset_msg() {
     //----------------------------------------------------------------------
     // メッセージ生成
     //----------------------------------------------------------------------
-    ts_u8_array_t* ps_msg = ps_create_msg_data(COM_BLE_MSG_TYP_RESET, NULL);
+    ts_u8_array_t* ps_msg = ps_create_msg_data(BLE_MSG_TYP_RESET, NULL);
     if (ps_msg == NULL) {
         return ESP_ERR_NO_MEM;
     }
@@ -3812,7 +3949,7 @@ static esp_err_t sts_tx_ping_msg() {
     //----------------------------------------------------------------------
     // 接続判定
     //----------------------------------------------------------------------
-    if (s_msg_ctrl_cfg.pf_connect_sts() != COM_BLE_MSG_CON_CONNECTED) {
+    if (s_msg_ctrl_cfg.pf_connect_sts() != BLE_MSG_CON_CONNECTED) {
         // 未接続
         return  ESP_ERR_INVALID_STATE;
     }
@@ -3820,7 +3957,7 @@ static esp_err_t sts_tx_ping_msg() {
     //----------------------------------------------------------------------
     // メッセージ生成
     //----------------------------------------------------------------------
-    ts_u8_array_t* ps_msg = ps_create_msg_data(COM_BLE_MSG_TYP_PING, NULL);
+    ts_u8_array_t* ps_msg = ps_create_msg_data(BLE_MSG_TYP_PING, NULL);
     if (ps_msg == NULL) {
         return  ESP_ERR_NO_MEM;
     }
@@ -3863,7 +4000,7 @@ static void v_upd_tx_history(ts_u8_array_t* ps_msg) {
     // 送信履歴の更新
     //==========================================================================
     uint8_t* pu8_value = ps_msg->pu8_values;
-    if (pu8_value[MSG_POS_TYPE] == COM_BLE_MSG_TYP_RESPONSE) {
+    if (pu8_value[MSG_POS_TYPE] == BLE_MSG_TYP_RESPONSE) {
         // 受信通知の場合は履歴を更新しない
         return;
     }
@@ -3964,8 +4101,8 @@ static bool b_is_paired(uint64_t u64_device_id) {
     // チケット取得
     //==========================================================================
     // チケット取得
-    ts_com_msg_auth_ticket_t s_ticket;
-    ts_com_msg_auth_ticket_t* ps_ticket = ps_read_ticket(u64_device_id, &s_ticket);
+    ts_ble_msg_auth_ticket_t s_ticket;
+    ts_ble_msg_auth_ticket_t* ps_ticket = ps_read_ticket(u64_device_id, &s_ticket);
     // チケットの有効判定
     if (ps_ticket == NULL) {
         return false;
@@ -3999,18 +4136,18 @@ static esp_err_t sts_begin_open(esp_bd_addr_t t_bda, uint32_t* pu32_timeout_ms) 
     // トランザクション開始チェック
     //==========================================================================
     // 現在の接続先を判定
-    if (l_com_ble_addr_cmp(t_bda, s_msg_ctrl_sts.t_rmt_bda) == 0) {
+    if (l_ble_util_addr_cmp(t_bda, s_msg_ctrl_sts.t_rmt_bda) == 0) {
         // 既に接続済み
         return ESP_ERR_INVALID_STATE;
     }
     // トランザクション状態チェック
     ts_transaction_info_t* ps_tran = &s_msg_ctrl_sts.s_tran;
-    if (ps_tran->e_sts != COM_BLE_MSG_TRN_NONE) {
+    if (ps_tran->e_sts != BLE_MSG_TRN_NONE) {
         // トランザクション実行中
         return ESP_ERR_INVALID_STATE;
     }
     // 接続状態チェック
-    if (s_msg_ctrl_cfg.pf_connect_sts() != COM_BLE_MSG_CON_DISCONNECTED) {
+    if (s_msg_ctrl_cfg.pf_connect_sts() != BLE_MSG_CON_DISCONNECTED) {
         // 接続中もしくは接続済み
         return ESP_ERR_INVALID_STATE;
     }
@@ -4019,13 +4156,13 @@ static esp_err_t sts_begin_open(esp_bd_addr_t t_bda, uint32_t* pu32_timeout_ms) 
     // オープントランザクションの開始処理
     //==========================================================================
     // オープントランザクション開始
-    ps_tran->e_sts = COM_BLE_MSG_TRN_OPEN;
+    ps_tran->e_sts = BLE_MSG_TRN_OPEN;
     // 相手デバイスIDクリア
     ps_tran->u64_device_id = s_msg_ctrl_cfg.u64_device_id;
     // BLEのアドレスコピー
-    v_com_ble_addr_cpy(ps_tran->t_bda, t_bda);
+    v_ble_util_addr_cpy(ps_tran->t_bda, t_bda);
     // トランザクションタイムアウト
-    *pu32_timeout_ms = xTaskGetTickCountMSec() + COM_MSG_TRN_TIMEOUT_MS_OPEN;
+    *pu32_timeout_ms = xTaskGetTickCountMSec() + BLE_MSG_TRN_TIMEOUT_MS_OPEN;
     ps_tran->u32_timeout_ms = *pu32_timeout_ms;
 
     // 正常終了
@@ -4061,7 +4198,7 @@ static esp_err_t sts_begin_pairing() {
     // トランザクション状態チェック
     //--------------------------------------------------------------------------
     ts_transaction_info_t* ps_tran = &s_msg_ctrl_sts.s_tran;
-    if (ps_tran->e_sts != COM_BLE_MSG_TRN_NONE) {
+    if (ps_tran->e_sts != BLE_MSG_TRN_NONE) {
         // トランザクション実行中
         return ESP_ERR_INVALID_STATE;
     }
@@ -4069,7 +4206,7 @@ static esp_err_t sts_begin_pairing() {
     //--------------------------------------------------------------------------
     // 接続チェック
     //--------------------------------------------------------------------------
-    if (s_msg_ctrl_cfg.pf_connect_sts() != COM_BLE_MSG_CON_CONNECTED) {
+    if (s_msg_ctrl_cfg.pf_connect_sts() != BLE_MSG_CON_CONNECTED) {
         // 未接続
         return ESP_ERR_INVALID_STATE;
     }
@@ -4081,13 +4218,13 @@ static esp_err_t sts_begin_pairing() {
     // トランザクション情報を編集
     //--------------------------------------------------------------------------
     // ペアリングトランザクション開始
-    ps_tran->e_sts = COM_BLE_MSG_TRN_PAIRING;
+    ps_tran->e_sts = BLE_MSG_TRN_PAIRING;
     // 相手デバイスID
     ps_tran->u64_device_id = s_msg_ctrl_sts.u64_rmt_device_id;
     // BLEのアドレスコピー
-    v_com_ble_addr_cpy(ps_tran->t_bda, s_msg_ctrl_sts.t_rmt_bda);
+    v_ble_util_addr_cpy(ps_tran->t_bda, s_msg_ctrl_sts.t_rmt_bda);
     // トランザクションタイムアウト
-    ps_tran->u32_timeout_ms = xTaskGetTickCountMSec() + COM_MSG_TRN_TIMEOUT_MS_PAIRING;
+    ps_tran->u32_timeout_ms = xTaskGetTickCountMSec() + BLE_MSG_TRN_TIMEOUT_MS_PAIRING;
 
     //--------------------------------------------------------------------------
     // ペアリングステータスを編集
@@ -4096,14 +4233,14 @@ static esp_err_t sts_begin_pairing() {
     // ペアリングステータス
     ps_pairing->e_sts = MSG_PAIRING_CHK_NONE;
     // 共通鍵
-    memset(ps_pairing->u8_com_key, 0x00, COM_MSG_SIZE_CIPHER_KEY);
+    memset(ps_pairing->u8_com_key, 0x00, BLE_MSG_SIZE_CIPHER_KEY);
     // X25519コンテキストを削除
     v_crypto_x25519_delete_context(ps_pairing->ps_x25519_ctx);
     ps_pairing->ps_x25519_ctx = NULL;
     // 自デバイスステータス
-    b_vutil_set_u8_rand_array(ps_pairing->u8_dev_status, COM_MSG_SIZE_TICKET_STS);
+    b_vutil_set_u8_rand_array(ps_pairing->u8_dev_status, BLE_MSG_SIZE_TICKET_STS);
     // 相手デバイスステータスハッシュ
-    memset(ps_pairing->u8_rmt_sts_hash, 0x00, COM_MSG_SIZE_TICKET_STS);
+    memset(ps_pairing->u8_rmt_sts_hash, 0x00, BLE_MSG_SIZE_TICKET_STS);
     // 最大シーケンス番号
     ps_pairing->u32_max_seq_no = 0;
     // 正常終了
@@ -4139,7 +4276,7 @@ static esp_err_t sts_begin_sts_chk() {
     // トランザクション状態チェック
     //--------------------------------------------------------------------------
     ts_transaction_info_t* ps_tran = &s_msg_ctrl_sts.s_tran;
-    if (ps_tran->e_sts != COM_BLE_MSG_TRN_NONE) {
+    if (ps_tran->e_sts != BLE_MSG_TRN_NONE) {
         // トランザクション実行中
         return ESP_ERR_INVALID_STATE;
     }
@@ -4154,8 +4291,8 @@ static esp_err_t sts_begin_sts_chk() {
     //--------------------------------------------------------------------------
     // 接続判定
     //--------------------------------------------------------------------------
-    if (s_msg_ctrl_cfg.pf_connect_sts() != COM_BLE_MSG_CON_CONNECTED) {
-#ifdef COM_BLE_MSG_DEBUG
+    if (s_msg_ctrl_cfg.pf_connect_sts() != BLE_MSG_CON_CONNECTED) {
+#ifdef BLE_MSG_DEBUG
         ESP_LOGE(LOG_TAG, "%s L#%d Err=ESP_ERR_INVALID_STATE", __func__, __LINE__);
 #endif
         // 未接続
@@ -4166,22 +4303,22 @@ static esp_err_t sts_begin_sts_chk() {
     // ステータスチェックトランザクションの開始処理
     //==========================================================================
     // ステータスチェックトランザクション開始
-    ps_tran->e_sts = COM_BLE_MSG_TRN_STS_CHK;
+    ps_tran->e_sts = BLE_MSG_TRN_STS_CHK;
     // 相手デバイスID
     ps_tran->u64_device_id = s_msg_ctrl_sts.u64_rmt_device_id;
     // BLEのアドレスコピー
-    v_com_ble_addr_cpy(ps_tran->t_bda, s_msg_ctrl_sts.t_rmt_bda);
+    v_ble_util_addr_cpy(ps_tran->t_bda, s_msg_ctrl_sts.t_rmt_bda);
     // トランザクションタイムアウト
-    ps_tran->u32_timeout_ms = xTaskGetTickCountMSec() + COM_MSG_TRN_TIMEOUT_MS_STS_CHK;
+    ps_tran->u32_timeout_ms = xTaskGetTickCountMSec() + BLE_MSG_TRN_TIMEOUT_MS_STS_CHK;
 
     //--------------------------------------------------------------------------
     // ステータスチェックを初期化
     //--------------------------------------------------------------------------
     ts_sts_check_info_t* ps_sts_chk = &s_msg_ctrl_sts.s_sts_chk;
     // 送信ステータスチェック乱数
-    memset(ps_sts_chk->u8_tx_rand, 0x00, COM_MSG_SIZE_TICKET_STS);
+    memset(ps_sts_chk->u8_tx_rand, 0x00, BLE_MSG_SIZE_TICKET_STS);
     // 受信ステータスチェック乱数
-    memset(ps_sts_chk->u8_rx_rand, 0x00, COM_MSG_SIZE_TICKET_STS);
+    memset(ps_sts_chk->u8_rx_rand, 0x00, BLE_MSG_SIZE_TICKET_STS);
 
     // 正常終了
     return ESP_OK;
@@ -4196,7 +4333,7 @@ static esp_err_t sts_begin_sts_chk() {
  * PARAMETERS:                  Name            RW  Usage
  * uint64_t                     u64_device_id   R   デバイスID
  * uint8_t*                     pu8_chk_code    R   チェックコード
- * ts_com_msg_auth_ticket_t*    ps_ticket       R   チケット
+ * ts_ble_msg_auth_ticket_t*    ps_ticket       R   チケット
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -4204,14 +4341,14 @@ static esp_err_t sts_begin_sts_chk() {
  * NOTES:
  * None.
  ******************************************************************************/
-static esp_err_t sts_status_check(uint64_t u64_device_id, uint8_t* pu8_chk_code, ts_com_msg_auth_ticket_t* ps_ticket) {
+static esp_err_t sts_status_check(uint64_t u64_device_id, uint8_t* pu8_chk_code, ts_ble_msg_auth_ticket_t* ps_ticket) {
     // 自デバイスの１次ステータスハッシュ生成
-    ts_u8_array_t* ps_own_sts = ps_mdl_create_u8_array(ps_ticket->u8_own_sts, COM_MSG_SIZE_TICKET_STS);
+    ts_u8_array_t* ps_own_sts = ps_mdl_create_u8_array(ps_ticket->u8_own_sts, BLE_MSG_SIZE_TICKET_STS);
     if (ps_own_sts == NULL) {
         return ESP_ERR_NO_MEM;
     }
-    uint8_t u8_own_hash[COM_MSG_SIZE_TICKET_STS];
-    esp_err_t sts_val = sts_crypto_sha256(ps_own_sts, COM_MSG_AUTH_STRETCHING, u8_own_hash);
+    uint8_t u8_own_hash[BLE_MSG_SIZE_TICKET_STS];
+    esp_err_t sts_val = sts_crypto_sha256(ps_own_sts, BLE_MSG_AUTH_STRETCHING, u8_own_hash);
     sts_mdl_delete_u8_array(ps_own_sts);
     if (sts_val != ESP_OK) {
         return sts_val;
@@ -4220,33 +4357,33 @@ static esp_err_t sts_status_check(uint64_t u64_device_id, uint8_t* pu8_chk_code,
     ts_sts_check_info_t* ps_sts_chk = &s_msg_ctrl_sts.s_sts_chk;
     uint8_t* pu8_rand = ps_sts_chk->u8_tx_rand;
     uint8_t u8_idx;
-    for (u8_idx = 0; u8_idx < COM_MSG_SIZE_TICKET_STS; u8_idx++) {
+    for (u8_idx = 0; u8_idx < BLE_MSG_SIZE_TICKET_STS; u8_idx++) {
         u8_own_hash[u8_idx] ^= pu8_rand[u8_idx];
     }
     // ２次ステータスコードハッシュを生成
-    ts_u8_array_t* ps_own_hash = ps_mdl_create_u8_array(u8_own_hash, COM_MSG_SIZE_TICKET_STS);
+    ts_u8_array_t* ps_own_hash = ps_mdl_create_u8_array(u8_own_hash, BLE_MSG_SIZE_TICKET_STS);
     if (ps_own_sts == NULL) {
         return ESP_ERR_NO_MEM;
     }
-    uint8_t u8_chk_code[COM_MSG_SIZE_TICKET_STS];
-    sts_val = sts_crypto_sha256(ps_own_hash, COM_MSG_AUTH_STRETCHING, u8_chk_code);
+    uint8_t u8_chk_code[BLE_MSG_SIZE_TICKET_STS];
+    sts_val = sts_crypto_sha256(ps_own_hash, BLE_MSG_AUTH_STRETCHING, u8_chk_code);
     sts_mdl_delete_u8_array(ps_own_hash);
     if (sts_val != ESP_OK) {
         return sts_val;
     }
-#ifdef COM_BLE_MSG_DEBUG
-    char sts_txt[(COM_MSG_SIZE_TICKET_STS * 2) + 1];
-    v_vutil_u8_to_hex_string(ps_ticket->u8_own_sts, COM_MSG_SIZE_TICKET_STS, sts_txt);
+#ifdef BLE_MSG_DEBUG
+    char sts_txt[(BLE_MSG_SIZE_TICKET_STS * 2) + 1];
+    v_vutil_u8_to_hex_string(ps_ticket->u8_own_sts, BLE_MSG_SIZE_TICKET_STS, sts_txt);
     ESP_LOGW(LOG_TAG, "%s L#%d tkt sts_code=%s", __func__, __LINE__, sts_txt);
-    v_vutil_u8_to_hex_string(ps_sts_chk->u8_tx_rand, COM_MSG_SIZE_TICKET_STS, sts_txt);
+    v_vutil_u8_to_hex_string(ps_sts_chk->u8_tx_rand, BLE_MSG_SIZE_TICKET_STS, sts_txt);
     ESP_LOGW(LOG_TAG, "%s L#%d tkt sts_rand=%s", __func__, __LINE__, sts_txt);
-    v_vutil_u8_to_hex_string(u8_chk_code, COM_MSG_SIZE_TICKET_STS, sts_txt);
+    v_vutil_u8_to_hex_string(u8_chk_code, BLE_MSG_SIZE_TICKET_STS, sts_txt);
     ESP_LOGW(LOG_TAG, "%s L#%d tkt sts_hash=%s", __func__, __LINE__, sts_txt);
-    v_vutil_u8_to_hex_string(pu8_chk_code, COM_MSG_SIZE_TICKET_STS, sts_txt);
+    v_vutil_u8_to_hex_string(pu8_chk_code, BLE_MSG_SIZE_TICKET_STS, sts_txt);
     ESP_LOGW(LOG_TAG, "%s L#%d rmt sts_hash=%s", __func__, __LINE__, sts_txt);
 #endif
     // チェックコードを比較
-    if (memcmp(pu8_chk_code, u8_chk_code, COM_MSG_SIZE_TICKET_STS) != 0) {
+    if (memcmp(pu8_chk_code, u8_chk_code, BLE_MSG_SIZE_TICKET_STS) != 0) {
         return ESP_ERR_INVALID_ARG;
     }
     // チェックOK
@@ -4312,7 +4449,7 @@ static esp_err_t sts_msg_encryption(ts_u8_array_t* ps_msg,
             break;
         }
         // 共通鍵
-        ps_keyset->ps_key = ps_mdl_create_u8_array(pu8_key, COM_MSG_SIZE_CIPHER_KEY);
+        ps_keyset->ps_key = ps_mdl_create_u8_array(pu8_key, BLE_MSG_SIZE_CIPHER_KEY);
         if (ps_keyset->ps_key == NULL) {
             break;
         }
@@ -4339,7 +4476,7 @@ static esp_err_t sts_msg_encryption(ts_u8_array_t* ps_msg,
             sts_val = ESP_ERR_NO_MEM;
             break;
         }
-#ifdef COM_BLE_MSG_DEBUG
+#ifdef BLE_MSG_DEBUG
         do {
             char c_txt_str[(ps_plane->t_size * 2) + 1];
             v_vutil_u8_to_hex_string(ps_plane->pu8_values, ps_plane->t_size, c_txt_str);
@@ -4352,10 +4489,10 @@ static esp_err_t sts_msg_encryption(ts_u8_array_t* ps_msg,
             sts_val = ESP_ERR_NO_MEM;
             break;
         }
-#ifdef COM_BLE_MSG_DEBUG
+#ifdef BLE_MSG_DEBUG
         do {
-            char c_key_str[(COM_MSG_SIZE_CIPHER_KEY * 2) + 1];
-            v_vutil_u8_to_hex_string(pu8_key, COM_MSG_SIZE_CIPHER_KEY, c_key_str);
+            char c_key_str[(BLE_MSG_SIZE_CIPHER_KEY * 2) + 1];
+            v_vutil_u8_to_hex_string(pu8_key, BLE_MSG_SIZE_CIPHER_KEY, c_key_str);
             ESP_LOGW(LOG_TAG, "%s L#%d key=%s", __func__, __LINE__, c_key_str);
             char c_cipher_str[(ps_cipher->t_size * 2) + 1];
             v_vutil_u8_to_hex_string(ps_cipher->pu8_values, ps_cipher->t_size, c_cipher_str);
@@ -4394,7 +4531,7 @@ static esp_err_t sts_msg_encryption(ts_u8_array_t* ps_msg,
  * DESCRIPTION:メッセージの復号
  *
  * PARAMETERS:          Name            RW  Usage
- * ts_com_msg_t*        ps_rx_msg       RW  メッセージ
+ * ts_ble_msg_t*        ps_rx_msg       RW  メッセージ
  * uint8_t*             pu8_key         R   共通鍵
  *
  * RETURNS:
@@ -4403,7 +4540,7 @@ static esp_err_t sts_msg_encryption(ts_u8_array_t* ps_msg,
  * NOTES:
  * None.
  ******************************************************************************/
-static ts_u8_array_t* ps_msg_decryption(ts_com_msg_t* ps_rx_msg, uint8_t* pu8_key) {
+static ts_u8_array_t* ps_msg_decryption(ts_ble_msg_t* ps_rx_msg, uint8_t* pu8_key) {
     //==========================================================================
     // 初期処理
     //==========================================================================
@@ -4441,7 +4578,7 @@ static ts_u8_array_t* ps_msg_decryption(ts_com_msg_t* ps_rx_msg, uint8_t* pu8_ke
             break;
         }
         // 共通鍵
-        ps_keyset->ps_key = ps_mdl_create_u8_array(pu8_key, COM_MSG_SIZE_CIPHER_KEY);
+        ps_keyset->ps_key = ps_mdl_create_u8_array(pu8_key, BLE_MSG_SIZE_CIPHER_KEY);
         if (ps_keyset->ps_key == NULL) {
             break;
         }
@@ -4486,10 +4623,10 @@ static ts_u8_array_t* ps_msg_decryption(ts_com_msg_t* ps_rx_msg, uint8_t* pu8_ke
             ps_plane = NULL;
             break;
         }
-#ifdef COM_BLE_MSG_DEBUG
+#ifdef BLE_MSG_DEBUG
         do {
-            char c_key_str[(COM_MSG_SIZE_CIPHER_KEY * 2) + 1];
-            v_vutil_u8_to_hex_string(pu8_key, COM_MSG_SIZE_CIPHER_KEY, c_key_str);
+            char c_key_str[(BLE_MSG_SIZE_CIPHER_KEY * 2) + 1];
+            v_vutil_u8_to_hex_string(pu8_key, BLE_MSG_SIZE_CIPHER_KEY, c_key_str);
             ESP_LOGW(LOG_TAG, "%s L#%d key=%s", __func__, __LINE__, c_key_str);
             char c_cipher_str[(ps_cipher->t_size * 2) + 1];
             v_vutil_u8_to_hex_string(ps_cipher->pu8_values, ps_cipher->t_size, c_cipher_str);
@@ -4527,17 +4664,17 @@ static ts_u8_array_t* ps_msg_decryption(ts_com_msg_t* ps_rx_msg, uint8_t* pu8_ke
  * DESCRIPTION:BLE edit Rx message header
  *
  * PARAMETERS:                  Name        RW  Usage
- * ts_com_msg_t*                ps_rx_msg   W   編集対象のメッセージ
- * ts_com_ble_gatt_rx_data_t*   ps_rx_data  R   受信データ
+ * ts_ble_msg_t*                ps_rx_msg   W   編集対象のメッセージ
+ * ts_ble_fwk_gatt_rx_data_t*   ps_rx_data  R   受信データ
  *
  * RETURNS:
- *   te_com_ble_msg_rcv_sts_t 受信ステータス
+ *   te_ble_msg_rcv_sts_t 受信ステータス
  *
  * NOTES:
  *   単項目チェック（定義ごとのチェックも含む）も実施
  * None.
  ******************************************************************************/
-static te_com_ble_msg_rcv_sts_t e_edit_rx_header(ts_com_msg_t* ps_rx_msg, ts_com_ble_gatt_rx_data_t* ps_rx_data) {
+static te_ble_msg_rcv_sts_t e_edit_rx_header(ts_ble_msg_t* ps_rx_msg, ts_ble_fwk_gatt_rx_data_t* ps_rx_data) {
     //==========================================================================
     // 受信データサイズチェック
     //==========================================================================
@@ -4545,18 +4682,18 @@ static te_com_ble_msg_rcv_sts_t e_edit_rx_header(ts_com_msg_t* ps_rx_msg, ts_com
     ts_u8_array_t* ps_array = ps_rx_data->ps_array;
     if (ps_array == NULL) {
         // 受信データサイズエラー
-        return COM_BLE_MSG_RCV_LENGTH_ERR;
+        return BLE_MSG_RCV_LENGTH_ERR;
     }
     if (ps_array->t_size < MSG_SIZE_HEADER) {
         // 受信データサイズエラー
-        return COM_BLE_MSG_RCV_LENGTH_ERR;
+        return BLE_MSG_RCV_LENGTH_ERR;
     }
 
     //==========================================================================
     // 項目編集
     //==========================================================================
     // BLEアドレス
-    v_com_ble_addr_cpy(ps_rx_msg->t_rcv_bda, ps_rx_data->t_bda);
+    v_ble_util_addr_cpy(ps_rx_msg->t_rcv_bda, ps_rx_data->t_bda);
     // 受信ティック（ミリ秒）
     ps_rx_msg->u32_rcv_tick_ms = xTaskGetTickCountMSec();
     // 送信デバイスID
@@ -4583,14 +4720,14 @@ static te_com_ble_msg_rcv_sts_t e_edit_rx_header(ts_com_msg_t* ps_rx_msg, ts_com
     u_conv.u8_values[3] = ps_array->pu8_values[MSG_POS_SEQ_NO + 3];
     ps_rx_msg->u32_seq_no = u_conv.u32_values[0];
     // 認証タグサイズ
-    memcpy(ps_rx_msg->u8_auth_tag, &ps_array->pu8_values[MSG_POS_AUTH_TAG], COM_MSG_SIZE_AUTH_TAG);
+    memcpy(ps_rx_msg->u8_auth_tag, &ps_array->pu8_values[MSG_POS_AUTH_TAG], BLE_MSG_SIZE_AUTH_TAG);
 
     //==========================================================================
     // タイプチェック
     //==========================================================================
-    if (ps_rx_msg->e_type >= COM_BLE_MSG_TYP_CNT) {
+    if (ps_rx_msg->e_type >= BLE_MSG_TYP_MAX) {
         // 受信タイプエラー
-        return COM_BLE_MSG_RCV_TYPE_ERR;
+        return BLE_MSG_RCV_TYPE_ERR;
     }
 
     //==========================================================================
@@ -4601,27 +4738,27 @@ static te_com_ble_msg_rcv_sts_t e_edit_rx_header(ts_com_msg_t* ps_rx_msg, ts_com
     // 最大データ長チェック
     if (ps_rx_msg->u16_length > s_msg_ctrl_cfg.u32_max_length) {
         // 受信データサイズエラー
-        return COM_BLE_MSG_RCV_LENGTH_ERR;
+        return BLE_MSG_RCV_LENGTH_ERR;
     }
     // 既定データ長チェック
     if (ps_rx_def->b_fixed_length) {
         // 固定長メッセージの場合
         if (ps_rx_msg->u16_length != ps_rx_def->u16_length) {
             // 受信データサイズエラー
-            return COM_BLE_MSG_RCV_LENGTH_ERR;
+            return BLE_MSG_RCV_LENGTH_ERR;
         }
     } else {
         // 可変長メッセージの場合
         if (ps_rx_msg->u16_length < ps_rx_def->u16_length) {
             // 可変長メッセージで、最小メッセージ長より短い場合
             // 受信データサイズエラー
-            return COM_BLE_MSG_RCV_LENGTH_ERR;
+            return BLE_MSG_RCV_LENGTH_ERR;
         }
     }
     // 受信データサイズが既にメッセージ長を超えている場合はエラー
     if (ps_rx_msg->u16_length < ps_array->t_size) {
         // 受信データサイズエラー
-        return COM_BLE_MSG_RCV_LENGTH_ERR;
+        return BLE_MSG_RCV_LENGTH_ERR;
     }
 
     //==========================================================================
@@ -4631,14 +4768,14 @@ static te_com_ble_msg_rcv_sts_t e_edit_rx_header(ts_com_msg_t* ps_rx_msg, ts_com
     // 受信通知以外の場合
     if (ps_rx_def->b_fixed_seq && ps_rx_msg->u32_seq_no != ps_rx_def->u32_seq_no) {
         // SEQ番号が既定値では無い
-        return COM_BLE_MSG_RCV_SEQ_ERR;
+        return BLE_MSG_RCV_SEQ_ERR;
     }
 
     //==========================================================================
     // 結果返信
     //==========================================================================
     // 正常終了
-    return COM_BLE_MSG_RCV_NORMAL;
+    return BLE_MSG_RCV_NORMAL;
 }
 
 /*******************************************************************************
@@ -4661,14 +4798,14 @@ static esp_err_t sts_edit_auth_tag(uint8_t* pu8_tag, ts_u8_array_t* ps_msg) {
     // メッセージヘッダー
     uint8_t* pu8_value = ps_msg->pu8_values;
     // 認証タグの退避
-    uint8_t u8_origin_tag[COM_MSG_SIZE_AUTH_TAG];
-    memcpy(u8_origin_tag, &pu8_value[MSG_POS_AUTH_TAG], COM_MSG_SIZE_AUTH_TAG);
+    uint8_t u8_origin_tag[BLE_MSG_SIZE_AUTH_TAG];
+    memcpy(u8_origin_tag, &pu8_value[MSG_POS_AUTH_TAG], BLE_MSG_SIZE_AUTH_TAG);
     // 認証タグの初期化
-    memset(&pu8_value[MSG_POS_AUTH_TAG], COM_MSG_AUTH_CHECK_VALUE, COM_MSG_SIZE_AUTH_TAG);
+    memset(&pu8_value[MSG_POS_AUTH_TAG], BLE_MSG_AUTH_CHECK_VALUE, BLE_MSG_SIZE_AUTH_TAG);
     // ハッシュ値の算出
-    esp_err_t sts_val = sts_crypto_sha256(ps_msg, COM_MSG_AUTH_STRETCHING, pu8_tag);
+    esp_err_t sts_val = sts_crypto_sha256(ps_msg, BLE_MSG_AUTH_STRETCHING, pu8_tag);
     // 認証タグを元に戻す
-    memcpy(&pu8_value[MSG_POS_AUTH_TAG], u8_origin_tag, COM_MSG_SIZE_AUTH_TAG);
+    memcpy(&pu8_value[MSG_POS_AUTH_TAG], u8_origin_tag, BLE_MSG_SIZE_AUTH_TAG);
     // 結果返信
     return sts_val;
 }
@@ -4680,7 +4817,7 @@ static esp_err_t sts_edit_auth_tag(uint8_t* pu8_tag, ts_u8_array_t* ps_msg) {
  * DESCRIPTION:チェックコード編集
  *
  * PARAMETERS:                  Name        RW  Usage
- * ts_com_msg_auth_ticket_t*    ps_ticket   R   チケット
+ * ts_ble_msg_auth_ticket_t*    ps_ticket   R   チケット
  * uint8_t*                     pu8_rand    R   チェック乱数
  * uint8_t*                     pu8_digest  W   ダイジェスト
  *
@@ -4690,26 +4827,26 @@ static esp_err_t sts_edit_auth_tag(uint8_t* pu8_tag, ts_u8_array_t* ps_msg) {
  * NOTES:
  * None.
  ******************************************************************************/
-static esp_err_t sts_edit_check_code(ts_com_msg_auth_ticket_t* ps_ticket, uint8_t* pu8_rand, uint8_t* pu8_digest) {
+static esp_err_t sts_edit_check_code(ts_ble_msg_auth_ticket_t* ps_ticket, uint8_t* pu8_rand, uint8_t* pu8_digest) {
     //==========================================================================
     // 相手デバイスのステータスハッシュ値にチェック乱数をXOR
     //==========================================================================
-    uint8_t u8_token[COM_MSG_SIZE_TICKET_STS];
-    memcpy(u8_token, ps_ticket->u8_rmt_sts_hash, COM_MSG_SIZE_TICKET_STS);
+    uint8_t u8_token[BLE_MSG_SIZE_TICKET_STS];
+    memcpy(u8_token, ps_ticket->u8_rmt_sts_hash, BLE_MSG_SIZE_TICKET_STS);
     uint8_t u8_idx;
-    for (u8_idx = 0; u8_idx < COM_MSG_SIZE_TICKET_STS; u8_idx++) {
+    for (u8_idx = 0; u8_idx < BLE_MSG_SIZE_TICKET_STS; u8_idx++) {
         u8_token[u8_idx] ^= pu8_rand[u8_idx];
     }
 
     //==========================================================================
     // 再度ハッシュ関数を通す
     //==========================================================================
-    ts_u8_array_t* ps_hash = ps_mdl_create_u8_array(u8_token, COM_MSG_SIZE_TICKET_STS);
+    ts_u8_array_t* ps_hash = ps_mdl_create_u8_array(u8_token, BLE_MSG_SIZE_TICKET_STS);
     if (ps_hash == NULL) {
         return ESP_ERR_NO_MEM;
     }
     // チェックコードを生成
-    sts_crypto_sha256(ps_hash, COM_MSG_AUTH_STRETCHING, pu8_digest);
+    sts_crypto_sha256(ps_hash, BLE_MSG_AUTH_STRETCHING, pu8_digest);
     sts_mdl_delete_u8_array(ps_hash);
     // 正常終了
     return ESP_OK;
@@ -4722,7 +4859,7 @@ static esp_err_t sts_edit_check_code(ts_com_msg_auth_ticket_t* ps_ticket, uint8_
  * DESCRIPTION:メッセージの生成
  *
  * PARAMETERS:              Name            RW  Usage
- * te_com_ble_msg_type_t    e_type          R   メッセージタイプ
+ * te_ble_msg_type_t    e_type          R   メッセージタイプ
  * ts_u8_array_t*           ps_data         R   本文データ
  *
  * RETURNS:
@@ -4731,7 +4868,7 @@ static esp_err_t sts_edit_check_code(ts_com_msg_auth_ticket_t* ps_ticket, uint8_
  * NOTES:
  * None.
  ******************************************************************************/
-static ts_u8_array_t* ps_create_msg_data(te_com_ble_msg_type_t e_type,
+static ts_u8_array_t* ps_create_msg_data(te_ble_msg_type_t e_type,
                                           ts_u8_array_t* ps_data) {
     //==========================================================================
     // 入力チェック
@@ -4741,8 +4878,8 @@ static ts_u8_array_t* ps_create_msg_data(te_com_ble_msg_type_t e_type,
     // シーケンス番号の振出
     uint32_t u32_seq_no = ps_def->u32_seq_no;
     // チケット情報の取得
-    ts_com_msg_auth_ticket_t* ps_ticket = NULL;
-    if (ps_def->b_pairing && e_type != COM_BLE_MSG_TYP_RESPONSE) {
+    ts_ble_msg_auth_ticket_t* ps_ticket = NULL;
+    if (ps_def->b_pairing && e_type != BLE_MSG_TYP_RESPONSE) {
         // ペアリング必須
         // チケットの読み込み（送信シーケンスをカウントアップ）
         ps_ticket = ps_read_ticket(s_msg_ctrl_sts.u64_rmt_device_id, &s_msg_ctrl_sts.s_rmt_ticket);
@@ -4755,7 +4892,7 @@ static ts_u8_array_t* ps_create_msg_data(te_com_ble_msg_type_t e_type,
         }
         // チケットを更新
         ps_ticket->u32_tx_seq_no++;
-        if (s_msg_ctrl_cfg.pf_tkt_cb(COM_BLE_MSG_TICKET_EVT_UPDATE, ps_ticket) != ESP_OK) {
+        if (s_msg_ctrl_cfg.pf_tkt_cb(BLE_MSG_TICKET_EVT_UPDATE, ps_ticket) != ESP_OK) {
             // チケット初期化
             v_init_ticket(ps_ticket);
             // 結果返信
@@ -4796,7 +4933,7 @@ static ts_u8_array_t* ps_create_msg_data(te_com_ble_msg_type_t e_type,
         // メッセージ長
         u32_msg_len = MSG_SIZE_HEADER + u32_body_len + MSG_SIZE_FOOTER;
     }
-#ifdef COM_BLE_MSG_DEBUG
+#ifdef BLE_MSG_DEBUG
     ESP_LOGW(LOG_TAG, "%s L#%d own_id       = %llu", __func__, __LINE__, s_msg_ctrl_cfg.u64_device_id);
     ESP_LOGW(LOG_TAG, "%s L#%d MSG Type     = %d", __func__, __LINE__, e_type);
     ESP_LOGW(LOG_TAG, "%s L#%d u16_msg_len  = %lu", __func__, __LINE__, (unsigned long)u32_msg_len);
@@ -4877,16 +5014,16 @@ static ts_u8_array_t* ps_create_msg_data(te_com_ble_msg_type_t e_type,
     ts_msg_digest_match_t* ps_digest_match;
     // データタイプ判定
     switch (e_type) {
-    case COM_BLE_MSG_TYP_RESPONSE:
+    case BLE_MSG_TYP_RESPONSE:
         // 受信応答　※受信応答のメッセージは応答送信処理で生成する
         break;
-    case COM_BLE_MSG_TYP_RESET:
+    case BLE_MSG_TYP_RESET:
         // リセット
         break;
-    case COM_BLE_MSG_TYP_PING:
+    case BLE_MSG_TYP_PING:
         // PING
         break;
-    case COM_BLE_MSG_TYP_PAIRING_REQ:
+    case BLE_MSG_TYP_PAIRING_REQ:
         // ペアリング要求
         // X25519チェック
         if (ps_x25519_ctx == NULL) {
@@ -4896,7 +5033,7 @@ static ts_u8_array_t* ps_create_msg_data(te_com_ble_msg_type_t e_type,
         // 公開鍵
         memcpy(&pu8_values[MSG_POS_BODY], &ps_x25519_ctx->u8_cli_public_key[4], CRYPTO_X25519_CLIENT_PUBLIC_KEY_SIZE - 4);
         break;
-    case COM_BLE_MSG_TYP_PAIRING_RSP:
+    case BLE_MSG_TYP_PAIRING_RSP:
         // ペアリング応答
         // X25519チェック
         if (ps_x25519_ctx == NULL) {
@@ -4906,17 +5043,17 @@ static ts_u8_array_t* ps_create_msg_data(te_com_ble_msg_type_t e_type,
         // 公開鍵
         memcpy(&pu8_values[MSG_POS_BODY], &ps_x25519_ctx->u8_svr_public_key[1], CRYPTO_X25519_SERVER_PUBLIC_KEY_SIZE - 1);
         break;
-    case COM_BLE_MSG_TYP_DIGEST_MATCH:
+    case BLE_MSG_TYP_DIGEST_MATCH:
         // ダイジェスト一致
         // ステータス生成
-        ps_status = ps_mdl_create_u8_array(ps_pairing->u8_dev_status, COM_MSG_SIZE_TICKET_STS);
+        ps_status = ps_mdl_create_u8_array(ps_pairing->u8_dev_status, BLE_MSG_SIZE_TICKET_STS);
         if (ps_status == NULL) {
             sts_val = ESP_ERR_NO_MEM;
             break;
         }
         // ステータスハッシュ生成
         ps_digest_match = (ts_msg_digest_match_t*)&pu8_values[MSG_POS_CIPHER_DATA];
-        sts_val = sts_crypto_sha256(ps_status, COM_MSG_AUTH_STRETCHING, ps_digest_match->u8_sts_hash);
+        sts_val = sts_crypto_sha256(ps_status, BLE_MSG_AUTH_STRETCHING, ps_digest_match->u8_sts_hash);
         // ステータスの解放
         sts_mdl_delete_u8_array(ps_status);
         ps_status = NULL;
@@ -4929,16 +5066,16 @@ static ts_u8_array_t* ps_create_msg_data(te_com_ble_msg_type_t e_type,
         // ステータスハッシュ以降を暗号化
         sts_val = sts_msg_encryption(ps_msg, MSG_SIZE_DIGEST_MATCH_DATA, ps_pairing->u8_com_key);
         break;
-    case COM_BLE_MSG_TYP_DIGEST_ERR:
+    case BLE_MSG_TYP_DIGEST_ERR:
         // ダイジェスト不一致
         break;
-    case COM_BLE_MSG_TYP_STATUS_REQ:
+    case BLE_MSG_TYP_STATUS_REQ:
         // ステータス要求
         // チェック乱数
-        b_vutil_set_u8_rand_array(ps_sts_chk->u8_tx_rand, COM_MSG_SIZE_TICKET_STS);
-        memcpy(&pu8_values[MSG_POS_BODY], ps_sts_chk->u8_tx_rand, COM_MSG_SIZE_TICKET_STS);
+        b_vutil_set_u8_rand_array(ps_sts_chk->u8_tx_rand, BLE_MSG_SIZE_TICKET_STS);
+        memcpy(&pu8_values[MSG_POS_BODY], ps_sts_chk->u8_tx_rand, BLE_MSG_SIZE_TICKET_STS);
         break;
-    case COM_BLE_MSG_TYP_STATUS_RSP1:
+    case BLE_MSG_TYP_STATUS_RSP1:
         // ステータス応答１
         // チェックコード
         sts_val = sts_edit_check_code(ps_ticket, ps_sts_chk->u8_rx_rand, &pu8_values[MSG_POS_BODY]);
@@ -4946,10 +5083,10 @@ static ts_u8_array_t* ps_create_msg_data(te_com_ble_msg_type_t e_type,
             break;
         }
         // チェック乱数
-        b_vutil_set_u8_rand_array(ps_sts_chk->u8_tx_rand, COM_MSG_SIZE_TICKET_STS);
-        memcpy(&pu8_values[MSG_POS_STS_RSP1_RND], ps_sts_chk->u8_tx_rand, COM_MSG_SIZE_TICKET_STS);
+        b_vutil_set_u8_rand_array(ps_sts_chk->u8_tx_rand, BLE_MSG_SIZE_TICKET_STS);
+        memcpy(&pu8_values[MSG_POS_STS_RSP1_RND], ps_sts_chk->u8_tx_rand, BLE_MSG_SIZE_TICKET_STS);
        break;
-    case COM_BLE_MSG_TYP_STATUS_RSP2:
+    case BLE_MSG_TYP_STATUS_RSP2:
         // ステータス応答２
         // チェックコード
         sts_val = sts_edit_check_code(ps_ticket, ps_sts_chk->u8_rx_rand, &pu8_values[MSG_POS_BODY]);
@@ -4957,12 +5094,12 @@ static ts_u8_array_t* ps_create_msg_data(te_com_ble_msg_type_t e_type,
             break;
         }
         break;
-    case COM_BLE_MSG_TYP_DATA:
+    case BLE_MSG_TYP_DATA:
         // データ
         // データ書き込み
         memcpy(&ps_msg->pu8_values[MSG_POS_PLANIN_DATA], ps_data->pu8_values, ps_data->t_size);
         break;
-    case COM_BLE_MSG_TYP_CIPHERTEXT:
+    case BLE_MSG_TYP_CIPHERTEXT:
         // 暗号データ
         // IVを生成
         b_vutil_set_u8_rand_array(&pu8_values[MSG_POS_CIPHER_IV], MSG_SIZE_CIPHER_IV);
@@ -4996,24 +5133,24 @@ static ts_u8_array_t* ps_create_msg_data(te_com_ble_msg_type_t e_type,
  * DESCRIPTION:チケット初期化処理
  *
  * PARAMETERS:                  Name        RW  Usage
- * ts_com_msg_auth_ticket_t*    ps_ticket   W   対象チケット
+ * ts_ble_msg_auth_ticket_t*    ps_ticket   W   対象チケット
  *
  * RETURNS:
  *
  * NOTES:
  * None.
  ******************************************************************************/
-static void v_init_ticket(ts_com_msg_auth_ticket_t* ps_ticket) {
+static void v_init_ticket(ts_ble_msg_auth_ticket_t* ps_ticket) {
     // 自デバイスID
     ps_ticket->u64_own_device_id = s_msg_ctrl_cfg.u64_device_id;
     // 相手デバイスID
     ps_ticket->u64_rmt_device_id = s_msg_ctrl_cfg.u64_device_id;
     // 暗号鍵
-    memset(ps_ticket->u8_enc_key, 0x00, COM_MSG_SIZE_CIPHER_KEY);
+    memset(ps_ticket->u8_enc_key, 0x00, BLE_MSG_SIZE_CIPHER_KEY);
     // 自ステータス
-    memset(ps_ticket->u8_own_sts, 0x00, COM_MSG_SIZE_TICKET_STS);
+    memset(ps_ticket->u8_own_sts, 0x00, BLE_MSG_SIZE_TICKET_STS);
     // 相手ステータスハッシュ
-    memset(ps_ticket->u8_rmt_sts_hash, 0x00, COM_MSG_SIZE_TICKET_STS);
+    memset(ps_ticket->u8_rmt_sts_hash, 0x00, BLE_MSG_SIZE_TICKET_STS);
     ps_ticket->u32_max_seq_no = 0;      // 最大シーケンス番号
     ps_ticket->u32_tx_seq_no  = 0;      // 送信シーケンス番号
     ps_ticket->u32_rx_seq_no  = 0;      // 受信シーケンス番号
@@ -5037,33 +5174,33 @@ static void v_init_ticket(ts_com_msg_auth_ticket_t* ps_ticket) {
  ******************************************************************************/
 static esp_err_t sts_create_ticket(ts_transaction_info_t* ps_tran, ts_pairing_info_t* ps_pairing) {
     // チケット作成
-    ts_com_msg_auth_ticket_t* ps_ticket = &s_msg_ctrl_sts.s_rmt_ticket;
+    ts_ble_msg_auth_ticket_t* ps_ticket = &s_msg_ctrl_sts.s_rmt_ticket;
     // 自デバイスID
     ps_ticket->u64_own_device_id = s_msg_ctrl_cfg.u64_device_id;
     // 相手デバイスID
     ps_ticket->u64_rmt_device_id = ps_tran->u64_device_id;
     // 暗号鍵
-    memcpy(ps_ticket->u8_enc_key, ps_pairing->u8_com_key, COM_MSG_SIZE_CIPHER_KEY);
+    memcpy(ps_ticket->u8_enc_key, ps_pairing->u8_com_key, BLE_MSG_SIZE_CIPHER_KEY);
     // 自ステータス
-    memcpy(ps_ticket->u8_own_sts, ps_pairing->u8_dev_status, COM_MSG_SIZE_TICKET_STS);
+    memcpy(ps_ticket->u8_own_sts, ps_pairing->u8_dev_status, BLE_MSG_SIZE_TICKET_STS);
     // 相手ステータスハッシュ
-    memcpy(ps_ticket->u8_rmt_sts_hash, ps_pairing->u8_rmt_sts_hash, COM_MSG_SIZE_TICKET_STS);
+    memcpy(ps_ticket->u8_rmt_sts_hash, ps_pairing->u8_rmt_sts_hash, BLE_MSG_SIZE_TICKET_STS);
     // 最大シーケンス番号
     ps_ticket->u32_max_seq_no = ps_pairing->u32_max_seq_no;
     // 送信シーケンス番号
     ps_ticket->u32_tx_seq_no = 0;
     // 受信シーケンス番号
     ps_ticket->u32_rx_seq_no = 0;
-#ifdef COM_BLE_MSG_DEBUG
-    char sts_txt[(COM_MSG_SIZE_TICKET_STS * 2) + 1];
-    v_vutil_u8_to_hex_string(ps_ticket->u8_own_sts, COM_MSG_SIZE_TICKET_STS, sts_txt);
+#ifdef BLE_MSG_DEBUG
+    char sts_txt[(BLE_MSG_SIZE_TICKET_STS * 2) + 1];
+    v_vutil_u8_to_hex_string(ps_ticket->u8_own_sts, BLE_MSG_SIZE_TICKET_STS, sts_txt);
     ESP_LOGW(LOG_TAG, "%s L#%d own_code=%s", __func__, __LINE__, sts_txt);
-    v_vutil_u8_to_hex_string(ps_ticket->u8_rmt_sts_hash, COM_MSG_SIZE_TICKET_STS, sts_txt);
+    v_vutil_u8_to_hex_string(ps_ticket->u8_rmt_sts_hash, BLE_MSG_SIZE_TICKET_STS, sts_txt);
     ESP_LOGW(LOG_TAG, "%s L#%d rmt_hash=%s", __func__, __LINE__, sts_txt);
     ESP_LOGW(LOG_TAG, "%s L#%d seq_no=%lu", __func__, __LINE__, (unsigned long)ps_ticket->u32_max_seq_no);
 #endif
     // チケットの書き込み
-    esp_err_t sts_val = s_msg_ctrl_cfg.pf_tkt_cb(COM_BLE_MSG_TICKET_EVT_CREATE, ps_ticket);
+    esp_err_t sts_val = s_msg_ctrl_cfg.pf_tkt_cb(BLE_MSG_TICKET_EVT_CREATE, ps_ticket);
     if (sts_val != ESP_OK) {
         // チケット初期化
         v_init_ticket(ps_ticket);
@@ -5079,22 +5216,22 @@ static esp_err_t sts_create_ticket(ts_transaction_info_t* ps_tran, ts_pairing_in
  *
  * PARAMETERS:                  Name            RW  Usage
  * uint64_t                     u64_device_id   R   対象のデバイスID
- * ts_com_msg_auth_ticket_t*    ps_cache_ticket W   キャッシュ用チケット
+ * ts_ble_msg_auth_ticket_t*    ps_cache_ticket W   キャッシュ用チケット
  *
  * RETURNS:
- *   ts_com_msg_auth_ticket_t* 読み込んだチケット
+ *   ts_ble_msg_auth_ticket_t* 読み込んだチケット
  *
  * NOTES:
  * None.
  ******************************************************************************/
-static ts_com_msg_auth_ticket_t* ps_read_ticket(uint64_t u64_device_id,
-                                                 ts_com_msg_auth_ticket_t* ps_cache_ticket) {
+static ts_ble_msg_auth_ticket_t* ps_read_ticket(uint64_t u64_device_id,
+                                                 ts_ble_msg_auth_ticket_t* ps_cache_ticket) {
     // 自デバイスIDチェック
     if (s_msg_ctrl_cfg.u64_device_id == u64_device_id) {
         return NULL;
     }
     // チケットキャッシュの判定
-    ts_com_msg_auth_ticket_t* ps_ticket = &s_msg_ctrl_sts.s_rmt_ticket;
+    ts_ble_msg_auth_ticket_t* ps_ticket = &s_msg_ctrl_sts.s_rmt_ticket;
     if (ps_ticket->u64_rmt_device_id == u64_device_id) {
         return ps_ticket;
     }
@@ -5105,7 +5242,7 @@ static ts_com_msg_auth_ticket_t* ps_read_ticket(uint64_t u64_device_id,
     // 相手デバイスID
     ps_ticket->u64_rmt_device_id = u64_device_id;
     // チケット読み込み
-    if (s_msg_ctrl_cfg.pf_tkt_cb(COM_BLE_MSG_TICKET_EVT_READ, ps_ticket) != ESP_OK) {
+    if (s_msg_ctrl_cfg.pf_tkt_cb(BLE_MSG_TICKET_EVT_READ, ps_ticket) != ESP_OK) {
         // チケット初期化
         v_init_ticket(ps_ticket);
         // 読み込みエラー
@@ -5131,7 +5268,7 @@ static ts_com_msg_auth_ticket_t* ps_read_ticket(uint64_t u64_device_id,
  ******************************************************************************/
 static esp_gatt_if_t t_gatt_if_svr() {
     // GATtインターフェース取得処理
-    esp_gatt_if_t t_gatt_if = t_com_ble_gatts_if(s_msg_ctrl_cfg.u16_app_id);
+    esp_gatt_if_t t_gatt_if = t_ble_fwk_gatts_if(s_msg_ctrl_cfg.u16_app_id);
     if (t_gatt_if != ESP_GATT_IF_NONE) {
         // GATTインターフェースが取得済みの場合には取得関数を切り替え
         s_msg_ctrl_sts.t_gatt_if  = t_gatt_if;
@@ -5156,7 +5293,7 @@ static esp_gatt_if_t t_gatt_if_svr() {
  ******************************************************************************/
 static esp_gatt_if_t t_gatt_if_cli() {
     // GATtインターフェース取得処理
-    esp_gatt_if_t t_gatt_if = t_com_ble_gattc_if(s_msg_ctrl_cfg.u16_app_id);
+    esp_gatt_if_t t_gatt_if = t_ble_fwk_gattc_if(s_msg_ctrl_cfg.u16_app_id);
     if (t_gatt_if != ESP_GATT_IF_NONE) {
         // GATTインターフェースが取得済みの場合には取得関数を切り替え
         s_msg_ctrl_sts.t_gatt_if  = t_gatt_if;
@@ -5191,35 +5328,35 @@ static esp_gatt_if_t t_gatt_if_default() {
  * PARAMETERS:              Name        RW  Usage
  *
  * RETURNS:
- *   te_com_ble_msg_connection_sts_t:接続状態を表すステータス
+ *   te_ble_msg_connection_sts_t:接続状態を表すステータス
  *
  * NOTES:
  * None.
  ******************************************************************************/
-static te_com_ble_msg_connection_sts_t e_connect_sts_svr() {
+static te_ble_msg_connection_sts_t e_connect_sts_svr() {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
     if (xSemaphoreTakeRecursive(s_mutex_sts, portMAX_DELAY) != pdTRUE) {
-        return COM_BLE_MSG_CON_ERROR;
+        return BLE_MSG_CON_ERROR;
     }
 
     //==========================================================================
     // 接続ステータス判定
     //==========================================================================
-    te_com_ble_msg_connection_sts_t e_con_sts = COM_BLE_MSG_CON_ERROR;
+    te_ble_msg_connection_sts_t e_con_sts = BLE_MSG_CON_ERROR;
     do {
         //----------------------------------------------------------------------
         // GAPステータス判定
         //----------------------------------------------------------------------
-        te_gap_dev_sts_t e_gap_sts = e_com_ble_gap_adv_device_status();
+        te_ble_fwk_gap_dev_sts_t e_gap_sts = e_ble_fwk_gap_adv_device_status();
         if (e_gap_sts != GAP_DEV_STS_DEVICE_NONE) {
             if ((e_gap_sts & MSG_GAP_CHK_PASSKEY) == GAP_DEV_STS_REQ_PASSKEY) {
-                e_con_sts = COM_BLE_MSG_CON_WAIT_PASSKEY;
+                e_con_sts = BLE_MSG_CON_WAIT_PASSKEY;
                 break;
             }
             if ((e_gap_sts & MSG_GAP_CHK_NUM_CHK) == GAP_DEV_STS_REQ_NUM_CHK) {
-                e_con_sts = COM_BLE_MSG_CON_WAIT_NUM_CHK;
+                e_con_sts = BLE_MSG_CON_WAIT_NUM_CHK;
                 break;
             }
         }
@@ -5228,19 +5365,19 @@ static te_com_ble_msg_connection_sts_t e_connect_sts_svr() {
         // GATTステータス判定
         //----------------------------------------------------------------------
         // 接続状況を返却
-        if (!b_com_ble_gatts_is_connected(s_msg_ctrl_cfg.pf_gatt_if())) {
+        if (!b_ble_fwk_gatts_is_connected(s_msg_ctrl_cfg.pf_gatt_if())) {
             // 未接続
-            e_con_sts = COM_BLE_MSG_CON_DISCONNECTED;
+            e_con_sts = BLE_MSG_CON_DISCONNECTED;
             break;
         }
         // リモートアドレスを判定
-        if (b_com_ble_addr_clear(s_msg_ctrl_sts.t_rmt_bda)) {
+        if (b_ble_util_addr_clear(s_msg_ctrl_sts.t_rmt_bda)) {
             // 接続中
-            e_con_sts = COM_BLE_MSG_CON_CONNECTING;
+            e_con_sts = BLE_MSG_CON_CONNECTING;
             break;
         }
         // 接続済み
-        e_con_sts = COM_BLE_MSG_CON_CONNECTED;
+        e_con_sts = BLE_MSG_CON_CONNECTED;
     } while(false);
 
     //==========================================================================
@@ -5261,58 +5398,58 @@ static te_com_ble_msg_connection_sts_t e_connect_sts_svr() {
  * PARAMETERS:              Name        RW  Usage
  *
  * RETURNS:
- *   te_com_ble_msg_connection_sts_t:接続状態を表すステータス
+ *   te_ble_msg_connection_sts_t:接続状態を表すステータス
  *
  * NOTES:
  * None.
  ******************************************************************************/
-static te_com_ble_msg_connection_sts_t e_connect_sts_cli() {
+static te_ble_msg_connection_sts_t e_connect_sts_cli() {
     //==========================================================================
     // クリティカルセクション開始
     //==========================================================================
     if (xSemaphoreTakeRecursive(s_mutex_sts, portMAX_DELAY) != pdTRUE) {
-        return COM_BLE_MSG_CON_ERROR;
+        return BLE_MSG_CON_ERROR;
     }
 
     //==========================================================================
     // 接続ステータス判定
     //==========================================================================
-    te_com_ble_msg_connection_sts_t e_con_sts = COM_BLE_MSG_CON_ERROR;
+    te_ble_msg_connection_sts_t e_con_sts = BLE_MSG_CON_ERROR;
     do {
         //----------------------------------------------------------------------
         // 判定用のBLEアドレス
         //----------------------------------------------------------------------
         esp_bd_addr_t t_rmt_bda;
         // トランザクション種別
-        if (s_msg_ctrl_sts.s_tran.e_sts == COM_BLE_MSG_TRN_NONE) {
+        if (s_msg_ctrl_sts.s_tran.e_sts == BLE_MSG_TRN_NONE) {
             // 接続状況を判定
-            if (b_com_ble_addr_clear(s_msg_ctrl_sts.t_rmt_bda)) {
+            if (b_ble_util_addr_clear(s_msg_ctrl_sts.t_rmt_bda)) {
                 // 未接続
-                e_con_sts = COM_BLE_MSG_CON_DISCONNECTED;
+                e_con_sts = BLE_MSG_CON_DISCONNECTED;
                 break;
             }
             // 接続済みアドレス
-            v_com_ble_addr_cpy(t_rmt_bda, s_msg_ctrl_sts.t_rmt_bda);
+            v_ble_util_addr_cpy(t_rmt_bda, s_msg_ctrl_sts.t_rmt_bda);
         } else {
             // 接続中アドレス
-            v_com_ble_addr_cpy(t_rmt_bda, s_msg_ctrl_sts.s_tran.t_bda);
+            v_ble_util_addr_cpy(t_rmt_bda, s_msg_ctrl_sts.s_tran.t_bda);
         }
 
         //----------------------------------------------------------------------
         // GAPステータスチェック
         //----------------------------------------------------------------------
-        te_gap_dev_sts_t e_dev_sts = e_com_ble_gap_device_sts(t_rmt_bda);
+        te_ble_fwk_gap_dev_sts_t e_dev_sts = e_ble_fwk_gap_device_sts(t_rmt_bda);
         if (e_dev_sts == GAP_DEV_STS_DEVICE_NONE) {
             // デバイスステータスが無いので未接続
-            e_con_sts = COM_BLE_MSG_CON_DISCONNECTED;
+            e_con_sts = BLE_MSG_CON_DISCONNECTED;
             break;
         }
         if ((e_dev_sts & MSG_GAP_CHK_PASSKEY) == GAP_DEV_STS_REQ_PASSKEY) {
-            e_con_sts = COM_BLE_MSG_CON_WAIT_PASSKEY;
+            e_con_sts = BLE_MSG_CON_WAIT_PASSKEY;
             break;
         }
         if ((e_dev_sts & MSG_GAP_CHK_NUM_CHK) == GAP_DEV_STS_REQ_NUM_CHK) {
-            e_con_sts = COM_BLE_MSG_CON_WAIT_NUM_CHK;
+            e_con_sts = BLE_MSG_CON_WAIT_NUM_CHK;
             break;
         }
 
@@ -5320,32 +5457,32 @@ static te_com_ble_msg_connection_sts_t e_connect_sts_cli() {
         // SPP接続判定
         //----------------------------------------------------------------------
         // コネクション判定
-        ts_com_ble_gattc_con_info_t* ps_con = ps_get_connection();
+        ts_ble_fwk_gattc_con_info_t* ps_con = ps_get_connection();
         if (ps_con == NULL) {
             // 接続中
-            e_con_sts = COM_BLE_MSG_CON_CONNECTING;
+            e_con_sts = BLE_MSG_CON_CONNECTING;
             break;
         }
         // 接続ステータスを取得
-        te_com_ble_spp_connection_sts_t e_spp_con_sts = e_com_ble_sppc_con_sts(ps_con);
+        te_ble_fwk_spp_connection_sts_t e_spp_con_sts = e_ble_fwk_sppc_con_sts(ps_con);
         // SPP接続判定：未接続
-        if (e_spp_con_sts == COM_BLE_SPP_CON_DISCONNECTED) {
+        if (e_spp_con_sts == BLE_FWK_SPP_CON_DISCONNECTED) {
             // SPP未接続なので未接続
-            e_con_sts = COM_BLE_MSG_CON_DISCONNECTED;
+            e_con_sts = BLE_MSG_CON_DISCONNECTED;
             break;
         }
         // SPP接続判定：接続中
-        if (e_spp_con_sts == COM_BLE_SPP_CON_CONNECTING) {
-            e_con_sts = COM_BLE_MSG_CON_CONNECTING;
+        if (e_spp_con_sts == BLE_FWK_SPP_CON_CONNECTING) {
+            e_con_sts = BLE_MSG_CON_CONNECTING;
             break;
         }
         // SPP接続判定：接続
-        if (e_spp_con_sts == COM_BLE_SPP_CON_CONNECTED) {
-            e_con_sts = COM_BLE_MSG_CON_CONNECTED;
+        if (e_spp_con_sts == BLE_FWK_SPP_CON_CONNECTED) {
+            e_con_sts = BLE_MSG_CON_CONNECTED;
             break;
         }
         // 接続エラー
-        e_con_sts = COM_BLE_MSG_CON_ERROR;
+        e_con_sts = BLE_MSG_CON_ERROR;
     } while(false);
 
     //==========================================================================
@@ -5367,27 +5504,27 @@ static te_com_ble_msg_connection_sts_t e_connect_sts_cli() {
  * TickType_t               t_tick      R   ウェイト時間
  *
  * RETURNS:
- *   ts_com_ble_gatt_rx_data*:受信データ
+ *   ts_ble_fwk_gatt_rx_data*:受信データ
  *
  * NOTES:
  * None.
  ******************************************************************************/
-static ts_com_ble_gatt_rx_data_t* ps_ble_rx_data_svr(TickType_t t_tick) {
+static ts_ble_fwk_gatt_rx_data_t* ps_ble_rx_data_svr(TickType_t t_tick) {
     // タイムアウト時刻
     TickType_t t_timeout = xTaskGetTickCount() + t_tick;
     // 受信データ取得
-    ts_com_ble_gatt_rx_data_t* ps_rx_data = NULL;
+    ts_ble_fwk_gatt_rx_data_t* ps_rx_data = NULL;
     // データ受信ループ
     while(t_timeout >= xTaskGetTickCount()) {
         // データ受信
-        ps_rx_data = ps_com_ble_spps_rx_data(s_msg_ctrl_cfg.pf_gatt_if(), COM_MSG_RETRY_WAIT);
+        ps_rx_data = ps_ble_fwk_spps_rx_data(s_msg_ctrl_cfg.pf_gatt_if(), BLE_MSG_RETRY_WAIT);
         if (ps_rx_data == NULL) {
             continue;
         }
         // 受信データ判定
         if (ps_rx_data->u16_hndl_idx != SPPS_ATTR_IDX_RX_DATA_VAL) {
             // 対象データでは無いので解放
-            v_com_ble_gatt_delete_rx_data(ps_rx_data);
+            v_ble_fwk_gatt_delete_rx_data(ps_rx_data);
             ps_rx_data = NULL;
             continue;
         }
@@ -5408,36 +5545,36 @@ static ts_com_ble_gatt_rx_data_t* ps_ble_rx_data_svr(TickType_t t_tick) {
  * TickType_t               t_tick      R   ウェイト時間
  *
  * RETURNS:
- *   ts_com_ble_gatt_rx_data*:受信データ
+ *   ts_ble_fwk_gatt_rx_data*:受信データ
  *
  * NOTES:
  * None.
  ******************************************************************************/
-static ts_com_ble_gatt_rx_data_t* ps_ble_rx_data_cli(TickType_t t_tick) {
+static ts_ble_fwk_gatt_rx_data_t* ps_ble_rx_data_cli(TickType_t t_tick) {
     // タイムアウト時刻
     TickType_t t_timeout = xTaskGetTickCount() + t_tick;
     // 接続の有無を判定
-    ts_com_ble_gattc_con_info_t* ps_con_info = NULL;
+    ts_ble_fwk_gattc_con_info_t* ps_con_info = NULL;
     // 受信データ取得
-    ts_com_ble_gatt_rx_data_t* ps_rx_data = NULL;
+    ts_ble_fwk_gatt_rx_data_t* ps_rx_data = NULL;
     // データ受信ループ
     while(t_timeout >= xTaskGetTickCount()) {
         // 接続の有無を判定
         ps_con_info = ps_get_connection();
         if (ps_con_info == NULL) {
             // ウェイトしてリトライ
-            vTaskDelay(COM_MSG_RETRY_WAIT);
+            vTaskDelay(BLE_MSG_RETRY_WAIT);
             continue;
         }
         // 受信データ取得処理
-        ps_rx_data = ps_com_ble_sppc_rx_data(ps_con_info, COM_MSG_RETRY_WAIT);
+        ps_rx_data = ps_ble_fwk_sppc_rx_data(ps_con_info, BLE_MSG_RETRY_WAIT);
         if (ps_rx_data == NULL) {
             continue;
         }
         // サーバーからの送信データ判定
         if (ps_rx_data->u16_hndl_idx != SPPS_ATTR_IDX_TX_DATA_VAL) {
             // サーバーからの送信データ以外は解放する
-            v_com_ble_gatt_delete_rx_data(ps_rx_data);
+            v_ble_fwk_gatt_delete_rx_data(ps_rx_data);
             ps_rx_data = NULL;
             continue;
         }
@@ -5464,7 +5601,7 @@ static ts_com_ble_gatt_rx_data_t* ps_ble_rx_data_cli(TickType_t t_tick) {
 static void v_ble_rx_clear_svr() {
     // 受信データバッファクリア
     tf_get_gatt_if_t pf_gatt_if = s_msg_ctrl_cfg.pf_gatt_if;
-    v_com_ble_spps_rx_clear(pf_gatt_if());
+    v_ble_fwk_spps_rx_clear(pf_gatt_if());
 }
 
 /*******************************************************************************
@@ -5485,13 +5622,13 @@ static void v_ble_rx_clear_cli() {
     // BLEクライアントの受信データキュークリア
     //==========================================================================
     // 接続の有無を判定
-    ts_com_ble_gattc_con_info_t* ps_con = ps_get_connection();
+    ts_ble_fwk_gattc_con_info_t* ps_con = ps_get_connection();
     if (ps_con == NULL) {
         return;
     }
     // 受信データバッファクリア
     esp_gatt_id_t* ps_svc_id = &ps_con->ps_service[BLE_SPPS_SVC_IDX].s_svc_id;
-    v_com_ble_gattc_rx_clear(ps_con->t_gatt_if, ps_con->u16_con_id, *ps_svc_id);
+    v_ble_fwk_gattc_rx_clear(ps_con->t_gatt_if, ps_con->u16_con_id, *ps_svc_id);
 }
 
 /*******************************************************************************
@@ -5516,24 +5653,24 @@ static void v_ble_rx_through_svr(size_t t_len) {
     tf_get_gatt_if_t pf_gatt_if = s_msg_ctrl_cfg.pf_gatt_if;
     esp_gatt_if_t t_gatt_if = pf_gatt_if();
     // 受信データ
-    ts_com_ble_gatt_rx_data_t* ps_rx_data;
+    ts_ble_fwk_gatt_rx_data_t* ps_rx_data;
     // 受信データ取得
     uint32_t u32_len = 0;
     while (u32_len < t_len) {
         // 受信データの読み出し
-        ps_rx_data = ps_com_ble_spps_rx_data(t_gatt_if, 0);
+        ps_rx_data = ps_ble_fwk_spps_rx_data(t_gatt_if, 0);
         if (ps_rx_data == NULL) {
             break;
         }
         // データ長を更新
         u32_len += ps_rx_data->ps_array->t_size;
         // 受信データを解放
-        v_com_ble_gatt_delete_rx_data(ps_rx_data);
+        v_ble_fwk_gatt_delete_rx_data(ps_rx_data);
     }
     // 受信データ長
     if (u32_len > t_len) {
         // 受信データ長エラーの場合には受信データバッファクリア
-        v_com_ble_spps_rx_clear(t_gatt_if);
+        v_ble_fwk_spps_rx_clear(t_gatt_if);
     }
 }
 
@@ -5556,27 +5693,27 @@ static void v_ble_rx_through_cli(size_t t_len) {
     // BLEクライアントの受信キュー読み飛ばし処理
     //==========================================================================
     // 接続の有無を判定
-    ts_com_ble_gattc_con_info_t* ps_con = ps_get_connection();
+    ts_ble_fwk_gattc_con_info_t* ps_con = ps_get_connection();
     if (ps_con == NULL) {
         return;
     }
     // 受信データ取得処理
-    ts_com_ble_gatt_rx_data_t* ps_rx_data;
+    ts_ble_fwk_gatt_rx_data_t* ps_rx_data;
     uint32_t u32_len = 0;
     while (u32_len < t_len) {
-        ps_rx_data = ps_com_ble_sppc_rx_data(ps_con, 0);
+        ps_rx_data = ps_ble_fwk_sppc_rx_data(ps_con, 0);
         if (ps_rx_data == NULL) {
             break;
         }
         // データ長を更新
         u32_len += ps_rx_data->ps_array->t_size;
         // 受信データを解放
-        v_com_ble_gatt_delete_rx_data(ps_rx_data);
+        v_ble_fwk_gatt_delete_rx_data(ps_rx_data);
     }
     // 受信データ長
     if (u32_len > t_len) {
         // 受信データ長エラーの場合には受信データバッファクリア
-        v_com_ble_sppc_rx_clear(ps_con);
+        v_ble_fwk_sppc_rx_clear(ps_con);
     }
 }
 
@@ -5600,13 +5737,13 @@ static esp_err_t sts_ble_tx_msg_svr(ts_u8_array_t* ps_msg) {
     // 認証タグ編集
     //==========================================================================
     // 認証タグの生成
-    uint8_t u8_auth_tag[COM_MSG_SIZE_AUTH_TAG];
+    uint8_t u8_auth_tag[BLE_MSG_SIZE_AUTH_TAG];
     esp_err_t sts_val = sts_edit_auth_tag(u8_auth_tag, ps_msg);
     if (sts_val != ESP_OK) {
         return sts_val;
     }
     // 認証タグを編集
-    memcpy(&ps_msg->pu8_values[MSG_POS_AUTH_TAG], u8_auth_tag, COM_MSG_SIZE_AUTH_TAG);
+    memcpy(&ps_msg->pu8_values[MSG_POS_AUTH_TAG], u8_auth_tag, BLE_MSG_SIZE_AUTH_TAG);
 
     //==========================================================================
     // サーバーからの送信処理
@@ -5614,12 +5751,12 @@ static esp_err_t sts_ble_tx_msg_svr(ts_u8_array_t* ps_msg) {
     // GATTインターフェース取得処理
     esp_gatt_if_t t_gatt_if = s_msg_ctrl_cfg.pf_gatt_if();
     // メッセージを送信
-    sts_val = sts_com_ble_spps_tx_data(t_gatt_if, ps_msg->pu8_values, ps_msg->t_size);
+    sts_val = sts_ble_fwk_spps_tx_data(t_gatt_if, ps_msg->pu8_values, ps_msg->t_size);
     if (sts_val != ESP_OK) {
         // 結果返信
         return sts_val;
     }
-#ifdef COM_BLE_MSG_DEBUG
+#ifdef BLE_MSG_DEBUG
 	unsigned long ul_now = (unsigned long)(xTaskGetTickCount() * portTICK_PERIOD_MS);
     ESP_LOGW(LOG_TAG, "%s tick=%lums type=%d t_size=%d", __func__, ul_now, ps_msg->pu8_values[MSG_POS_TYPE], ps_msg->t_size);
 #endif
@@ -5653,29 +5790,29 @@ static esp_err_t sts_ble_tx_msg_cli(ts_u8_array_t* ps_msg) {
     // 認証タグ編集
     //==========================================================================
     // 認証タグの生成
-    uint8_t u8_auth_tag[COM_MSG_SIZE_AUTH_TAG];
+    uint8_t u8_auth_tag[BLE_MSG_SIZE_AUTH_TAG];
     esp_err_t sts_val = sts_edit_auth_tag(u8_auth_tag, ps_msg);
     if (sts_val != ESP_OK) {
         return sts_val;
     }
     // 認証タグを編集
-    memcpy(&ps_msg->pu8_values[MSG_POS_AUTH_TAG], u8_auth_tag, COM_MSG_SIZE_AUTH_TAG);
+    memcpy(&ps_msg->pu8_values[MSG_POS_AUTH_TAG], u8_auth_tag, BLE_MSG_SIZE_AUTH_TAG);
 
     //==========================================================================
     // クライアントからの送信処理
     //==========================================================================
     // 接続の有無を判定
-    ts_com_ble_gattc_con_info_t* ps_con = ps_get_connection();
+    ts_ble_fwk_gattc_con_info_t* ps_con = ps_get_connection();
     if (ps_con == NULL) {
         return ESP_ERR_NOT_FOUND;
     }
 
     // メッセージを送信
-    sts_val = sts_com_ble_sppc_tx_data(ps_con, ps_msg->pu8_values, ps_msg->t_size);
+    sts_val = sts_ble_fwk_sppc_tx_data(ps_con, ps_msg->pu8_values, ps_msg->t_size);
     if (sts_val != ESP_OK) {
         return sts_val;
     }
-#ifdef COM_BLE_MSG_DEBUG
+#ifdef BLE_MSG_DEBUG
     unsigned long ul_now = (unsigned long)(xTaskGetTickCount() * portTICK_PERIOD_MS);
     ESP_LOGW(LOG_TAG, "%s tick=%ldms type=%d t_size=%d", __func__, ul_now, ps_msg->pu8_values[MSG_POS_TYPE], ps_msg->t_size);
 #endif
@@ -5715,11 +5852,11 @@ static void v_spp_evt_cb_svr(esp_gatts_cb_event_t e_event,
     switch (e_event) {
     case ESP_GATTS_CONNECT_EVT:
         // 接続通知
-        v_msg_evt_enqueue(COM_BLE_MSG_EVT_GATT_CONNECT);
+        v_msg_evt_enqueue(BLE_MSG_EVT_GATT_CONNECT);
         break;
     case ESP_GATTS_DISCONNECT_EVT:
         // 切断通知
-        v_msg_evt_enqueue(COM_BLE_MSG_EVT_GATT_DISCONNECT);
+        v_msg_evt_enqueue(BLE_MSG_EVT_GATT_DISCONNECT);
         break;
     default:
         break;
@@ -5753,17 +5890,17 @@ static void v_spp_evt_cb_cli(esp_gattc_cb_event_t e_event,
     case ESP_GATTC_WRITE_DESCR_EVT:
         // GATTサービスへのDescriptor書き込み完了通知イベント
         // リンク成功イベント
-        v_msg_evt_enqueue(COM_BLE_MSG_EVT_LINK_SUCCESS);
+        v_msg_evt_enqueue(BLE_MSG_EVT_LINK_SUCCESS);
         break;
     case ESP_GATTC_CONNECT_EVT:
         // 接続通知
         // 接続通知イベント
-        v_msg_evt_enqueue(COM_BLE_MSG_EVT_GATT_CONNECT);
+        v_msg_evt_enqueue(BLE_MSG_EVT_GATT_CONNECT);
         break;
     case ESP_GATTC_DISCONNECT_EVT:
         // 切断通知
         // 切断通知イベント
-        v_msg_evt_enqueue(COM_BLE_MSG_EVT_GATT_DISCONNECT);
+        v_msg_evt_enqueue(BLE_MSG_EVT_GATT_DISCONNECT);
         break;
     default:
         break;
@@ -5779,12 +5916,12 @@ static void v_spp_evt_cb_cli(esp_gattc_cb_event_t e_event,
  * PARAMETERS:                  Name        RW  Usage
  *
  * RETURNS:
- *   te_com_ble_msg_connection_sts_t:接続ステータス
+ *   te_ble_msg_connection_sts_t:接続ステータス
  * NOTES:
  * None.
  ******************************************************************************/
-static te_com_ble_msg_connection_sts_t e_msg_dmy_connect_sts() {
-    return COM_BLE_MSG_CON_DISCONNECTED;
+static te_ble_msg_connection_sts_t e_msg_dmy_connect_sts() {
+    return BLE_MSG_CON_DISCONNECTED;
 }
 
 /*******************************************************************************
@@ -5797,11 +5934,11 @@ static te_com_ble_msg_connection_sts_t e_msg_dmy_connect_sts() {
  * TickType_t                   t_tick      R   待ち時間
  *
  * RETURNS:
- * ts_com_ble_gatt_rx_data*:受信データ
+ * ts_ble_fwk_gatt_rx_data*:受信データ
  * NOTES:
  * None.
  ******************************************************************************/
-static ts_com_ble_gatt_rx_data_t* ps_msg_dmy_rx_data(TickType_t t_tick) {
+static ts_ble_fwk_gatt_rx_data_t* ps_msg_dmy_rx_data(TickType_t t_tick) {
     return NULL;
 }
 
@@ -5867,8 +6004,8 @@ static void v_msg_dmy_rx_through(size_t t_len) {
  * DESCRIPTION:ダミー関数：チケットアクセスコールバック関数
  *
  * PARAMETERS:                  Name        RW  Usage
- * te_com_ble_msg_ticket_evt_t  e_evt       R   イベント種別
- * ts_com_msg_auth_ticket_t*    ps_ticket   R   チケット情報
+ * te_ble_msg_ticket_evt_t  e_evt       R   イベント種別
+ * ts_ble_msg_auth_ticket_t*    ps_ticket   R   チケット情報
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -5876,7 +6013,7 @@ static void v_msg_dmy_rx_through(size_t t_len) {
  * NOTES:
  * None.
  ******************************************************************************/
-static esp_err_t sts_msg_dmy_ticket_cb(te_com_ble_msg_ticket_evt_t e_evt, ts_com_msg_auth_ticket_t* ps_ticket) {
+static esp_err_t sts_msg_dmy_ticket_cb(te_ble_msg_ticket_evt_t e_evt, ts_ble_msg_auth_ticket_t* ps_ticket) {
     return ESP_ERR_INVALID_STATE;
 }
 
@@ -5887,14 +6024,14 @@ static esp_err_t sts_msg_dmy_ticket_cb(te_com_ble_msg_ticket_evt_t e_evt, ts_com
  * DESCRIPTION:ダミー関数：メッセージイベントコールバック関数
  *
  * PARAMETERS:              Name        RW  Usage
- * te_com_ble_msg_event     e_msg_evt   R   コールバックイベント
+ * te_ble_msg_event     e_msg_evt   R   コールバックイベント
  *
  * RETURNS:
  *
  * NOTES:
  * None.
  ******************************************************************************/
-static void v_msg_dmy_evt_cb(te_com_ble_msg_event e_msg_evt) {
+static void v_msg_dmy_evt_cb(te_ble_msg_event e_msg_evt) {
     return;
 }
 

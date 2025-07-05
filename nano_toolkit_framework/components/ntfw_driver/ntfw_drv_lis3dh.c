@@ -36,6 +36,10 @@
 /******************************************************************************/
 /***      Type Definitions                                                  ***/
 /******************************************************************************/
+/**
+ * I2C初期処理
+ */
+typedef esp_err_t (*tf_i2c_init_t)(ts_i2c_mst_address_t* ps_address);
 
 /******************************************************************************/
 /***      Exported Variables                                                ***/
@@ -44,14 +48,18 @@
 /******************************************************************************/
 /***      Local Variables                                                   ***/
 /******************************************************************************/
+// 有効アドレスチェック
+static bool b_valid_address(ts_i2c_mst_address_t* ps_address);
+/** I2C初期処理 */
+static esp_err_t sts_i2c_init(ts_i2c_mst_address_t* ps_address);
+/** I2C初期処理（ダミー） */
+static esp_err_t sts_i2c_init_dmy(ts_i2c_mst_address_t* ps_address);
+/** I2C初期処理 */
+static volatile tf_i2c_init_t pf_i2c_init = sts_i2c_init;
 
 /******************************************************************************/
 /***      Local Function Prototypes                                         ***/
 /******************************************************************************/
-// レジスタの1バイト読み込み
-static esp_err_t sts_read_byte(ts_i2c_address_t s_address, uint8_t u8_reg_address, uint8_t* pu8_data);
-// レジスタへの書き込み
-static esp_err_t sts_write_byte(ts_i2c_address_t s_address, uint8_t u8_address, uint8_t u8_data);
 
 /******************************************************************************/
 /***        Exported Functions                                              ***/
@@ -63,8 +71,8 @@ static esp_err_t sts_write_byte(ts_i2c_address_t s_address, uint8_t u8_address, 
  *
  * DESCRIPTION:レジスタ情報読み込み
  *
- * PARAMETERS:            Name            RW  Usage
- *   ts_i2c_address       s_address       R   I2Cアドレス（ポート番号とスレーブアドレス）
+ * PARAMETERS:          Name        RW  Usage
+ *   ts_i2c_address*    ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -72,11 +80,21 @@ static esp_err_t sts_write_byte(ts_i2c_address_t s_address, uint8_t u8_address, 
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_lis3dh_who_am_i(ts_i2c_address_t s_address) {
+esp_err_t sts_lis3dh_who_am_i(ts_i2c_mst_address_t* ps_address) {
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    // I2Cアドレス
+    if (!b_valid_address(ps_address)) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    // I2C初期処理
+    pf_i2c_init(ps_address);
+
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
     if (sts_val != ESP_OK) {
         return sts_val;
     }
@@ -84,8 +102,9 @@ esp_err_t sts_lis3dh_who_am_i(ts_i2c_address_t s_address) {
     //==========================================================================
     // who am i
     //==========================================================================
+    uint8_t u8_reg_address = 0x0F;
     uint8_t u8_data;
-    sts_val = sts_read_byte(s_address, 0x0F, &u8_data);
+    sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
     if (sts_val == ESP_OK) {
         if (u8_data != 0x33) {
             sts_val = ESP_ERR_NOT_FOUND;
@@ -95,7 +114,7 @@ esp_err_t sts_lis3dh_who_am_i(ts_i2c_address_t s_address) {
     //==========================================================================
     // I2Cトランザクション終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
@@ -108,7 +127,7 @@ esp_err_t sts_lis3dh_who_am_i(ts_i2c_address_t s_address) {
  * DESCRIPTION:レート設定
  *
  * PARAMETERS:            Name          RW  Usage
- *   ts_i2c_address       s_address     R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   ts_i2c_address*      ps_address    R   I2Cアドレス（ポート番号とスレーブアドレス）
  *   bool                 b_low_pwr     R   省電力モードフラグ
  *   te_lis3dh_data_rate  e_rate        R   レート
  *
@@ -118,11 +137,21 @@ esp_err_t sts_lis3dh_who_am_i(ts_i2c_address_t s_address) {
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_lis3dh_set_rate(ts_i2c_address_t s_address, bool b_low_pwr, te_lis3dh_data_rate_t e_rate) {
+esp_err_t sts_lis3dh_set_rate(ts_i2c_mst_address_t* ps_address, bool b_low_pwr, te_lis3dh_data_rate_t e_rate) {
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    // I2Cアドレス
+    if (!b_valid_address(ps_address)) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    // I2C初期処理
+    pf_i2c_init(ps_address);
+
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
     if (sts_val != ESP_OK) {
         return sts_val;
     }
@@ -130,20 +159,23 @@ esp_err_t sts_lis3dh_set_rate(ts_i2c_address_t s_address, bool b_low_pwr, te_lis
     //==========================================================================
     // レート設定
     //==========================================================================
+    // レジスタアドレス
+    uint8_t u8_reg_address = 0x20;
     // 制御レジスタ読み込み
     uint8_t u8_data;
-    sts_val = sts_read_byte(s_address, 0x20, &u8_data);
+    sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
     if (sts_val == ESP_OK) {
         // レジスタ編集
         u8_data = (e_rate | (b_low_pwr << 3) | (u8_data & 0x0F));
-        // 制御レジスタの書き込み
-        sts_val = sts_write_byte(s_address, 0x20, u8_data);
+        // I2Cスレーブへのデータ送信処理
+        uint8_t u8_tx_data[] = {0x20, u8_data};
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
     }
 
     //==========================================================================
     // I2Cトランザクション終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
@@ -155,11 +187,11 @@ esp_err_t sts_lis3dh_set_rate(ts_i2c_address_t s_address, bool b_low_pwr, te_lis
  *
  * DESCRIPTION:３軸の有効無効設定
  *
- * PARAMETERS:            Name            RW  Usage
- *   ts_i2c_address       s_address       R   I2Cアドレス（ポート番号とスレーブアドレス）
- *   bool                 b_x             R   有効無効フラグ（X軸）
- *   bool                 b_y             R   有効無効フラグ（Y軸）
- *   bool                 b_z             R   有効無効フラグ（Z軸）
+ * PARAMETERS:          Name        RW  Usage
+ *   ts_i2c_address*    ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   bool               b_x         R   有効無効フラグ（X軸）
+ *   bool               b_y         R   有効無効フラグ（Y軸）
+ *   bool               b_z         R   有効無効フラグ（Z軸）
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -167,11 +199,21 @@ esp_err_t sts_lis3dh_set_rate(ts_i2c_address_t s_address, bool b_low_pwr, te_lis
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_lis3dh_set_enable_axis(ts_i2c_address_t s_address, bool b_x, bool b_y, bool b_z) {
+esp_err_t sts_lis3dh_set_enable_axis(ts_i2c_mst_address_t* ps_address, bool b_x, bool b_y, bool b_z) {
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    // I2Cアドレス
+    if (!b_valid_address(ps_address)) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    // I2C初期処理
+    pf_i2c_init(ps_address);
+
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
     if (sts_val != ESP_OK) {
         return sts_val;
     }
@@ -179,20 +221,24 @@ esp_err_t sts_lis3dh_set_enable_axis(ts_i2c_address_t s_address, bool b_x, bool 
     //==========================================================================
     // ３軸の有効無効設定
     //==========================================================================
+    // レジスタアドレス
+    uint8_t u8_reg_address = 0x20;
     // 制御レジスタ読み込み
     uint8_t u8_data;
-    sts_val = sts_read_byte(s_address, 0x20, &u8_data);
+    // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+    sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
     if (sts_val == ESP_OK) {
         // レジスタ編集
         u8_data = (u8_data & 0xF8) | b_x | (b_y << 1) | (b_z <<2);
         // 制御レジスタの書き込み
-        sts_val =sts_write_byte(s_address, 0x20, u8_data);
+        uint8_t u8_tx_data[] = {0x20, u8_data};
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
     }
 
     //==========================================================================
     // I2Cトランザクション終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
@@ -204,11 +250,11 @@ esp_err_t sts_lis3dh_set_enable_axis(ts_i2c_address_t s_address, bool b_x, bool 
  *
  * DESCRIPTION:ハイパスフィルタ設定
  *
- * PARAMETERS:            Name            RW  Usage
- *   ts_i2c_address       s_address       R   I2Cアドレス（ポート番号とスレーブアドレス）
- *   te_lis3dh_hpf_mode   e_hpf_mode      R   ハイパスフィルターモード
- *   uint8_t              u8_hpcf         R   カットオフ周波数
- *   bool                 b_fds           R   フィルタリング対象セレクタ（true:内部フィルタ出力）
+ * PARAMETERS:            Name          RW  Usage
+ *   ts_i2c_address*      ps_address    R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   te_lis3dh_hpf_mode   e_hpf_mode    R   ハイパスフィルターモード
+ *   uint8_t              u8_hpcf       R   カットオフ周波数
+ *   bool                 b_fds         R   フィルタリング対象セレクタ（true:内部フィルタ出力）
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -216,11 +262,21 @@ esp_err_t sts_lis3dh_set_enable_axis(ts_i2c_address_t s_address, bool b_x, bool 
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_lis3dh_set_hpcf(ts_i2c_address_t s_address, te_lis3dh_hpf_mode_t e_hpf_mode, uint8_t u8_hpcf, bool b_fds) {
+esp_err_t sts_lis3dh_set_hpcf(ts_i2c_mst_address_t* ps_address, te_lis3dh_hpf_mode_t e_hpf_mode, uint8_t u8_hpcf, bool b_fds) {
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    // I2Cアドレス
+    if (!b_valid_address(ps_address)) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    // I2C初期処理
+    pf_i2c_init(ps_address);
+
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
     if (sts_val != ESP_OK) {
         return sts_val;
     }
@@ -228,20 +284,24 @@ esp_err_t sts_lis3dh_set_hpcf(ts_i2c_address_t s_address, te_lis3dh_hpf_mode_t e
     //==========================================================================
     // ハイパスフィルタ設定
     //==========================================================================
+    // レジスタアドレス
+    uint8_t u8_reg_address = 0x21;
     // 制御レジスタ読み込み
     uint8_t u8_data;
-    sts_val = sts_read_byte(s_address, 0x21, &u8_data);
+    // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+    sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
     if (sts_val == ESP_OK) {
         // レジスタ編集
         u8_data = ((e_hpf_mode << 6) | ((u8_hpcf << 4) & 0x30)) | ((b_fds << 3) & 0x08) | (u8_data & 0x07);
         // 制御レジスタの書き込み
-        sts_val = sts_write_byte(s_address, 0x21, u8_data);
+        uint8_t u8_tx_data[] = {0x21, u8_data};
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
     }
 
     //==========================================================================
     // I2Cトランザクション終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
@@ -253,10 +313,10 @@ esp_err_t sts_lis3dh_set_hpcf(ts_i2c_address_t s_address, te_lis3dh_hpf_mode_t e
  *
  * DESCRIPTION:データ更新方式設定
  *
- * PARAMETERS:            Name            RW  Usage
- *   ts_i2c_address       s_address       R   I2Cアドレス（ポート番号とスレーブアドレス）
- *   bool                 b_upd_type      R   更新タイプ(false:continuos update)
- *   bool                 b_format        R   フォーマット(false:little endian)
+ * PARAMETERS:          Name        RW  Usage
+ *   ts_i2c_address*    ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   bool               b_upd_type  R   更新タイプ(false:continuos update)
+ *   bool               b_format    R   フォーマット(false:little endian)
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -264,11 +324,21 @@ esp_err_t sts_lis3dh_set_hpcf(ts_i2c_address_t s_address, te_lis3dh_hpf_mode_t e
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_lis3dh_set_upd_settings(ts_i2c_address_t s_address, bool b_upd_type, bool b_format) {
+esp_err_t sts_lis3dh_set_upd_settings(ts_i2c_mst_address_t* ps_address, bool b_upd_type, bool b_format) {
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    // I2Cアドレス
+    if (!b_valid_address(ps_address)) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    // I2C初期処理
+    pf_i2c_init(ps_address);
+
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
     if (sts_val != ESP_OK) {
         return sts_val;
     }
@@ -276,20 +346,24 @@ esp_err_t sts_lis3dh_set_upd_settings(ts_i2c_address_t s_address, bool b_upd_typ
     //==========================================================================
     // データ更新方式設定
     //==========================================================================
+    // アドレスレジスタ
+    uint8_t u8_reg_address = 0x23;
     // 制御レジスタ読み込み
     uint8_t u8_data;
-    sts_val = sts_read_byte(s_address, 0x23, &u8_data);
+    // I2Cスレーブへのレジスタアドレスを送信し、データを受信
+    return sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
     if (sts_val == ESP_OK) {
         // レジスタ編集
         u8_data = ((b_upd_type << 6) | ((b_format << 5) & 0x40)) | (u8_data & 0x3F);
         // 制御レジスタの書き込み
-        sts_val = sts_write_byte(s_address, 0x23, u8_data);
+        uint8_t u8_tx_data[] = {0x23, u8_data};
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
     }
 
     //==========================================================================
     // I2Cトランザクション終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
@@ -301,10 +375,10 @@ esp_err_t sts_lis3dh_set_upd_settings(ts_i2c_address_t s_address, bool b_upd_typ
  *
  * DESCRIPTION:レンジ設定
  *
- * PARAMETERS:            Name            RW  Usage
- *   ts_i2c_address       s_address       R   I2Cアドレス（ポート番号とスレーブアドレス）
- *   te_lis3dh_range      e_range         R   レンジ
- *   bool                 b_hr            R   高解像度モード有効フラグ
+ * PARAMETERS:          Name        RW  Usage
+ *   ts_i2c_address*    ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   te_lis3dh_range    e_range     R   レンジ
+ *   bool               b_hr        R   高解像度モード有効フラグ
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -312,11 +386,21 @@ esp_err_t sts_lis3dh_set_upd_settings(ts_i2c_address_t s_address, bool b_upd_typ
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_lis3dh_set_range(ts_i2c_address_t s_address, te_lis3dh_range_t e_range, bool b_hr) {
+esp_err_t sts_lis3dh_set_range(ts_i2c_mst_address_t* ps_address, te_lis3dh_range_t e_range, bool b_hr) {
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    // I2Cアドレス
+    if (!b_valid_address(ps_address)) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    // I2C初期処理
+    pf_i2c_init(ps_address);
+
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
     if (sts_val != ESP_OK) {
         return sts_val;
     }
@@ -324,20 +408,23 @@ esp_err_t sts_lis3dh_set_range(ts_i2c_address_t s_address, te_lis3dh_range_t e_r
     //==========================================================================
     // レンジ設定
     //==========================================================================
+    // レジスタアドレス
+    uint8_t u8_reg_address = 0x23;
     // 制御レジスタ読み込み
     uint8_t u8_data;
-    sts_val = sts_read_byte(s_address, 0x23, &u8_data);
+    sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
     if (sts_val == ESP_OK) {
         // レジスタ編集
         u8_data = ((e_range << 4) & 0x30) | ((b_hr << 3) & 0x08) | (u8_data & 0xC7);
         // 制御レジスタの書き込み
-        sts_val = sts_write_byte(s_address, 0x23, u8_data);
+        uint8_t u8_tx_data[] = {0x23, u8_data};
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
     }
 
     //==========================================================================
     // I2Cトランザクション終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
@@ -349,9 +436,9 @@ esp_err_t sts_lis3dh_set_range(ts_i2c_address_t s_address, te_lis3dh_range_t e_r
  *
  * DESCRIPTION:FIFOモード
  *
- * PARAMETERS:            Name            RW  Usage
- *   ts_i2c_address       s_address       R   I2Cアドレス（ポート番号とスレーブアドレス）
- *   te_lis3dh_fifo_mode  e_fifo_mode     R   FIFOモード
+ * PARAMETERS:              Name        RW  Usage
+ *   ts_i2c_address*        ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   te_lis3dh_fifo_mode    e_fifo_mode R   FIFOモード
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -359,11 +446,21 @@ esp_err_t sts_lis3dh_set_range(ts_i2c_address_t s_address, te_lis3dh_range_t e_r
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_lis3dh_set_fifo_mode(ts_i2c_address_t s_address, te_lis3dh_fifo_mode_t e_fifo_mode) {
+esp_err_t sts_lis3dh_set_fifo_mode(ts_i2c_mst_address_t* ps_address, te_lis3dh_fifo_mode_t e_fifo_mode) {
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    // I2Cアドレス
+    if (!b_valid_address(ps_address)) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    // I2C初期処理
+    pf_i2c_init(ps_address);
+
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
     if (sts_val != ESP_OK) {
         return sts_val;
     }
@@ -372,9 +469,11 @@ esp_err_t sts_lis3dh_set_fifo_mode(ts_i2c_address_t s_address, te_lis3dh_fifo_mo
     // FIFOモード
     //==========================================================================
     do {
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x24;
         // 制御レジスタ５の読み込み
         uint8_t u8_data;
-        sts_val = sts_read_byte(s_address, 0x24, &u8_data);
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
         if (sts_val != ESP_OK) {
             break;
         }
@@ -387,25 +486,30 @@ esp_err_t sts_lis3dh_set_fifo_mode(ts_i2c_address_t s_address, te_lis3dh_fifo_mo
             u8_data = u8_data & 0xBF;
         }
         // 制御レジスタの書き込み
-        sts_val = sts_write_byte(s_address, 0x24, u8_data);
+        uint8_t u8_tx_data[] = {0x24, u8_data};
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
         if (sts_val != ESP_OK) {
             break;
         }
+        // レジスタアドレス
+        u8_reg_address = 0x2E;
         // FIFO制御レジスタ読み込み
-        sts_val = sts_read_byte(s_address, 0x2E, &u8_data);
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
         if (sts_val != ESP_OK) {
             break;
         }
         // レジスタ編集
         u8_data = ((e_fifo_mode << 6) & 0xC0) | (u8_data & 0x3F);
         // 制御レジスタの書き込み
-        sts_val = sts_write_byte(s_address, 0x2E, u8_data);
+        u8_tx_data[0] = 0x2E;
+        u8_tx_data[1] = u8_data;
+        sts_val = sts_io_i2c_mst_tx(ps_address, u8_tx_data, 2);
     } while(false);
 
     //==========================================================================
     // I2Cトランザクション終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
@@ -417,9 +521,9 @@ esp_err_t sts_lis3dh_set_fifo_mode(ts_i2c_address_t s_address, te_lis3dh_fifo_mo
  *
  * DESCRIPTION:FIFOカウント
  *
- * PARAMETERS:            Name            RW  Usage
- *   ts_i2c_address       s_address       R   I2Cアドレス（ポート番号とスレーブアドレス）
- *   uint8_t              u8_fifo_cnt     W   FIFOカウント
+ * PARAMETERS:          Name        RW  Usage
+ *   ts_i2c_address*    ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   uint8_t            u8_fifo_cnt W   FIFOカウント
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -427,11 +531,21 @@ esp_err_t sts_lis3dh_set_fifo_mode(ts_i2c_address_t s_address, te_lis3dh_fifo_mo
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_lis3dh_fifo_cnt(ts_i2c_address_t s_address, uint8_t* pu8_fifo_cnt) {
+esp_err_t sts_lis3dh_fifo_cnt(ts_i2c_mst_address_t* ps_address, uint8_t* pu8_fifo_cnt) {
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    // I2Cアドレス
+    if (!b_valid_address(ps_address)) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    // I2C初期処理
+    pf_i2c_init(ps_address);
+
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
     if (sts_val != ESP_OK) {
         return sts_val;
     }
@@ -439,9 +553,11 @@ esp_err_t sts_lis3dh_fifo_cnt(ts_i2c_address_t s_address, uint8_t* pu8_fifo_cnt)
     //==========================================================================
     // FIFOカウント
     //==========================================================================
+    // レジスタアドレス
+    uint8_t u8_reg_address = 0x2F;
     // 制御レジスタ読み込み
     uint8_t u8_data;
-    sts_val = sts_read_byte(s_address, 0x2F, &u8_data);
+    sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data, 1);
     if (sts_val == ESP_OK) {
         // カウント
         *pu8_fifo_cnt = u8_data & 0x1F;
@@ -450,7 +566,7 @@ esp_err_t sts_lis3dh_fifo_cnt(ts_i2c_address_t s_address, uint8_t* pu8_fifo_cnt)
     //==========================================================================
     // I2Cトランザクション終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
@@ -462,9 +578,9 @@ esp_err_t sts_lis3dh_fifo_cnt(ts_i2c_address_t s_address, uint8_t* pu8_fifo_cnt)
  *
  * DESCRIPTION:ステータス
  *
- * PARAMETERS:            Name            RW  Usage
- *   ts_i2c_address       s_address       R   I2Cアドレス（ポート番号とスレーブアドレス）
- *   uint8_t*             pu8_status      W   ステータス編集対象
+ * PARAMETERS:          Name        \RW  Usage
+ *   ts_i2c_address*    ps_address  R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   uint8_t*           pu8_status  W   ステータス編集対象
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -472,11 +588,21 @@ esp_err_t sts_lis3dh_fifo_cnt(ts_i2c_address_t s_address, uint8_t* pu8_fifo_cnt)
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_lis3dh_status(ts_i2c_address_t s_address, uint8_t* pu8_status) {
+esp_err_t sts_lis3dh_status(ts_i2c_mst_address_t* ps_address, uint8_t* pu8_status) {
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    // I2Cアドレス
+    if (!b_valid_address(ps_address)) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    // I2C初期処理
+    pf_i2c_init(ps_address);
+
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
     if (sts_val != ESP_OK) {
         return sts_val;
     }
@@ -484,12 +610,15 @@ esp_err_t sts_lis3dh_status(ts_i2c_address_t s_address, uint8_t* pu8_status) {
     //==========================================================================
     // ステータスレジスタ読み込み
     //==========================================================================
-    sts_val = sts_read_byte(s_address, 0x27, pu8_status);
+    // レジスタアドレス
+    uint8_t u8_reg_address = 0x27;
+    // ステータスレジスタの読み込み
+    sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, pu8_status, 1);
 
     //==========================================================================
     // I2Cトランザクション終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
@@ -501,9 +630,9 @@ esp_err_t sts_lis3dh_status(ts_i2c_address_t s_address, uint8_t* pu8_status) {
  *
  * DESCRIPTION:加速度（XYZ軸）読み込み
  *
- * PARAMETERS:            Name            RW  Usage
- *   ts_i2c_address       s_address       R   I2Cアドレス（ポート番号とスレーブアドレス）
- *   ts_lis3dh_axes_data* ps_axes_data    W   編集対象
+ * PARAMETERS:              Name            RW  Usage
+ *   ts_i2c_address*        ps_address      R   I2Cアドレス（ポート番号とスレーブアドレス）
+ *   ts_lis3dh_axes_data*   ps_axes_data    W   編集対象
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
@@ -511,11 +640,21 @@ esp_err_t sts_lis3dh_status(ts_i2c_address_t s_address, uint8_t* pu8_status) {
  * NOTES:
  * None.
  ******************************************************************************/
-esp_err_t sts_lis3dh_acceleration(ts_i2c_address_t s_address, ts_lis3dh_axes_data_t* ps_axes_data) {
+esp_err_t sts_lis3dh_acceleration(ts_i2c_mst_address_t* ps_address, ts_lis3dh_axes_data_t* ps_axes_data) {
+    //==========================================================================
+    // 入力チェック
+    //==========================================================================
+    // I2Cアドレス
+    if (!b_valid_address(ps_address)) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    // I2C初期処理
+    pf_i2c_init(ps_address);
+
     //==========================================================================
     // I2Cトランザクションの開始
     //==========================================================================
-    esp_err_t sts_val = sts_io_i2c_mst_begin();
+    esp_err_t sts_val = sts_io_i2c_mst_tran_begin();
     if (sts_val != ESP_OK) {
         return sts_val;
     }
@@ -527,12 +666,16 @@ esp_err_t sts_lis3dh_acceleration(ts_i2c_address_t s_address, ts_lis3dh_axes_dat
         //----------------------------------------------------------------------
         // 加速度（X軸）読み込み
         //----------------------------------------------------------------------
+        // レジスタアドレス
+        uint8_t u8_reg_address = 0x28;
+        // 加速度（X軸）読み込み
         uint8_t u8_data[2];
-        sts_val = sts_read_byte(s_address, 0x28, &u8_data[0]);
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data[0], 1);
         if (sts_val != ESP_OK) {
             break;
         }
-        sts_val = sts_read_byte(s_address, 0x29, &u8_data[1]);
+        u8_reg_address = 0x29;
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data[1], 1);
         if (sts_val != ESP_OK) {
             break;
         }
@@ -544,11 +687,13 @@ esp_err_t sts_lis3dh_acceleration(ts_i2c_address_t s_address, ts_lis3dh_axes_dat
         //----------------------------------------------------------------------
         // 加速度（Y軸）読み込み
         //----------------------------------------------------------------------
-        sts_val = sts_read_byte(s_address, 0x2A, &u8_data[0]);
+        u8_reg_address = 0x2A;
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data[0], 1);
         if (sts_val != ESP_OK) {
             break;
         }
-        sts_val = sts_read_byte(s_address, 0x2B, &u8_data[1]);
+        u8_reg_address = 0x2B;
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data[1], 1);
         if (sts_val != ESP_OK) {
             break;
         }
@@ -559,11 +704,13 @@ esp_err_t sts_lis3dh_acceleration(ts_i2c_address_t s_address, ts_lis3dh_axes_dat
         //----------------------------------------------------------------------
         // 加速度（Z軸）読み込み
         //----------------------------------------------------------------------
-        sts_val = sts_read_byte(s_address, 0x2C, &u8_data[0]);
+        u8_reg_address = 0x2C;
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data[0], 1);
         if (sts_val != ESP_OK) {
             break;
         }
-        sts_val = sts_read_byte(s_address, 0x2D, &u8_data[1]);
+        u8_reg_address = 0x2D;
+        sts_val = sts_io_i2c_mst_txrx(ps_address, &u8_reg_address, 1, &u8_data[1], 1);
         if (sts_val != ESP_OK) {
             break;
         }
@@ -575,80 +722,86 @@ esp_err_t sts_lis3dh_acceleration(ts_i2c_address_t s_address, ts_lis3dh_axes_dat
     //==========================================================================
     // I2Cトランザクション終了
     //==========================================================================
-    sts_io_i2c_mst_end();
+    sts_io_i2c_mst_tran_end();
 
     // 結果返信
     return sts_val;
 }
+
 /******************************************************************************/
 /***        Local Functions                                                 ***/
 /******************************************************************************/
 
-/*******************************************************************************
+/*****************************************************************************
  *
- * NAME: sts_read_byte
+ * NAME: b_valid_address
  *
- * DESCRIPTION:デバイスから１バイト読み込み
+ * DESCRIPTION:有効アドレスチェック
  *
- * PARAMETERS:      Name            RW  Usage
- *   ts_i2c_address s_address       R   I2Cアドレス
- *   uint8_t        u8_address      R   レジスタアドレス
- *   uint8_t*       pu8_data        R   読み込みデータポインタ
+ * PARAMETERS:              Name            RW  Usage
+ *   ts_i2c_mst_address_t*  ps_address      R   I2Cアドレス
  *
  * RETURNS:
- *   esp_err_t:結果ステータス
+ *   true:有効なI2Cアドレス
  *
  * NOTES:
  * None.
- ******************************************************************************/
-static esp_err_t sts_read_byte(ts_i2c_address_t s_address, uint8_t u8_reg_address, uint8_t* pu8_data) {
-    // レジスタアドレスの書き込み開始
-    esp_err_t sts_val = sts_io_i2c_mst_start_write(s_address);
-    if (sts_val != ESP_OK) {
-        return sts_val;
+ *****************************************************************************/
+static bool b_valid_address(ts_i2c_mst_address_t* ps_address) {
+    // NULLチェック
+    if (ps_address == NULL) {
+        return false;
     }
-    // レジスタアドレス書き込み
-    sts_val = sts_io_i2c_mst_write(&u8_reg_address, 1, true);
-    if (sts_val != ESP_OK) {
-        return sts_val;
-    }
-    // 読み込み開始
-    sts_val = sts_io_i2c_mst_start_read(s_address);
-    if (sts_val != ESP_OK) {
-        return sts_val;
-    }
-    // データ読み込み
-    return sts_io_i2c_mst_read_stop(pu8_data, 1);
+    // アドレス
+    return (ps_address->u16_address == I2C_ADDR_LIS3DH_L ||
+            ps_address->u16_address == I2C_ADDR_LIS3DH_H);
 }
 
-/*******************************************************************************
+/*****************************************************************************
  *
- * NAME: sts_write_byte
+ * NAME: sts_i2c_init
  *
- * DESCRIPTION:デバイスへのデータの書き込み
+ * DESCRIPTION:I2C初期処理
  *
- * PARAMETERS:      Name            RW  Usage
- *   ts_i2c_address s_address       R   I2Cアドレス
- *   uint8_t        u8_address      R   レジスタアドレス
- *   uint8_t        u8_data         R   書き込みデータ
+ * PARAMETERS:              Name            RW  Usage
+ *   ts_i2c_mst_address_t*  ps_address      R   I2Cアドレス
  *
  * RETURNS:
  *   esp_err_t:結果ステータス
- *
+  *
  * NOTES:
  * None.
- ******************************************************************************/
-static esp_err_t sts_write_byte(ts_i2c_address_t s_address,
-                                   uint8_t u8_address,
-                                   uint8_t u8_data) {
-    // 書き込み開始
-    esp_err_t sts_val = sts_io_i2c_mst_start_write(s_address);
-    if (sts_val != ESP_OK) {
-       return sts_val;
+ *****************************************************************************/
+static esp_err_t sts_i2c_init(ts_i2c_mst_address_t* ps_address) {
+    //==========================================================================
+    // I2C初期化処理
+    //==========================================================================
+    // デバイス追加
+    esp_err_t sts_val = sts_io_i2c_mst_add_device(ps_address);
+    if (sts_val == ESP_OK) {
+        pf_i2c_init = sts_i2c_init_dmy;
     }
-    // レジスタアドレスとデータの書き込み
-    uint8_t u8_data_list[2] = {u8_address, u8_data};
-    return sts_io_i2c_mst_write_stop(u8_data_list, 2, true);
+    // 結果ステータス返却
+    return sts_val;
+}
+
+/*****************************************************************************
+ *
+ * NAME: sts_i2c_init
+ *
+ * DESCRIPTION:I2C初期処理
+ *
+ * PARAMETERS:              Name            RW  Usage
+ *   ts_i2c_mst_address_t*  ps_address      R   I2Cアドレス
+ *
+ * RETURNS:
+ *   esp_err_t:結果ステータス
+  *
+ * NOTES:
+ * None.
+ *****************************************************************************/
+static esp_err_t sts_i2c_init_dmy(ts_i2c_mst_address_t* ps_address) {
+    return ESP_OK;
 }
 
 /******************************************************************************/
