@@ -79,6 +79,15 @@ Given this background, it was inevitable for me to develop this system.
 | 2016 | While I was in a store, a suspicious person came in and sat next to me and started talking to the staff.<br>He introduced himself as an employee of a company in Akasaka, Tokyo that makes advertising websites, but he kept making remarks as if he was gossiping about my private life.<br>His company was near a TV program production company that used to be my neighbor, so I looked into it and found out it was a different program production company.<br>The company was "Glue Inc." From that day on, in my mind, I began to refer to my attackers as "Minions."<br>For the entire day that day, I was followed by a suspicious person who claimed to be from the TV industry. |
 | 2020s | I had been asked to be a guarantor for a long time.<br>In the end, another victim who I had known for many years became the guarantor.<br>That person, like me, had been a victim of gang stalking, and was the family of a former secretary to a member of the Diet.<br>The person who asked the family of the secretary to be the guarantor was a former secretary to a member of the Diet of Japan's ruling party, which was established with financial support from the CIA.<br>The former secretary was an executive of a company related to a famous shrine, a problematic company with ties to anti-social forces.<br>The company had been in trouble for colluding with gangsters and others to buy land for the construction of the headquarters building of a major security company (where police officers were transferred).<br>The employer of a criminal who was the model for the drama "Jimenshi" distributed on NETFLIX proposed a profitable business idea and borrowed political funds under that pretext.<br>It was explained that the funds were used for questionable donations during elections.<br>The victim was forced to become a guarantor and was asked for tens of millions of yen, which led to a lawsuit.<br>The victim was a disabled person who had suffered from mental illness due to years of wiretapping and group stalking, and had run away from home a long time ago to seek refuge at the church.<br>I had seen him being harassed by plainclothes security guards at supermarkets and other places many times, and I knew that he was being harassed at local stores and other places.<br>As a fellow victim, I helped with the legal proceedings.<br>Because Japanese gods are only kind to the yakuza, the victim ended up losing his home. |
 
+# Photos(Version 1.1.0)
+The photos show the actual product, 
+![Image](https://github.com/user-attachments/assets/4eedb8aa-7546-44d4-b279-d6051fcc6bfc)
+![Image](https://github.com/user-attachments/assets/cf0b6a01-afca-418d-87c4-a1bc3a29b0f9)
+![Image](https://github.com/user-attachments/assets/d3d608fb-e807-44dd-bbac-2eff436d26cd)
+![Image](https://github.com/user-attachments/assets/caa22ec3-5b38-43ad-8f6b-6d51a0d2bb9a)
+![Image](https://github.com/user-attachments/assets/6291c14b-a2c5-48b9-a028-6d9d43044c62)
+![Image](https://github.com/user-attachments/assets/be915f23-153d-4956-95cd-c60ec368f290)
+
 # Photos
 The photos show the actual product, 
 as well as part of the investigation report and medical certificate from when 
@@ -95,12 +104,4 @@ rd_m](https://github.com/user-attachments/assets/d411b2b0-3ee6-453f-9619-f859998
 ![200902_public_bee_report_01](https://github.com/user-attachments/assets/09362294-1518-466f-b4c6-3f2e8f4acfc1)
 ![20150127_都立広尾病院](https://github.com/user-attachments/assets/e201aecf-1e0e-4d8b-ad70-9fe179aca791)
 ![20151218_新東京病院](https://github.com/user-attachments/assets/406ed4e3-4426-413b-ba4e-66aedee3c8a4)
-
-# Photos(Version 1.1.0)
-![Image](https://github.com/user-attachments/assets/4eedb8aa-7546-44d4-b279-d6051fcc6bfc)
-![Image](https://github.com/user-attachments/assets/cf0b6a01-afca-418d-87c4-a1bc3a29b0f9)
-![Image](https://github.com/user-attachments/assets/d3d608fb-e807-44dd-bbac-2eff436d26cd)
-![Image](https://github.com/user-attachments/assets/caa22ec3-5b38-43ad-8f6b-6d51a0d2bb9a)
-![Image](https://github.com/user-attachments/assets/6291c14b-a2c5-48b9-a028-6d9d43044c62)
-![Image](https://github.com/user-attachments/assets/be915f23-153d-4956-95cd-c60ec368f290)
 
