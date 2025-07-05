@@ -96,3 +96,11 @@ rd_m](https://github.com/user-attachments/assets/d411b2b0-3ee6-453f-9619-f859998
 ![20150127_都立広尾病院](https://github.com/user-attachments/assets/e201aecf-1e0e-4d8b-ad70-9fe179aca791)
 ![20151218_新東京病院](https://github.com/user-attachments/assets/406ed4e3-4426-413b-ba4e-66aedee3c8a4)
 
+# Photos(Version 1.1.0)
+![Image](https://github.com/user-attachments/assets/4eedb8aa-7546-44d4-b279-d6051fcc6bfc)
+![Image](https://github.com/user-attachments/assets/cf0b6a01-afca-418d-87c4-a1bc3a29b0f9)
+![Image](https://github.com/user-attachments/assets/d3d608fb-e807-44dd-bbac-2eff436d26cd)
+![Image](https://github.com/user-attachments/assets/caa22ec3-5b38-43ad-8f6b-6d51a0d2bb9a)
+![Image](https://github.com/user-attachments/assets/6291c14b-a2c5-48b9-a028-6d9d43044c62)
+![Image](https://github.com/user-attachments/assets/be915f23-153d-4956-95cd-c60ec368f290)
+
